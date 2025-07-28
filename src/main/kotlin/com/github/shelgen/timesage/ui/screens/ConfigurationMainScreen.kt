@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.cronjobs.AvailabilityMessageSender
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.updateConfiguration
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -63,6 +64,7 @@ class ConfigurationMainScreen : Screen() {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     updateConfiguration { it.copy(enabled = true) }
+                    AvailabilityMessageSender.sendMessage()
                 }
             }
 
