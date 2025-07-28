@@ -1,0 +1,84 @@
+package com.github.shelgen.timesage.ui.screens
+
+import com.github.shelgen.timesage.planning.Planner
+import com.github.shelgen.timesage.repositories.ConfigurationRepository
+import com.github.shelgen.timesage.repositories.WeekRepository
+import com.github.shelgen.timesage.ui.AlternativePrinter
+import com.github.shelgen.timesage.ui.DiscordFormatter
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
+import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.container.Container
+import net.dv8tion.jda.api.components.textdisplay.TextDisplay
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import java.time.LocalDate
+
+class PlanAlternativeSuggestedScreen(
+    val weekMondayDate: LocalDate,
+    val alternativeNumber: Int,
+    val suggestingUserId: Long,
+) : Screen() {
+    override fun renderComponents(): List<MessageTopLevelComponent> {
+        val plan = Planner(
+            configuration = ConfigurationRepository.load(),
+            week = WeekRepository.load(weekMondayDate)
+        ).generatePossiblePlans()[alternativeNumber - 1]
+        return listOf(
+            TextDisplay.of(
+                "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests this alternative:"
+            ),
+            Container.of(
+                TextDisplay.of(AlternativePrinter.printAlternative(alternativeNumber, plan))
+            ),
+            ActionRow.of(
+                Buttons.ConcludeWithThisAlternative(
+                    screen = this@PlanAlternativeSuggestedScreen
+                ).render()
+            )
+        )
+    }
+
+    override fun parameters(): List<String> =
+        listOf(
+            weekMondayDate.toString(),
+            alternativeNumber.toString(),
+            suggestingUserId.toString()
+        )
+
+    companion object {
+        fun reconstruct(parameters: List<String>) = PlanAlternativeSuggestedScreen(
+            weekMondayDate = LocalDate.parse(parameters[0]),
+            alternativeNumber = parameters[1].toInt(),
+            suggestingUserId = parameters[2].toLong()
+        )
+    }
+
+    class Buttons {
+        class ConcludeWithThisAlternative(screen: PlanAlternativeSuggestedScreen) :
+            ScreenButton<PlanAlternativeSuggestedScreen>(
+                style = ButtonStyle.SUCCESS,
+                label = "Conclude with this alternative",
+                screen = screen
+            ) {
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndAddPublicScreen {
+                    PlanAlternativeConcludedScreen(
+                        weekMondayDate = screen.weekMondayDate,
+                        alternativeNumber = screen.alternativeNumber
+                    )
+                }
+            }
+
+            override fun parameters(): List<String> = emptyList()
+
+            object Reconstructor :
+                ScreenComponentReconstructor<PlanAlternativeSuggestedScreen, ConcludeWithThisAlternative>(
+                    screenClass = PlanAlternativeSuggestedScreen::class,
+                    componentClass = ConcludeWithThisAlternative::class
+                ) {
+                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
+                    ConcludeWithThisAlternative(screen = reconstruct(screenParameters))
+            }
+        }
+    }
+}
