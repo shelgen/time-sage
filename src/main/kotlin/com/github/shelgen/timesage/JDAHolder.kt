@@ -7,7 +7,7 @@ import java.io.File
 
 object JDAHolder {
     val jda: JDA = run {
-        val botToken = File("time-sage-bot.token").readText()
+        val botToken = File("time-sage-bot.token").readText().trim()
         logger.info("Logging on with token")
         val build = JDABuilder.createDefault(botToken)
             .setActivity(Activity.playing(" at being developed"))
