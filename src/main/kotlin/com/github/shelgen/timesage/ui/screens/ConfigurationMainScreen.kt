@@ -15,39 +15,35 @@ import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionE
 
 class ConfigurationMainScreen : Screen() {
     override fun renderComponents(): List<MessageTopLevelComponent> =
-        ConfigurationRepository.load()
-            .let { configuration ->
-                listOf(
-                    TextDisplay.of("# Time Sage configuration"),
-                    Section.of(
-                        if (configuration.enabled) {
-                            Buttons.Disable(this@ConfigurationMainScreen).render()
-                        } else {
-                            Buttons.Enable(this@ConfigurationMainScreen).render()
-                        },
-                        TextDisplay.of(DiscordFormatter.bold("Enabled") + ": " + (if (configuration.enabled) "Yes" else "No"))
-                    ),
-                    TextDisplay.of(DiscordFormatter.bold("Channel") + ":"),
-                    ActionRow.of(
-                        SelectMenus.Channel(this@ConfigurationMainScreen).render()
-                    ),
-                    TextDisplay.of(DiscordFormatter.bold("Campaigns") + ":"),
-                ) + if (configuration.campaigns.isEmpty()) {
-                    listOf(TextDisplay.of(DiscordFormatter.italics("There are currently no campaigns.")))
+        listOf(
+            TextDisplay.of("# Time Sage configuration"),
+            Section.of(
+                if (configuration.enabled) {
+                    Buttons.Disable(this@ConfigurationMainScreen).render()
                 } else {
-                    configuration.campaigns.map {
-                        Section.of(
-                            Buttons.EditCampaign(it.id, this@ConfigurationMainScreen)
-                                .render(),
-                            TextDisplay.of("- ${it.name}")
-                        )
-                    }
-                } + listOf(
-                    ActionRow.of(
-                        Buttons.AddCampaign(this@ConfigurationMainScreen).render()
-                    )
+                    Buttons.Enable(this@ConfigurationMainScreen).render()
+                },
+                TextDisplay.of(DiscordFormatter.bold("Enabled") + ": " + (if (configuration.enabled) "Yes" else "No"))
+            ),
+            TextDisplay.of(DiscordFormatter.bold("Channel") + ":"),
+            ActionRow.of(
+                SelectMenus.Channel(this@ConfigurationMainScreen).render()
+            ),
+            TextDisplay.of(DiscordFormatter.bold("Campaigns") + ":"),
+        ) + if (configuration.campaigns.isEmpty()) {
+            listOf(TextDisplay.of(DiscordFormatter.italics("There are currently no campaigns.")))
+        } else {
+            configuration.campaigns.map {
+                Section.of(
+                    Buttons.EditCampaign(it.id, this@ConfigurationMainScreen).render(),
+                    TextDisplay.of("- ${it.name}")
                 )
             }
+        } + listOf(
+            ActionRow.of(
+                Buttons.AddCampaign(this@ConfigurationMainScreen).render()
+            )
+        )
 
     override fun parameters(): List<String> = emptyList()
 
@@ -168,7 +164,7 @@ class ConfigurationMainScreen : Screen() {
             minValues = 0,
             maxValues = 1,
             channelTypes = setOf(ChannelType.TEXT),
-            defaultSelectedChannelIds = ConfigurationRepository.load().channelId?.let(::listOf).orEmpty(),
+            defaultSelectedChannelIds = screen.configuration.channelId?.let(::listOf).orEmpty(),
             screen = screen
         ) {
             override fun handle(event: EntitySelectInteractionEvent) {

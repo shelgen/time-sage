@@ -1,7 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -19,10 +18,9 @@ class PlanAlternativeListScreen(
     val size: Int
 ) : Screen() {
     override fun renderComponents(): List<MessageTopLevelComponent> {
-        val plans: List<Planner.Plan> = Planner(
-            configuration = ConfigurationRepository.load(),
-            week = WeekRepository.load(weekMondayDate)
-        ).generatePossiblePlans()
+        val plans =
+            Planner(configuration = configuration, week = WeekRepository.load(weekMondayDate))
+                .generatePossiblePlans()
         val alternativeNumberedPlans =
             plans.drop(startIndex).take(size)
                 .mapIndexed { index, weekPlan -> startIndex + index + 1 to weekPlan }

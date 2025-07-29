@@ -1,7 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -13,15 +12,13 @@ class PlayerAvailabilityReminderScreen(val weekMondayDate: LocalDate) : Screen()
         val week = WeekRepository.load(weekMondayDate)
         val playerResponses = week.playerResponses
 
-        val unansweredPlayers = ConfigurationRepository.load()
-            .campaigns
+        val unansweredPlayers = configuration.campaigns
             .flatMap { it.gmDiscordIds + it.playerDiscordIds }
             .filter { playerResponses[it] == null }
             .distinct()
             .sorted()
 
         return if (unansweredPlayers.isNotEmpty()) {
-            val configuration = ConfigurationRepository.load()
             val channelId = configuration.channelId
             if (channelId != null) {
                 val channel = JDAHolder.jda.getTextChannelById(channelId)!!

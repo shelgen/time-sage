@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
@@ -24,6 +25,8 @@ import net.dv8tion.jda.api.utils.messages.MessageEditData
 import net.dv8tion.jda.api.utils.messages.MessageEditData.fromCreateData
 
 sealed class Screen() : SerializableWithParameters {
+    protected val configuration = ConfigurationRepository.load()
+
     abstract fun renderComponents(): List<MessageTopLevelComponent>
 
     fun render(): MessageCreateData =

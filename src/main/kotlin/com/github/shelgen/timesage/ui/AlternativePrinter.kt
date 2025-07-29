@@ -2,10 +2,11 @@ package com.github.shelgen.timesage.ui
 
 import com.github.shelgen.timesage.atNormalStartTime
 import com.github.shelgen.timesage.planning.Planner
+import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.getCampaign
-import com.github.shelgen.timesage.repositories.getCampaignParticipants
+import com.github.shelgen.timesage.repositories.getParticipants
 
-object AlternativePrinter {
+class AlternativePrinter(private val configuration: ConfigurationRepository.ConfigurationDto) {
     fun printAlternative(alternativeNumber: Int, plan: Planner.Plan) =
         "-# Alternative $alternativeNumber (Score ${plan.score.toShortString()})\n" +
                 plan.print()
@@ -21,10 +22,10 @@ object AlternativePrinter {
         DiscordFormatter.timestamp(date.atNormalStartTime(), DiscordFormatter.TimestampFormat.LONG_DATE_TIME)
 
     private fun Planner.Plan.Session.printCampaign(): String =
-        DiscordFormatter.bold(getCampaign(campaignId).name)
+        DiscordFormatter.bold(configuration.getCampaign(campaignId).name)
 
     private fun Planner.Plan.Session.printPlayers() =
-        getCampaignParticipants(campaignId)
+        configuration.getCampaign(campaignId).getParticipants()
             .joinToString(
                 separator = "\n",
                 postfix = "\n"

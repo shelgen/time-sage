@@ -2,7 +2,6 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.atNormalStartTime
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.repositories.WeekRepository.WeekDto.PlayerResponse.AvailabilityStatus
 import com.github.shelgen.timesage.repositories.updateWeek
@@ -118,8 +117,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate) : Screen() {
 
     private fun renderMissingResponses(week: WeekRepository.WeekDto) =
         listOfNotNull(
-            ConfigurationRepository.load()
-                .campaigns
+            configuration.campaigns
                 .flatMap { it.gmDiscordIds + it.playerDiscordIds }
                 .filter { week.playerResponses[it] == null }
                 .distinct()

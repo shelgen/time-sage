@@ -16,10 +16,9 @@ class PlanAlternativeConcludedScreen(
     val alternativeNumber: Int,
 ) : Screen() {
     override fun renderComponents(): List<MessageTopLevelComponent> {
-        val plan = Planner(
-            configuration = ConfigurationRepository.load(),
-            week = WeekRepository.load(weekMondayDate)
-        ).generatePossiblePlans()[alternativeNumber - 1]
+        val plan =
+            Planner(configuration = configuration, week = WeekRepository.load(weekMondayDate))
+                .generatePossiblePlans()[alternativeNumber - 1]
         val dates = weekDatesForMonday(weekMondayDate)
         return listOf(
             TextDisplay.of(
@@ -62,8 +61,7 @@ class PlanAlternativeConcludedScreen(
     }
 
     private fun getNonParticipatingPlayers(plan: Planner.Plan) =
-        ConfigurationRepository.load()
-            .campaigns
+        configuration.campaigns
             .flatMap { it.gmDiscordIds + it.playerDiscordIds }
             .distinct()
             .minus(

@@ -2,13 +2,11 @@ package com.github.shelgen.timesage.repositories
 
 import java.time.LocalDate
 
-fun getCampaignParticipants(campaignId: Int) = getCampaign(campaignId).getParticipants()
+fun ConfigurationRepository.ConfigurationDto.getCampaign(campaignId: Int): ConfigurationRepository.ConfigurationDto.CampaignDto =
+    campaigns.first { it.id == campaignId }
 
-private fun ConfigurationRepository.ConfigurationDto.CampaignDto.getParticipants() =
+fun ConfigurationRepository.ConfigurationDto.CampaignDto.getParticipants() =
     (gmDiscordIds + playerDiscordIds).distinct().sorted()
-
-fun getCampaign(campaignId: Int): ConfigurationRepository.ConfigurationDto.CampaignDto =
-    ConfigurationRepository.load().campaigns.first { it.id == campaignId }
 
 fun updateConfiguration(
     reducer: (configuration: ConfigurationRepository.ConfigurationDto) -> ConfigurationRepository.ConfigurationDto

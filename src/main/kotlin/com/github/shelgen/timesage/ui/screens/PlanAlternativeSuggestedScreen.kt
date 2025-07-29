@@ -1,7 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -19,10 +18,8 @@ class PlanAlternativeSuggestedScreen(
     val suggestingUserId: Long,
 ) : Screen() {
     override fun renderComponents(): List<MessageTopLevelComponent> {
-        val plan = Planner(
-            configuration = ConfigurationRepository.load(),
-            week = WeekRepository.load(weekMondayDate)
-        ).generatePossiblePlans()[alternativeNumber - 1]
+        val plan = Planner(configuration = configuration, week = WeekRepository.load(weekMondayDate))
+            .generatePossiblePlans()[alternativeNumber - 1]
         return listOf(
             TextDisplay.of(
                 "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests this alternative:"

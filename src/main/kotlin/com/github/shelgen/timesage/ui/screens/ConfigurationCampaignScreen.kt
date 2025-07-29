@@ -1,6 +1,5 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.getCampaign
 import com.github.shelgen.timesage.repositories.updateCampaign
 import com.github.shelgen.timesage.repositories.updateConfiguration
@@ -26,7 +25,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             ),
             Section.of(
                 Buttons.EditName(this@ConfigurationCampaignScreen).render(),
-                TextDisplay.of("### ${getCampaign(campaignId).name}")
+                TextDisplay.of("### ${configuration.getCampaign(campaignId).name}")
             ),
             TextDisplay.of(DiscordFormatter.bold("GM's") + ":"),
             ActionRow.of(
@@ -129,7 +128,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
         class GMs(screen: ConfigurationCampaignScreen) : ScreenUserSelectMenu<ConfigurationCampaignScreen>(
             minValues = 1,
             maxValues = 25,
-            defaultSelectedUserIds = getCampaign(screen.campaignId).gmDiscordIds,
+            defaultSelectedUserIds = screen.configuration.getCampaign(screen.campaignId).gmDiscordIds,
             screen = screen
         ) {
             override fun handle(event: EntitySelectInteractionEvent) {
@@ -156,7 +155,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             ScreenUserSelectMenu<ConfigurationCampaignScreen>(
                 minValues = 1,
                 maxValues = 25,
-                defaultSelectedUserIds = getCampaign(screen.campaignId).playerDiscordIds,
+                defaultSelectedUserIds = screen.configuration.getCampaign(screen.campaignId).playerDiscordIds,
                 screen = screen
             ) {
             override fun handle(event: EntitySelectInteractionEvent) {
@@ -185,7 +184,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                 minValues = 1,
                 maxValues = 1,
                 options = (0..4).map(Int::toString),
-                defaultSelectedValues = listOf(getCampaign(screen.campaignId).maxNumMissingPlayers.toString()),
+                defaultSelectedValues = listOf(screen.configuration.getCampaign(screen.campaignId).maxNumMissingPlayers.toString()),
                 screen = screen
             ) {
             override fun handle(event: StringSelectInteractionEvent) {
@@ -215,7 +214,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             textInputs = listOf(
                 TextInput.create("name", "Name", TextInputStyle.SHORT)
                     .setPlaceholder("Name of the campaign")
-                    .setValue(getCampaign(screen.campaignId).name)
+                    .setValue(screen.configuration.getCampaign(screen.campaignId).name)
                     .build()
             ),
             screen = screen
