@@ -11,24 +11,31 @@ import java.time.Instant
 import java.time.LocalDate
 
 object WeekRepository {
-    private val cache: LoadingCache<LocalDate, WeekDto> = Caffeine.newBuilder()
-        .build(CacheLoader(::loadFile))
+    private val cache: LoadingCache<CacheKey, WeekDto> = Caffeine.newBuilder()
+        .build(CacheLoader { loadFile(guildId = it.guildId, weekMondayDate = it.weekMondayDate) })
+
+    data class CacheKey(val guildId: Long, val weekMondayDate: LocalDate)
 
     fun save(week: WeekDto) {
         val start = Instant.now()
-        val file = File(File("time-sage-weeks").also(File::mkdirs), "${week.mondayDate}.json")
+        val file = getWeekFile(guildId = week.guildId, weekMondayDate = week.mondayDate).also { it.parentFile.mkdirs() }
         objectMapper
             .writerWithDefaultPrettyPrinter()
             .writeValue(file, week)
-        cache.invalidate(week.mondayDate)
+        cache.invalidate(CacheKey(guildId = week.guildId, weekMondayDate = week.mondayDate))
         logger.debug("Saved week to ${file.path} in ${Duration.between(start, Instant.now()).toMillis()}ms")
     }
 
-    fun load(weekMondayDate: LocalDate): WeekDto = cache.get(weekMondayDate)
+    fun load(guildId: Long, weekMondayDate: LocalDate): WeekDto = cache.get(
+        CacheKey(
+            guildId = guildId,
+            weekMondayDate = weekMondayDate
+        )
+    )
 
-    private fun loadFile(weekMondayDate: LocalDate): WeekDto {
+    private fun loadFile(guildId: Long, weekMondayDate: LocalDate): WeekDto {
         val start = Instant.now()
-        val file = File(File("time-sage-weeks").also(File::mkdirs), "$weekMondayDate.json")
+        val file = getWeekFile(guildId = guildId, weekMondayDate = weekMondayDate)
         return file
             .takeIf(File::exists)
             ?.let { file ->
@@ -42,6 +49,7 @@ object WeekRepository {
                     }
             }
             ?: WeekDto(
+                guildId = guildId,
                 mondayDate = weekMondayDate,
                 weekAvailabilityMessageDiscordId = null,
                 playerResponses = emptyMap()
@@ -49,6 +57,7 @@ object WeekRepository {
     }
 
     data class WeekDto(
+        val guildId: Long,
         val mondayDate: LocalDate,
         val weekAvailabilityMessageDiscordId: Long?,
         val playerResponses: Map<Long, PlayerResponse>,
@@ -62,4 +71,10 @@ object WeekRepository {
             }
         }
     }
+
+    private fun getWeekFile(guildId: Long, weekMondayDate: LocalDate): File =
+        File(getWeekDir(guildId), "$weekMondayDate.json")
+
+    private fun getWeekDir(guildId: Long): File =
+        File(getServerDir(guildId), "weeks")
 }

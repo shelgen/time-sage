@@ -41,28 +41,44 @@ class TimeSage : ListenerAdapter() {
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
         val id = event.componentId
         logger.info("Received ButtonInteractionEvent (user ${event.user.name}, custom id $id")
-        val button = CustomIdSerialization.deserialize(customId = id, ScreenButton::class)
+        val button = CustomIdSerialization.deserialize(
+            customId = id,
+            expectedType = ScreenButton::class,
+            guildId = event.guild!!.idLong
+        )
         button.handle(event)
     }
 
     override fun onEntitySelectInteraction(event: EntitySelectInteractionEvent) {
         val id = event.componentId
         logger.info("Received EntitySelectInteractionEvent (user ${event.user.name}, custom id $id")
-        val selectMenu = CustomIdSerialization.deserialize(customId = id, ScreenEntitySelectMenu::class)
+        val selectMenu = CustomIdSerialization.deserialize(
+            customId = id,
+            expectedType = ScreenEntitySelectMenu::class,
+            guildId = event.guild!!.idLong
+        )
         selectMenu.handle(event)
     }
 
     override fun onStringSelectInteraction(event: StringSelectInteractionEvent) {
         val id = event.componentId
         logger.info("Received StringSelectInteractionEvent (user ${event.user.name}, custom id $id")
-        val selectMenu = CustomIdSerialization.deserialize(customId = id, ScreenStringSelectMenu::class)
+        val selectMenu = CustomIdSerialization.deserialize(
+            customId = id,
+            expectedType = ScreenStringSelectMenu::class,
+            guildId = event.guild!!.idLong
+        )
         selectMenu.handle(event)
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
         val id = event.modalId
         logger.info("Received ModalInteractionEvent (user ${event.user.name}, custom id $id")
-        val modal = CustomIdSerialization.deserialize(customId = id, ScreenModal::class)
+        val modal = CustomIdSerialization.deserialize(
+            customId = id,
+            expectedType = ScreenModal::class,
+            guildId = event.guild!!.idLong
+        )
         modal.handle(event)
     }
 
@@ -72,7 +88,10 @@ class TimeSage : ListenerAdapter() {
         if (command == null) {
             event.reply("Sorry, I don't recognize the command you just used. Maybe it's an outdated one?").queue()
         } else {
-            command.handle(event)
+            command.handle(
+                event = event,
+                guildId = event.guild!!.idLong
+            )
         }
     }
 }

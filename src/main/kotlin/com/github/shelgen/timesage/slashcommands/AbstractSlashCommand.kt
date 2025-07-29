@@ -6,5 +6,5 @@ sealed class AbstractSlashCommand(
     val name: String,
     val description: String
 ) {
-    abstract fun handle(event: SlashCommandInteractionEvent)
+    abstract fun handle(event: SlashCommandInteractionEvent, guildId: Long)
 }

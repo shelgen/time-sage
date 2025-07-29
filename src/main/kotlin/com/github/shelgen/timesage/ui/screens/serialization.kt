@@ -18,7 +18,7 @@ object CustomIdSerialization {
         return "$screenPart|$componentPart|$randomPart"
     }
 
-    fun <T : ScreenComponent<*, *, *>> deserialize(customId: String, expectedType: KClass<T>): T {
+    fun <T : ScreenComponent<*, *, *>> deserialize(customId: String, expectedType: KClass<T>, guildId: Long): T {
         val (screenPart, componentPart, randomPart) = customId.split('|', limit = 3)
         val (screenClassNameHashcode, screenParameters) = deserializePart(screenPart)
         val (omponentClassNameHashcode, componentParameters) = deserializePart(componentPart)
@@ -35,7 +35,8 @@ object CustomIdSerialization {
         @Suppress("UNCHECKED_CAST")
         return reconstructor.reconstruct(
             screenParameters = screenParameters,
-            componentParameters = componentParameters
+            componentParameters = componentParameters,
+            guildId = guildId
         ) as T
     }
 
@@ -61,5 +62,5 @@ sealed class ScreenComponentReconstructor<SCREEN : Screen, COMPONENT : ScreenCom
     val screenClass: KClass<SCREEN>,
     val componentClass: KClass<COMPONENT>
 ) {
-    abstract fun reconstruct(screenParameters: List<String>, componentParameters: List<String>): COMPONENT
+    abstract fun reconstruct(screenParameters: List<String>, componentParameters: List<String>, guildId: Long): COMPONENT
 }

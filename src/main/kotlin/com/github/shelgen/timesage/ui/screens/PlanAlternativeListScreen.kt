@@ -15,12 +15,18 @@ import java.time.LocalDate
 class PlanAlternativeListScreen(
     val weekMondayDate: LocalDate,
     val startIndex: Int,
-    val size: Int
-) : Screen() {
+    val size: Int,
+    guildId: Long
+) : Screen(guildId) {
     override fun renderComponents(): List<MessageTopLevelComponent> {
         val plans =
-            Planner(configuration = configuration, week = WeekRepository.load(weekMondayDate))
-                .generatePossiblePlans()
+            Planner(
+                configuration = configuration,
+                week = WeekRepository.load(
+                    guildId = guildId,
+                    weekMondayDate = weekMondayDate
+                )
+            ).generatePossiblePlans()
         val alternativeNumberedPlans =
             plans.drop(startIndex).take(size)
                 .mapIndexed { index, weekPlan -> startIndex + index + 1 to weekPlan }
@@ -62,7 +68,7 @@ class PlanAlternativeListScreen(
                 alternativeHashcode = plan.hashCode(),
                 screen = this@PlanAlternativeListScreen
             ).render(),
-            TextDisplay.of(AlternativePrinter.printAlternative(alternativeNumber, plan))
+            TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
         )
     )
 
@@ -81,10 +87,11 @@ class PlanAlternativeListScreen(
         listOf(weekMondayDate.toString(), startIndex.toString(), size.toString())
 
     companion object {
-        fun reconstruct(parameters: List<String>) = PlanAlternativeListScreen(
+        fun reconstruct(parameters: List<String>, guildId: Long) = PlanAlternativeListScreen(
             weekMondayDate = LocalDate.parse(parameters[0]),
             startIndex = parameters[1].toInt(),
-            size = parameters[2].toInt()
+            size = parameters[2].toInt(),
+            guildId = guildId
         )
     }
 
@@ -105,6 +112,7 @@ class PlanAlternativeListScreen(
                         weekMondayDate = screen.weekMondayDate,
                         alternativeNumber = alternativeNumber,
                         suggestingUserId = event.user.idLong,
+                        guildId = screen.guildId
                     )
                 }
             }
@@ -117,11 +125,18 @@ class PlanAlternativeListScreen(
                     screenClass = PlanAlternativeListScreen::class,
                     componentClass = SuggestAlternative::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     SuggestAlternative(
                         alternativeNumber = componentParameters[0].toInt(),
                         alternativeHashcode = componentParameters[1].toInt(),
-                        screen = reconstruct(screenParameters)
+                        screen = reconstruct(
+                            parameters = screenParameters,
+                            guildId = guildId
+                        )
                     )
             }
         }
@@ -137,7 +152,8 @@ class PlanAlternativeListScreen(
                     PlanAlternativeListScreen(
                         weekMondayDate = screen.weekMondayDate,
                         startIndex = screen.startIndex + screen.size,
-                        size = nextSize
+                        size = nextSize,
+                        guildId = screen.guildId
                     )
                 }
             }
@@ -149,10 +165,17 @@ class PlanAlternativeListScreen(
                     screenClass = PlanAlternativeListScreen::class,
                     componentClass = ShowMoreAlternatives::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     ShowMoreAlternatives(
                         nextSize = componentParameters.first().toInt(),
-                        screen = reconstruct(screenParameters)
+                        screen = reconstruct(
+                            parameters = screenParameters,
+                            guildId = guildId
+                        )
                     )
             }
         }

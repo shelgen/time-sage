@@ -19,9 +19,9 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-class PlayerAvailabilityScreen(val weekMondayDate: LocalDate) : Screen() {
+class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
     override fun renderComponents() =
-        WeekRepository.load(weekMondayDate).let { week ->
+        WeekRepository.load(guildId = guildId, weekMondayDate = weekMondayDate).let { week ->
             val dates = weekDatesForMonday(weekMondayDate)
             listOf(
                 renderHeader(dates.first(), dates.last()),
@@ -134,8 +134,8 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate) : Screen() {
     override fun parameters(): List<String> = listOf(weekMondayDate.toString())
 
     companion object {
-        fun reconstruct(parameters: List<String>) =
-            PlayerAvailabilityScreen(weekMondayDate = LocalDate.parse(parameters.first()))
+        fun reconstruct(parameters: List<String>, guildId: Long) =
+            PlayerAvailabilityScreen(weekMondayDate = LocalDate.parse(parameters.first()), guildId)
     }
 
     class Buttons {
@@ -149,7 +149,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate) : Screen() {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    updateWeek(screen.weekMondayDate) { week ->
+                    updateWeek(screen.guildId, screen.weekMondayDate) { week ->
                         val oldAvailability = week.playerResponses[userId]?.availability[date]
                         val newAvailability = when (oldAvailability) {
                             null -> AvailabilityStatus.AVAILABLE
@@ -179,10 +179,14 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate) : Screen() {
                     screenClass = PlayerAvailabilityScreen::class,
                     componentClass = ToggleDateAvailability::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     ToggleDateAvailability(
                         date = LocalDate.parse(componentParameters.first()),
-                        screen = reconstruct(screenParameters)
+                        screen = reconstruct(parameters = screenParameters, guildId = guildId)
                     )
             }
         }
@@ -197,7 +201,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate) : Screen() {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    updateWeek(screen.weekMondayDate) { week ->
+                    updateWeek(screen.guildId, screen.weekMondayDate) { week ->
                         val oldLimit = week.playerResponses[userId]?.sessionLimit
                         val newLimit = when (oldLimit) {
                             0 -> 2
@@ -226,9 +230,13 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate) : Screen() {
                     screenClass = PlayerAvailabilityScreen::class,
                     componentClass = ToggleWeekSessionLimit::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     ToggleWeekSessionLimit(
-                        screen = reconstruct(screenParameters)
+                        screen = reconstruct(parameters = screenParameters, guildId = guildId)
                     )
             }
         }

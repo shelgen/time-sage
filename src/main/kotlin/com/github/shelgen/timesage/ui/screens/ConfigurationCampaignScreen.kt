@@ -16,7 +16,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 
-class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
+class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : Screen(guildId) {
     override fun renderComponents(): List<MessageTopLevelComponent> =
         listOf(
             TextDisplay.of(
@@ -50,7 +50,8 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
     override fun parameters(): List<String> = listOf(campaignId.toString())
 
     companion object {
-        fun reconstruct(parameters: List<String>) = ConfigurationCampaignScreen(campaignId = parameters.first().toInt())
+        fun reconstruct(parameters: List<String>, guildId: Long) =
+            ConfigurationCampaignScreen(campaignId = parameters.first().toInt(), guildId)
     }
 
     class Buttons {
@@ -70,8 +71,12 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                     screenClass = ConfigurationCampaignScreen::class,
                     componentClass = EditName::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
-                    EditName(screen = reconstruct(screenParameters))
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
+                    EditName(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
 
@@ -82,11 +87,11 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
         ) {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
-                    updateConfiguration { configuration ->
+                    updateConfiguration(screen.guildId) { configuration ->
                         val campaignToRemove = configuration.campaigns.first { it.id == screen.campaignId }
                         configuration.copy(campaigns = (configuration.campaigns - campaignToRemove).toSortedSet())
                     }
-                    ConfigurationMainScreen()
+                    ConfigurationMainScreen(screen.guildId)
                 }
             }
 
@@ -97,8 +102,12 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                     screenClass = ConfigurationCampaignScreen::class,
                     componentClass = Delete::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
-                    Delete(screen = reconstruct(screenParameters))
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
+                    Delete(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
 
@@ -108,7 +117,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             screen = screen
         ) {
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationMainScreen() }
+                event.processAndNavigateTo { ConfigurationMainScreen(screen.guildId) }
             }
 
             override fun parameters(): List<String> = emptyList()
@@ -118,8 +127,12 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                     screenClass = ConfigurationCampaignScreen::class,
                     componentClass = Back::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
-                    Back(screen = reconstruct(screenParameters))
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
+                    Back(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
     }
@@ -134,7 +147,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
-                    updateCampaign(screen.campaignId) {
+                    updateCampaign(guildId = screen.guildId, campaignId = screen.campaignId) {
                         it.copy(gmDiscordIds = updatedUsers.toSortedSet())
                     }
                 }
@@ -146,8 +159,12 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                 screenClass = ConfigurationCampaignScreen::class,
                 componentClass = GMs::class
             ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
-                    GMs(screen = reconstruct(screenParameters))
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
+                    GMs(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
 
@@ -161,7 +178,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
-                    updateCampaign(screen.campaignId) {
+                    updateCampaign(guildId = screen.guildId, campaignId = screen.campaignId) {
                         it.copy(playerDiscordIds = updatedUsers.toSortedSet())
                     }
                 }
@@ -174,8 +191,12 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                     screenClass = ConfigurationCampaignScreen::class,
                     componentClass = Players::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
-                    Players(screen = reconstruct(screenParameters))
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
+                    Players(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
 
@@ -190,7 +211,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             override fun handle(event: StringSelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedMaxNumMissingPlayers = event.values.first().toInt()
-                    updateCampaign(screen.campaignId) {
+                    updateCampaign(guildId = screen.guildId, campaignId = screen.campaignId) {
                         it.copy(maxNumMissingPlayers = updatedMaxNumMissingPlayers)
                     }
                 }
@@ -202,8 +223,12 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                 screenClass = ConfigurationCampaignScreen::class,
                 componentClass = MaxMissingPlayers::class
             ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
-                    MaxMissingPlayers(screen = reconstruct(screenParameters))
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
+                    MaxMissingPlayers(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
     }
@@ -222,7 +247,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
                     val updatedName = event.getValue("name")!!.asString
-                    updateCampaign(screen.campaignId) {
+                    updateCampaign(guildId = screen.guildId, campaignId = screen.campaignId) {
                         it.copy(name = updatedName)
                     }
                 }
@@ -235,8 +260,12 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                     screenClass = ConfigurationCampaignScreen::class,
                     componentClass = EditName::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
-                    EditName(screen = reconstruct(screenParameters))
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
+                    EditName(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
     }

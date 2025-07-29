@@ -1,7 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -14,11 +13,17 @@ import java.time.LocalDate
 class PlanAlternativeConcludedScreen(
     val weekMondayDate: LocalDate,
     val alternativeNumber: Int,
-) : Screen() {
+    guildId: Long
+) : Screen(guildId) {
     override fun renderComponents(): List<MessageTopLevelComponent> {
         val plan =
-            Planner(configuration = configuration, week = WeekRepository.load(weekMondayDate))
-                .generatePossiblePlans()[alternativeNumber - 1]
+            Planner(
+                configuration = configuration,
+                week = WeekRepository.load(
+                    guildId = guildId,
+                    weekMondayDate = weekMondayDate
+                )
+            ).generatePossiblePlans()[alternativeNumber - 1]
         val dates = weekDatesForMonday(weekMondayDate)
         return listOf(
             TextDisplay.of(
@@ -29,7 +34,7 @@ class PlanAlternativeConcludedScreen(
                         ":"
             ),
             Container.of(
-                TextDisplay.of(AlternativePrinter.printAlternative(alternativeNumber, plan))
+                TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
             )
         ) + listOfNotNull(
             getNonParticipatingPlayers(plan)
@@ -54,9 +59,10 @@ class PlanAlternativeConcludedScreen(
         )
 
     companion object {
-        fun reconstruct(parameters: List<String>) = PlanAlternativeConcludedScreen(
+        fun reconstruct(parameters: List<String>, guildId: Long) = PlanAlternativeConcludedScreen(
             weekMondayDate = LocalDate.parse(parameters[0]),
             alternativeNumber = parameters[1].toInt(),
+            guildId = guildId
         )
     }
 

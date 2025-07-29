@@ -11,42 +11,56 @@ import java.time.Instant
 import java.util.*
 
 object ConfigurationRepository {
-    private val cache: LoadingCache<Unit, ConfigurationDto> = Caffeine.newBuilder()
-        .build(CacheLoader { _ -> loadFile() })
+    private val cache: LoadingCache<Long, ConfigurationDto> = Caffeine.newBuilder()
+        .build(CacheLoader(::loadFile))
 
     fun save(configuration: ConfigurationDto) {
         val start = Instant.now()
+        val file = getConfigurationFile(configuration.guildId).also { it.parentFile.mkdirs() }
         objectMapper
             .writerWithDefaultPrettyPrinter()
-            .writeValue(File(FILE_NAME), configuration)
-        cache.invalidate(Unit)
-        logger.debug("Saved configuration to $FILE_NAME in ${Duration.between(start, Instant.now()).toMillis()}ms")
+            .writeValue(file, configuration)
+        cache.invalidate(configuration.guildId)
+        logger.debug("Saved configuration to ${file.path} in ${Duration.between(start, Instant.now()).toMillis()}ms")
     }
 
-    fun load(): ConfigurationDto = cache.get(Unit)
+    fun load(guildId: Long): ConfigurationDto = cache.get(guildId)
 
-    private fun loadFile(): ConfigurationDto {
+    fun loadAll(): List<ConfigurationDto> =
+        SERVERS_DIR.listFiles { serverDir ->
+            serverDir.isDirectory &&
+                    serverDir.name.toLongOrNull() != null &&
+                    serverDir.listFiles { it.isFile && it.name == CONFIGURATION_FILE_NAME }.orEmpty().isNotEmpty()
+        }.orEmpty()
+            .map(File::getName)
+            .map(String::toLong)
+            .map(::load)
+
+    private fun loadFile(guildId: Long): ConfigurationDto {
         val start = Instant.now()
-        return File(FILE_NAME)
+        val file = getConfigurationFile(guildId)
+        return file
             .takeIf(File::exists)
             ?.let { file ->
                 objectMapper
                     .readValue<ConfigurationDto>(file)
                     .also {
                         logger.debug(
-                            "Loaded configuration from $FILE_NAME in " +
+                            "Loaded configuration from ${file.path} in " +
                                     "${Duration.between(start, Instant.now()).toMillis()}ms"
                         )
                     }
             }
             ?: ConfigurationDto(
+                guildId = guildId,
                 enabled = false,
                 channelId = null,
                 campaigns = sortedSetOf()
-            ).also { logger.debug("Created new configuration") }
+            ).also { logger.debug("Created new configuration for guildId $guildId") }
     }
 
     data class ConfigurationDto(
+        val guildId: Long,
         val enabled: Boolean,
         val channelId: Long?,
         val campaigns: SortedSet<CampaignDto>,
@@ -62,5 +76,8 @@ object ConfigurationRepository {
         }
     }
 
-    private const val FILE_NAME = "time-sage-configuration.json"
+    private fun getConfigurationFile(guildId: Long): File =
+        File(getServerDir(guildId), CONFIGURATION_FILE_NAME)
+
+    private const val CONFIGURATION_FILE_NAME = "configuration.json"
 }

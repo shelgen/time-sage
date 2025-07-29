@@ -16,16 +16,22 @@ class PlanAlternativeSuggestedScreen(
     val weekMondayDate: LocalDate,
     val alternativeNumber: Int,
     val suggestingUserId: Long,
-) : Screen() {
+    guildId: Long
+) : Screen(guildId) {
     override fun renderComponents(): List<MessageTopLevelComponent> {
-        val plan = Planner(configuration = configuration, week = WeekRepository.load(weekMondayDate))
-            .generatePossiblePlans()[alternativeNumber - 1]
+        val plan = Planner(
+            configuration = configuration,
+            week = WeekRepository.load(
+                guildId = guildId,
+                weekMondayDate = weekMondayDate
+            )
+        ).generatePossiblePlans()[alternativeNumber - 1]
         return listOf(
             TextDisplay.of(
                 "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests this alternative:"
             ),
             Container.of(
-                TextDisplay.of(AlternativePrinter.printAlternative(alternativeNumber, plan))
+                TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
             ),
             ActionRow.of(
                 Buttons.ConcludeWithThisAlternative(
@@ -43,10 +49,11 @@ class PlanAlternativeSuggestedScreen(
         )
 
     companion object {
-        fun reconstruct(parameters: List<String>) = PlanAlternativeSuggestedScreen(
+        fun reconstruct(parameters: List<String>, guildId: Long) = PlanAlternativeSuggestedScreen(
             weekMondayDate = LocalDate.parse(parameters[0]),
             alternativeNumber = parameters[1].toInt(),
-            suggestingUserId = parameters[2].toLong()
+            suggestingUserId = parameters[2].toLong(),
+            guildId = guildId
         )
     }
 
@@ -61,7 +68,8 @@ class PlanAlternativeSuggestedScreen(
                 event.processAndAddPublicScreen {
                     PlanAlternativeConcludedScreen(
                         weekMondayDate = screen.weekMondayDate,
-                        alternativeNumber = screen.alternativeNumber
+                        alternativeNumber = screen.alternativeNumber,
+                        guildId = screen.guildId
                     )
                 }
             }
@@ -73,8 +81,12 @@ class PlanAlternativeSuggestedScreen(
                     screenClass = PlanAlternativeSuggestedScreen::class,
                     componentClass = ConcludeWithThisAlternative::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>) =
-                    ConcludeWithThisAlternative(screen = reconstruct(screenParameters))
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
+                    ConcludeWithThisAlternative(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
     }

@@ -10,25 +10,39 @@ import com.github.shelgen.timesage.ui.screens.PlayerAvailabilityScreen
 
 object AvailabilityMessageSender {
     fun sendMessage() {
-        val configuration = ConfigurationRepository.load()
-        if (!configuration.enabled) {
-            logger.info("Disabled, not sending a message.")
-        } else {
-            val channelId = configuration.channelId
-            if (channelId == null) {
-                logger.info("No channel configured, not sending an availability message")
+        ConfigurationRepository.loadAll().forEach { configuration ->
+            if (!configuration.enabled) {
+                logger.info("Disabled, not sending a message.")
             } else {
-                val channel = JDAHolder.jda.getTextChannelById(channelId)
-                val weekMondayDate = nextMonday()
-                val discordMessageId = WeekRepository.load(weekMondayDate).weekAvailabilityMessageDiscordId
-                if (discordMessageId == null) {
-                    logger.info("Sending availability messsage for the week of Monday $weekMondayDate")
-                    channel!!.sendMessage(PlayerAvailabilityScreen(nextMonday()).render()).queue { message ->
-                        val messageId = message.idLong
-                        updateWeek(weekMondayDate) { it.copy(weekAvailabilityMessageDiscordId = messageId) }
-                    }
+                val channelId = configuration.channelId
+                if (channelId == null) {
+                    logger.info("No channel configured, not sending an availability message")
                 } else {
-                    logger.info("Availability messsage for the week of Monday $weekMondayDate has already been sent")
+                    val channel = JDAHolder.jda.getTextChannelById(channelId)
+                    val weekMondayDate = nextMonday()
+                    val discordMessageId =
+                        WeekRepository.load(
+                            guildId = configuration.guildId,
+                            weekMondayDate = weekMondayDate
+                        ).weekAvailabilityMessageDiscordId
+                    if (discordMessageId == null) {
+                        logger.info("Sending availability messsage for the week of Monday $weekMondayDate")
+                        channel!!.sendMessage(
+                            PlayerAvailabilityScreen(
+                                weekMondayDate = nextMonday(),
+                                guildId = configuration.guildId
+                            ).render()
+                        ).queue { message ->
+                            val messageId = message.idLong
+                            updateWeek(guildId = configuration.guildId, weekMondayDate = weekMondayDate) {
+                                it.copy(
+                                    weekAvailabilityMessageDiscordId = messageId
+                                )
+                            }
+                        }
+                    } else {
+                        logger.info("Availability messsage for the week of Monday $weekMondayDate has already been sent")
+                    }
                 }
             }
         }

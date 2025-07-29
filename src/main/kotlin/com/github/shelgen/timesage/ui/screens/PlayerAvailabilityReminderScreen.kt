@@ -7,9 +7,9 @@ import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import java.time.LocalDate
 
-class PlayerAvailabilityReminderScreen(val weekMondayDate: LocalDate) : Screen() {
+class PlayerAvailabilityReminderScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
     override fun renderComponents(): List<MessageTopLevelComponent> {
-        val week = WeekRepository.load(weekMondayDate)
+        val week = WeekRepository.load(guildId = guildId, weekMondayDate = weekMondayDate)
         val playerResponses = week.playerResponses
 
         val unansweredPlayers = configuration.campaigns
@@ -40,7 +40,7 @@ class PlayerAvailabilityReminderScreen(val weekMondayDate: LocalDate) : Screen()
     override fun parameters(): List<String> = listOf(weekMondayDate.toString())
 
     companion object {
-        fun reconstruct(parameters: List<String>) =
-            PlayerAvailabilityReminderScreen(weekMondayDate = LocalDate.parse(parameters.first()))
+        fun reconstruct(parameters: List<String>, guildId: Long) =
+            PlayerAvailabilityReminderScreen(weekMondayDate = LocalDate.parse(parameters.first()), guildId)
     }
 }

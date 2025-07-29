@@ -7,9 +7,9 @@ object ConfigureCommand : AbstractSlashCommand(
     name = "tsconfigure",
     description = "Configures Time Sage",
 ) {
-    override fun handle(event: SlashCommandInteractionEvent) {
+    override fun handle(event: SlashCommandInteractionEvent, guildId: Long) {
         event.deferReply(true).queue {
-            it.sendMessage(ConfigurationMainScreen().render()).queue()
+            it.sendMessage(ConfigurationMainScreen(guildId).render()).queue()
         }
     }
 }

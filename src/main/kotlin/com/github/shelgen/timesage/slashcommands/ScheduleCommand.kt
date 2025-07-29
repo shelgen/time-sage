@@ -8,13 +8,14 @@ object ScheduleCommand : AbstractSlashCommand(
     name = "tsschedule",
     description = "Attempt to schedule next week's sessions",
 ) {
-    override fun handle(event: SlashCommandInteractionEvent) {
+    override fun handle(event: SlashCommandInteractionEvent, guildId: Long) {
         event.deferReply(true).queue {
             it.sendMessage(
                 PlanAlternativeListScreen(
                     weekMondayDate = nextMonday(),
                     startIndex = 0,
-                    size = 3
+                    size = 3,
+                    guildId = guildId
                 ).render()
             ).queue()
         }

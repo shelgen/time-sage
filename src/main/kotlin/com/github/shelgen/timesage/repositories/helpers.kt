@@ -9,16 +9,18 @@ fun ConfigurationRepository.ConfigurationDto.CampaignDto.getParticipants() =
     (gmDiscordIds + playerDiscordIds).distinct().sorted()
 
 fun updateConfiguration(
+    guildId: Long,
     reducer: (configuration: ConfigurationRepository.ConfigurationDto) -> ConfigurationRepository.ConfigurationDto
-) = ConfigurationRepository.load()
+) = ConfigurationRepository.load(guildId)
     .let { reducer(it) }
     .also(ConfigurationRepository::save)
 
 fun updateCampaign(
+    guildId: Long,
     campaignId: Int,
     reducer: (campaign: ConfigurationRepository.ConfigurationDto.CampaignDto) -> ConfigurationRepository.ConfigurationDto.CampaignDto
 ) {
-    updateConfiguration { configuration ->
+    updateConfiguration(guildId) { configuration ->
         val oldCampaign = configuration.campaigns.first { it.id == campaignId }
         val newCampaign = reducer(oldCampaign)
         configuration.copy(campaigns = (configuration.campaigns - oldCampaign + newCampaign).toSortedSet())
@@ -26,10 +28,11 @@ fun updateCampaign(
 }
 
 fun updateWeek(
+    guildId: Long,
     weekMondayDate: LocalDate,
     reducer: (week: WeekRepository.WeekDto) -> WeekRepository.WeekDto
 ) {
-    WeekRepository.load(weekMondayDate)
+    WeekRepository.load(guildId = guildId, weekMondayDate = weekMondayDate)
         .let { reducer(it) }
         .let(WeekRepository::save)
 }

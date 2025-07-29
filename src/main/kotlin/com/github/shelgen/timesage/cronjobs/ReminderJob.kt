@@ -15,20 +15,30 @@ import java.util.*
 class ReminderJob : Job {
     override fun execute(context: JobExecutionContext) {
         logger.info("Reminder for next week's message triggered")
-        val configuration = ConfigurationRepository.load()
-        if (!configuration.enabled) {
-            logger.info("Disabled, not sending a message.")
-        } else {
-            val channelId = configuration.channelId
-            if (channelId != null) {
-                val channel = JDAHolder.jda.getTextChannelById(channelId)
-                val weekMondayDate = nextMonday()
-                logger.info("Sending any reminders for the week of Monday $weekMondayDate")
-                val discordMessageId = WeekRepository.load(weekMondayDate).weekAvailabilityMessageDiscordId
-                if (discordMessageId == null) {
-                    logger.warn("No message to nag about!")
-                } else {
-                    channel!!.sendMessage(PlayerAvailabilityReminderScreen(weekMondayDate).render()).queue()
+        ConfigurationRepository.loadAll().forEach { configuration ->
+            if (!configuration.enabled) {
+                logger.info("Disabled, not sending a message.")
+            } else {
+                val channelId = configuration.channelId
+                if (channelId != null) {
+                    val channel = JDAHolder.jda.getTextChannelById(channelId)
+                    val weekMondayDate = nextMonday()
+                    logger.info("Sending any reminders for the week of Monday $weekMondayDate")
+                    val discordMessageId =
+                        WeekRepository.load(
+                            guildId = configuration.guildId,
+                            weekMondayDate = weekMondayDate
+                        ).weekAvailabilityMessageDiscordId
+                    if (discordMessageId == null) {
+                        logger.warn("No message to nag about!")
+                    } else {
+                        channel!!.sendMessage(
+                            PlayerAvailabilityReminderScreen(
+                                weekMondayDate = weekMondayDate,
+                                guildId = configuration.guildId
+                            ).render()
+                        ).queue()
+                    }
                 }
             }
         }
