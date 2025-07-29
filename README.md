@@ -40,7 +40,6 @@ participate in what at what time.
 - Monday is the start of the week
 - All sessions are planned at 18:30 UTC
 - Simultaneous interactions (two people pressing buttons at the same time) are not handled particularly well
-- One running instance only works for one server and channel
 
 ## Installing and running Time Sage
 
@@ -85,8 +84,8 @@ background and keeps running after you disconnect the SSH session:
 nohup java -jar time-sage-(version)-jar-with-dependencies.jar &
 ```
 
-While being used, the bot will create a configuration file called `time-sage-configuration.json` in the same folder as
-its being run, and will a folder called `time-sage-weeks` with a json file per week from now.
+While being used, the bot will create a directory named `time-sage`. In it, it will store configuration and availability
+responses in 
 
 The bot will log everything to the console, including every interaction by every user. If you ran it with `nohup`, the
 log will instead be in the file `nohup.out`.
