@@ -5,5 +5,4 @@ target/
 !**/src/test/**/target/
 
 time-sage-bot.token
-time-sage-weeks/
-time-sage-configuration.json
+time-sage/
