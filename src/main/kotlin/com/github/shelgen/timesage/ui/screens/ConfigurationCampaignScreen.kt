@@ -129,7 +129,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
         class GMs(screen: ConfigurationCampaignScreen) : ScreenUserSelectMenu<ConfigurationCampaignScreen>(
             minValues = 1,
             maxValues = 25,
-            defaultSelectedUserIds = ConfigurationRepository.load().campaigns.first { it.id == screen.campaignId }.gmDiscordIds,
+            defaultSelectedUserIds = getCampaign(screen.campaignId).gmDiscordIds,
             screen = screen
         ) {
             override fun handle(event: EntitySelectInteractionEvent) {
@@ -156,7 +156,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             ScreenUserSelectMenu<ConfigurationCampaignScreen>(
                 minValues = 1,
                 maxValues = 25,
-                defaultSelectedUserIds = ConfigurationRepository.load().campaigns.first { it.id == screen.campaignId }.playerDiscordIds,
+                defaultSelectedUserIds = getCampaign(screen.campaignId).playerDiscordIds,
                 screen = screen
             ) {
             override fun handle(event: EntitySelectInteractionEvent) {
@@ -185,7 +185,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
                 minValues = 1,
                 maxValues = 1,
                 options = (0..4).map(Int::toString),
-                defaultSelectedValues = listOf(ConfigurationRepository.load().campaigns.first { it.id == screen.campaignId }.maxNumMissingPlayers.toString()),
+                defaultSelectedValues = listOf(getCampaign(screen.campaignId).maxNumMissingPlayers.toString()),
                 screen = screen
             ) {
             override fun handle(event: StringSelectInteractionEvent) {
@@ -215,7 +215,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int) : Screen() {
             textInputs = listOf(
                 TextInput.create("name", "Name", TextInputStyle.SHORT)
                     .setPlaceholder("Name of the campaign")
-                    .setValue(ConfigurationRepository.load().campaigns.first { it.id == screen.campaignId }.name)
+                    .setValue(getCampaign(screen.campaignId).name)
                     .build()
             ),
             screen = screen
