@@ -9,10 +9,25 @@
             <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZZ} [%X{guildId}][%X{userName}][%thread] %-5level %logger{36} -%kvp- %msg%n</pattern>
         </encoder>
     </appender>
+    <appender name="SERVER_SPECIFIC_LOG_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>guildId</key>
+            <defaultValue>global</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="FILE-${guildId}" class="ch.qos.logback.core.FileAppender">
+                <file>time-sage/servers/${guildId}/server.log</file>
+                <layout class="ch.qos.logback.classic.PatternLayout">
+                    <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZZ} [%X{guildId}][%X{userName}][%thread] %-5level %logger{36} -%kvp- %msg%n</pattern>
+                </layout>
+            </appender>
+        </sift>
+    </appender>
 
     <logger name="com.github.shelgen.timesage" level="DEBUG"/>
 
     <root level="info">
         <appender-ref ref="STDOUT"/>
+        <appender-ref ref="SERVER_SPECIFIC_LOG_FILE"/>
     </root>
 </configuration>
