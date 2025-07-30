@@ -1,11 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.atNormalStartTime
-import com.github.shelgen.timesage.domain.Activity
-import com.github.shelgen.timesage.domain.AvailabilityStatus
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.Participant
-import com.github.shelgen.timesage.domain.Week
+import com.github.shelgen.timesage.domain.*
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -26,19 +22,33 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(
         WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate).let { week ->
             val dates = weekDatesForMonday(weekMondayDate)
             listOf(
-                renderHeader(dates.first(), dates.last()),
+                renderHeader(dates.first(), dates.last(), configuration),
                 dates.map { date -> renderDateContainer(date, week) },
                 renderWeekLimits(week),
                 renderMissingResponses(week, configuration)
             ).flatten()
         }
 
-    private fun renderHeader(from: LocalDate, to: LocalDate) = listOf(
-        TextDisplay.of(
-            "## Availabilities for ${from.formatAsShortDate()}" +
-                    " through ${to.formatAsShortDate()}"
+    private fun renderHeader(from: LocalDate, to: LocalDate, configuration: Configuration): List<TextDisplay> {
+        return listOf(
+            TextDisplay.of(
+                "## Availabilities for ${from.formatAsShortDate()} through ${to.formatAsShortDate()}\n" +
+                        "Please use the buttons below to toggle your availability" +
+                        formatActivities(configuration.activities)
+            )
         )
-    )
+    }
+
+    private fun formatActivities(activities: List<Activity>) =
+        when (activities.size) {
+            0 -> ""
+            1 -> " for\n${DiscordFormatter.bold(activities.first().name)}"
+            else -> " for one or more of\n" +
+                    activities.map(Activity::name)
+                        .sorted()
+                        .map(DiscordFormatter::bold)
+                        .joinToString("\n") { "- $it" }
+        }
 
     private fun renderDateContainer(date: LocalDate, week: Week) = Container.of(
         Section.of(
