@@ -1,7 +1,6 @@
 package com.github.shelgen.timesage.repositories
 
 import java.io.File
-import java.util.SortedSet
 
 class ConfigurationFileDao {
     private val fileDao = CachedJsonFileDao<Json>(
@@ -9,7 +8,7 @@ class ConfigurationFileDao {
         initialContent = Json(
             enabled = false,
             channelId = null,
-            campaigns = sortedSetOf()
+            activities = emptyList()
         )
     )
 
@@ -35,17 +34,16 @@ class ConfigurationFileDao {
     data class Json(
         val enabled: Boolean,
         val channelId: Long?,
-        val campaigns: SortedSet<Campaign>,
+        val activities: List<Activity>
     ) {
-        data class Campaign(
+        data class Activity(
             val id: Int,
             val name: String,
-            val gmDiscordIds: SortedSet<Long>,
-            val playerDiscordIds: SortedSet<Long>,
-            val maxNumMissingPlayers: Int
-        ) : Comparable<Campaign> {
-            override fun compareTo(other: Campaign) = id.compareTo(other.id)
-        }
+            val participants: List<Participant>,
+            val maxMissingOptionalParticipants: Int
+        )
+
+        data class Participant(val userId: Long, val optional: Boolean)
     }
 
     companion object {

@@ -20,29 +20,29 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
             TextDisplay.of("# Time Sage configuration"),
             Section.of(
                 if (configuration.enabled) {
-                    Buttons.Disable(this@ConfigurationMainScreen).render()
+                    Buttons.Disable(this).render()
                 } else {
-                    Buttons.Enable(this@ConfigurationMainScreen).render()
+                    Buttons.Enable(this).render()
                 },
                 TextDisplay.of(DiscordFormatter.bold("Enabled") + ": " + (if (configuration.enabled) "Yes" else "No"))
             ),
             TextDisplay.of(DiscordFormatter.bold("Channel") + ":"),
             ActionRow.of(
-                SelectMenus.Channel(this@ConfigurationMainScreen).render(configuration)
+                SelectMenus.Channel(this).render(configuration)
             ),
-            TextDisplay.of(DiscordFormatter.bold("Campaigns") + ":"),
-        ) + if (configuration.campaigns.isEmpty()) {
-            listOf(TextDisplay.of(DiscordFormatter.italics("There are currently no campaigns.")))
+            TextDisplay.of(DiscordFormatter.bold("Activities") + ":"),
+        ) + if (configuration.activities.isEmpty()) {
+            listOf(TextDisplay.of(DiscordFormatter.italics("There are currently no activities.")))
         } else {
-            configuration.campaigns.map {
+            configuration.activities.map {
                 Section.of(
-                    Buttons.EditCampaign(it.id, this@ConfigurationMainScreen).render(),
+                    Buttons.EditActivity(it.id, this).render(),
                     TextDisplay.of("- ${it.name}")
                 )
             }
         } + listOf(
             ActionRow.of(
-                Buttons.AddCampaign(this@ConfigurationMainScreen).render()
+                Buttons.AddActivity(this).render()
             )
         )
 
@@ -110,7 +110,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
             }
         }
 
-        class EditCampaign(private val campaignId: Int, screen: ConfigurationMainScreen) :
+        class EditActivity(private val activityId: Int, screen: ConfigurationMainScreen) :
             ScreenButton<ConfigurationMainScreen>(
                 screen = screen
             ) {
@@ -118,62 +118,66 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                 Button.primary(CustomIdSerialization.serialize(this), "Edit...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationCampaignScreen(campaignId, screen.guildId) }
+                event.processAndNavigateTo { ConfigurationActivityScreen(activityId, screen.guildId) }
             }
 
-            override fun parameters(): List<String> = listOf(campaignId.toString())
+            override fun parameters(): List<String> = listOf(activityId.toString())
 
             object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, EditCampaign>(
+                ScreenComponentReconstructor<ConfigurationMainScreen, EditActivity>(
                     screenClass = ConfigurationMainScreen::class,
-                    componentClass = EditCampaign::class
+                    componentClass = EditActivity::class
                 ) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
                     guildId: Long
                 ) =
-                    EditCampaign(
-                        campaignId = componentParameters.first().toInt(),
+                    EditActivity(
+                        activityId = componentParameters.first().toInt(),
                         screen = reconstruct(parameters = screenParameters, guildId = guildId)
                     )
             }
         }
 
-        class AddCampaign(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
+        class AddActivity(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
             screen = screen
         ) {
             fun render() =
-                Button.success(CustomIdSerialization.serialize(this), "Add new campaign")
+                Button.success(CustomIdSerialization.serialize(this), "Add new activity")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { interactionHook ->
-                    val newCampaignId = ConfigurationRepository.update(screen.guildId) { configuration ->
-                        ConfigurationRepository.MutableConfiguration.MutableCampaign(
-                            id = (configuration.campaigns.maxOfOrNull { it.id } ?: 0) + 1,
-                            name = "New Campaign",
-                            gmDiscordIds = mutableSetOf(interactionHook.interaction.user.idLong),
-                            playerDiscordIds = mutableSetOf(),
-                            maxNumMissingPlayers = 0
-                        ).also(configuration.campaigns::add).id
+                    val newActivityId = ConfigurationRepository.update(screen.guildId) { configuration ->
+                        ConfigurationRepository.MutableConfiguration.MutableActivity(
+                            id = (configuration.activities.maxOfOrNull { it.id } ?: 0) + 1,
+                            name = "New Activity",
+                            participants = mutableListOf(
+                                ConfigurationRepository.MutableConfiguration.MutableActivity.MutableParticipant(
+                                    userId = interactionHook.interaction.user.idLong,
+                                    optional = false
+                                )
+                            ),
+                            maxMissingOptionalParticipants = 0
+                        ).also(configuration.activities::add).id
                     }
-                    ConfigurationCampaignScreen(newCampaignId, screen.guildId)
+                    ConfigurationActivityScreen(newActivityId, screen.guildId)
                 }
             }
 
             override fun parameters(): List<String> = emptyList()
 
             object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, AddCampaign>(
+                ScreenComponentReconstructor<ConfigurationMainScreen, AddActivity>(
                     screenClass = ConfigurationMainScreen::class,
-                    componentClass = AddCampaign::class
+                    componentClass = AddActivity::class
                 ) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
                     guildId: Long
                 ) =
-                    AddCampaign(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    AddActivity(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
     }

@@ -18,10 +18,10 @@ Time Sage was created to solve several parts of this problem that were tedious t
 
 Every week, Time Sage will post a message in a configured channel that participants can interact with.
 Participants will be able to set the days they are available or unavailable, as well as if they're available but
-it's not ideal ("if need be"). Players can also say they're not available at all that week, or only available for one
-session.
+it's not ideal ("if need be"). Participants can also say they're not available at all that week, or only available for
+one session.
 
-Every day for the remainder of the week, Time Sage will remind any players who have not responded at all to do so.
+Every day for the remainder of the week, Time Sage will remind any participants who have not responded at all to do so.
 
 Once enough replies have been collected, a command can be used to list all possible plans for the week, sorted by
 how close to ideal they are (their "Score"). Navigating through the alternatives, each can be publicly suggested
@@ -30,7 +30,7 @@ participate in what at what time.
 
 ## Features
 
-- Configuration of several campaigns with different GM's and player bases
+- Configuration of several activities with different participants
 - Automatic weekly planning prompts in a specified Discord channel
 - Time Zone sensitive display of start time, so everyone can easily see their local time
 - Finding and concluding with the best plan for next week
@@ -100,7 +100,7 @@ someone who is needs to give you specific permission to use Time Sage's slash co
 ### Configuration
 
 In a channel where the bot is present, use the command `/tsconfigure` to receive a configuration message from the bot.
-Use the controls in here to set up your campaigns and their GM's / players, among other things. Finally, enable
+Use the controls in here to set up your activities and their participants, among other things. Finally, enable
 Time Sage to make it start its planning cycle.
 
 ### Planning

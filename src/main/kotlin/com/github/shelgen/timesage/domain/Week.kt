@@ -6,9 +6,9 @@ data class Week(
     val guildId: Long,
     val mondayDate: LocalDate,
     val weekAvailabilityMessageDiscordId: Long?,
-    val playerResponses: Map<Long, PlayerResponse>,
+    val responses: Map<Long, Response>,
 ) {
-    data class PlayerResponse(
+    data class Response(
         val sessionLimit: Int?,
         val availability: Map<LocalDate, AvailabilityStatus>
     )

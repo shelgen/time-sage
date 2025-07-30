@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.Participant
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -20,28 +21,28 @@ import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionE
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.interactions.modals.Modal
 
-class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : Screen(guildId) {
+class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : Screen(guildId) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
         listOf(
             TextDisplay.of(
                 "# Time Sage configuration\n" +
-                        "## Campaign settings"
+                        "## Activity settings"
             ),
             Section.of(
                 Buttons.EditName(this).render(),
-                TextDisplay.of("### ${configuration.getCampaign(campaignId).name}")
+                TextDisplay.of("### ${configuration.getActivity(activityId).name}")
             ),
-            TextDisplay.of(DiscordFormatter.bold("GM's") + ":"),
+            TextDisplay.of(DiscordFormatter.bold("Required participants") + ":"),
             ActionRow.of(
-                SelectMenus.GMs(this).render(configuration)
+                SelectMenus.RequiredParticipants(this).render(configuration)
             ),
-            TextDisplay.of(DiscordFormatter.bold("Players") + ":"),
+            TextDisplay.of(DiscordFormatter.bold("Optional participants") + ":"),
             ActionRow.of(
-                SelectMenus.Players(this).render(configuration)
+                SelectMenus.OptionalParticipants(this).render(configuration)
             ),
-            TextDisplay.of(DiscordFormatter.bold("Maximum number of missing players") + ":"),
+            TextDisplay.of(DiscordFormatter.bold("Maximum number of missing optional participants") + ":"),
             ActionRow.of(
-                SelectMenus.MaxMissingPlayers(this).render(configuration)
+                SelectMenus.MaxMissingOptionalParticipants(this).render(configuration)
             ),
             ActionRow.of(
                 Buttons.Delete(this).render()
@@ -51,15 +52,15 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             )
         )
 
-    override fun parameters(): List<String> = listOf(campaignId.toString())
+    override fun parameters(): List<String> = listOf(activityId.toString())
 
     companion object {
         fun reconstruct(parameters: List<String>, guildId: Long) =
-            ConfigurationCampaignScreen(campaignId = parameters.first().toInt(), guildId)
+            ConfigurationActivityScreen(activityId = parameters.first().toInt(), guildId)
     }
 
     class Buttons {
-        class EditName(screen: ConfigurationCampaignScreen) : ScreenButton<ConfigurationCampaignScreen>(
+        class EditName(screen: ConfigurationActivityScreen) : ScreenButton<ConfigurationActivityScreen>(
             screen = screen
         ) {
             fun render() =
@@ -74,8 +75,8 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun parameters(): List<String> = emptyList()
 
             object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationCampaignScreen, EditName>(
-                    screenClass = ConfigurationCampaignScreen::class,
+                ScreenComponentReconstructor<ConfigurationActivityScreen, EditName>(
+                    screenClass = ConfigurationActivityScreen::class,
                     componentClass = EditName::class
                 ) {
                 override fun reconstruct(
@@ -87,16 +88,16 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             }
         }
 
-        class Delete(screen: ConfigurationCampaignScreen) : ScreenButton<ConfigurationCampaignScreen>(
+        class Delete(screen: ConfigurationActivityScreen) : ScreenButton<ConfigurationActivityScreen>(
             screen = screen
         ) {
             fun render() =
-                Button.danger(CustomIdSerialization.serialize(this), "Delete campaign")
+                Button.danger(CustomIdSerialization.serialize(this), "Delete activity")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
                     ConfigurationRepository.update(screen.guildId) { configuration ->
-                        configuration.campaigns.removeIf { it.id == screen.campaignId }
+                        configuration.activities.removeIf { it.id == screen.activityId }
                     }
                     ConfigurationMainScreen(screen.guildId)
                 }
@@ -105,8 +106,8 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun parameters(): List<String> = emptyList()
 
             object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationCampaignScreen, Delete>(
-                    screenClass = ConfigurationCampaignScreen::class,
+                ScreenComponentReconstructor<ConfigurationActivityScreen, Delete>(
+                    screenClass = ConfigurationActivityScreen::class,
                     componentClass = Delete::class
                 ) {
                 override fun reconstruct(
@@ -118,7 +119,7 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             }
         }
 
-        class Back(screen: ConfigurationCampaignScreen) : ScreenButton<ConfigurationCampaignScreen>(
+        class Back(screen: ConfigurationActivityScreen) : ScreenButton<ConfigurationActivityScreen>(
             screen = screen
         ) {
             fun render() =
@@ -131,8 +132,8 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun parameters(): List<String> = emptyList()
 
             object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationCampaignScreen, Back>(
-                    screenClass = ConfigurationCampaignScreen::class,
+                ScreenComponentReconstructor<ConfigurationActivityScreen, Back>(
+                    screenClass = ConfigurationActivityScreen::class,
                     componentClass = Back::class
                 ) {
                 override fun reconstruct(
@@ -146,14 +147,17 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
     }
 
     class SelectMenus {
-        class GMs(screen: ConfigurationCampaignScreen) : ScreenEntitySelectMenu<ConfigurationCampaignScreen>(screen) {
+        class RequiredParticipants(screen: ConfigurationActivityScreen) : ScreenEntitySelectMenu<ConfigurationActivityScreen>(screen) {
             fun render(configuration: Configuration) =
                 EntitySelectMenu
                     .create(CustomIdSerialization.serialize(this), SelectTarget.USER)
                     .setMinValues(1)
                     .setMaxValues(25)
                     .setDefaultValues(
-                        configuration.getCampaign(screen.campaignId).gmDiscordIds
+                        configuration.getActivity(screen.activityId)
+                            .participants
+                            .filterNot(Participant::optional)
+                            .map(Participant::userId)
                             .map(EntitySelectMenu.DefaultValue::user)
                     ).build()
 
@@ -161,37 +165,39 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
                     ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
-                        val campaign = configuration.getCampaign(campaignId = screen.campaignId)
-                        campaign.gmDiscordIds.clear()
-                        campaign.gmDiscordIds.addAll(updatedUsers)
+                        val activity = configuration.getActivity(activityId = screen.activityId)
+                        activity.setRequiredParticipants(updatedUsers)
                     }
                 }
             }
 
             override fun parameters(): List<String> = emptyList()
 
-            object Reconstructor : ScreenComponentReconstructor<ConfigurationCampaignScreen, GMs>(
-                screenClass = ConfigurationCampaignScreen::class,
-                componentClass = GMs::class
+            object Reconstructor : ScreenComponentReconstructor<ConfigurationActivityScreen, RequiredParticipants>(
+                screenClass = ConfigurationActivityScreen::class,
+                componentClass = RequiredParticipants::class
             ) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
                     guildId: Long
                 ) =
-                    GMs(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    RequiredParticipants(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
 
-        class Players(screen: ConfigurationCampaignScreen) :
-            ScreenEntitySelectMenu<ConfigurationCampaignScreen>(screen) {
+        class OptionalParticipants(screen: ConfigurationActivityScreen) :
+            ScreenEntitySelectMenu<ConfigurationActivityScreen>(screen) {
             fun render(configuration: Configuration) =
                 EntitySelectMenu
                     .create(CustomIdSerialization.serialize(this), SelectTarget.USER)
                     .setMinValues(0)
                     .setMaxValues(25)
                     .setDefaultValues(
-                        configuration.getCampaign(screen.campaignId).playerDiscordIds
+                        configuration.getActivity(screen.activityId)
+                            .participants
+                            .filter(Participant::optional)
+                            .map(Participant::userId)
                             .map(EntitySelectMenu.DefaultValue::user)
                     ).build()
 
@@ -199,9 +205,8 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
                     ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
-                        val campaign = configuration.getCampaign(campaignId = screen.campaignId)
-                        campaign.playerDiscordIds.clear()
-                        campaign.playerDiscordIds.addAll(updatedUsers)
+                        val activity = configuration.getActivity(activityId = screen.activityId)
+                        activity.setOptionalParticipants(updatedUsers)
                     }
                 }
             }
@@ -209,65 +214,71 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun parameters(): List<String> = emptyList()
 
             object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationCampaignScreen, Players>(
-                    screenClass = ConfigurationCampaignScreen::class,
-                    componentClass = Players::class
+                ScreenComponentReconstructor<ConfigurationActivityScreen, OptionalParticipants>(
+                    screenClass = ConfigurationActivityScreen::class,
+                    componentClass = OptionalParticipants::class
                 ) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
                     guildId: Long
                 ) =
-                    Players(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    OptionalParticipants(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
 
-        class MaxMissingPlayers(screen: ConfigurationCampaignScreen) :
-            ScreenStringSelectMenu<ConfigurationCampaignScreen>(screen) {
+        class MaxMissingOptionalParticipants(screen: ConfigurationActivityScreen) :
+            ScreenStringSelectMenu<ConfigurationActivityScreen>(screen) {
             fun render(configuration: Configuration) =
                 StringSelectMenu.create(CustomIdSerialization.serialize(this))
                     .setMinValues(1)
                     .setMaxValues(1)
                     .addOptions((0..4).map(Int::toString).map { SelectOption.of(it, it) })
-                    .setDefaultValues(configuration.getCampaign(screen.campaignId).maxNumMissingPlayers.toString())
+                    .setDefaultValues(configuration.getActivity(screen.activityId).maxMissingOptionalParticipants.toString())
                     .build()
 
             override fun handle(event: StringSelectInteractionEvent) {
                 event.processAndRerender {
-                    val updatedMaxNumMissingPlayers = event.values.first().toInt()
+                    val updatedMaxMissingOptionalParticipants = event.values.first().toInt()
                     ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
-                        val campaign = configuration.getCampaign(campaignId = screen.campaignId)
-                        campaign.maxNumMissingPlayers = updatedMaxNumMissingPlayers
+                        val activity = configuration.getActivity(activityId = screen.activityId)
+                        activity.maxMissingOptionalParticipants = updatedMaxMissingOptionalParticipants
                     }
                 }
             }
 
             override fun parameters(): List<String> = emptyList()
 
-            object Reconstructor : ScreenComponentReconstructor<ConfigurationCampaignScreen, MaxMissingPlayers>(
-                screenClass = ConfigurationCampaignScreen::class,
-                componentClass = MaxMissingPlayers::class
-            ) {
+            object Reconstructor :
+                ScreenComponentReconstructor<ConfigurationActivityScreen, MaxMissingOptionalParticipants>(
+                    screenClass = ConfigurationActivityScreen::class,
+                    componentClass = MaxMissingOptionalParticipants::class
+                ) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
                     guildId: Long
                 ) =
-                    MaxMissingPlayers(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    MaxMissingOptionalParticipants(
+                        screen = reconstruct(
+                            parameters = screenParameters,
+                            guildId = guildId
+                        )
+                    )
             }
         }
     }
 
     class Modals {
-        class EditName(screen: ConfigurationCampaignScreen) : ScreenModal<ConfigurationCampaignScreen>(screen) {
+        class EditName(screen: ConfigurationActivityScreen) : ScreenModal<ConfigurationActivityScreen>(screen) {
             fun render(configuration: Configuration) =
                 Modal
-                    .create(CustomIdSerialization.serialize(this), "Edit name for campaign")
+                    .create(CustomIdSerialization.serialize(this), "Edit name for activity")
                     .addComponents(
                         ActionRow.of(
                             TextInput.create("name", "Name", TextInputStyle.SHORT)
-                                .setPlaceholder("Name of the campaign")
-                                .setValue(configuration.getCampaign(screen.campaignId).name)
+                                .setPlaceholder("Name of the activity")
+                                .setValue(configuration.getActivity(screen.activityId).name)
                                 .build()
                         )
                     )
@@ -277,8 +288,8 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
                 event.processAndRerender {
                     val updatedName = event.getValue("name")!!.asString
                     ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
-                        val campaign = configuration.getCampaign(campaignId = screen.campaignId)
-                        campaign.name = updatedName
+                        val activity = configuration.getActivity(activityId = screen.activityId)
+                        activity.name = updatedName
                     }
                 }
             }
@@ -286,8 +297,8 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun parameters(): List<String> = emptyList()
 
             object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationCampaignScreen, EditName>(
-                    screenClass = ConfigurationCampaignScreen::class,
+                ScreenComponentReconstructor<ConfigurationActivityScreen, EditName>(
+                    screenClass = ConfigurationActivityScreen::class,
                     componentClass = EditName::class
                 ) {
                 override fun reconstruct(

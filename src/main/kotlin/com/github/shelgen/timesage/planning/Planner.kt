@@ -20,36 +20,37 @@ class Planner(
         recursivelyFindPossiblePlans(planThusFar = emptyList(), remainingSlots = weekDates)
             .distinct()
             .filterNot(List<Plan.Session>::isEmpty)
-            .filterNot(::isSuboptimalForAPlayer)
+            .filterNot(::isSuboptimalForAParticipant)
             .map(::Plan)
             .sortedBy(Plan::score)
 
-    private fun isSuboptimalForAPlayer(plannedSessions: List<Plan.Session>) =
-        configuration.campaigns.flatMap { it.gmDiscordIds + it.playerDiscordIds }.distinct()
+    private fun isSuboptimalForAParticipant(plannedSessions: List<Plan.Session>) =
+        configuration.activities.flatMap { it.participants }
             .asSequence()
-            .filter { playerUserId ->
-                plannedSessions.count { it.hasAttendee(playerUserId) } <
-                        getSessionLimit(playerUserId)
+            .filter { participant ->
+                val userId = participant.userId
+                plannedSessions.count { it.hasAttendee(userId) } < getSessionLimit(userId)
             }
-            .any { playerUserId ->
+            .any { participant ->
+                val userId = participant.userId
                 plannedSessions
                     .asSequence()
                     .filter { session ->
-                        val campaign = configuration.campaigns.first { it.id == session.campaignId }
-                        playerUserId in campaign.gmDiscordIds || playerUserId in campaign.playerDiscordIds
+                        val activity = configuration.activities.first { it.id == session.activityId }
+                        activity.hasParticipant(participant.userId)
                     }
-                    .filterNot { it.hasAttendee(playerUserId) }
+                    .filterNot { it.hasAttendee(userId) }
                     .map(Plan.Session::date)
-                    .map { getAvailability(playerUserId, it) }
+                    .map { getAvailability(userId, it) }
                     .any { it != AvailabilityStatus.UNAVAILABLE }
             }
 
-    private fun getAvailability(playerUserId: Long, date: LocalDate) =
-        week.playerResponses[playerUserId]?.availability[date]
+    private fun getAvailability(userId: Long, date: LocalDate) =
+        week.responses[userId]?.availability[date]
             ?: AvailabilityStatus.UNAVAILABLE
 
-    private fun getSessionLimit(playerUserId: Long) =
-        week.playerResponses[playerUserId]?.sessionLimit ?: 2
+    private fun getSessionLimit(userId: Long) =
+        week.responses[userId]?.sessionLimit ?: 2
 
     private fun recursivelyFindPossiblePlans(
         planThusFar: List<Plan.Session> = emptyList(),
@@ -59,47 +60,47 @@ class Planner(
         return if (currentDate == null) {
             sequenceOf(planThusFar)
         } else {
-            configuration.campaigns
+            configuration.activities
                 .asSequence()
-                .flatMap { campaign ->
+                .flatMap { activity ->
                     val potentialAttendees =
-                        week.playerResponses
+                        week.responses
                             .asSequence()
-                            .map { (playerUserId, response) ->
-                                playerUserId to (response.availability[currentDate]
+                            .map { (userId, response) ->
+                                userId to (response.availability[currentDate]
                                     ?: AvailabilityStatus.UNAVAILABLE)
                             }
                             .filterNot { (_, availability) -> availability == AvailabilityStatus.UNAVAILABLE }
-                            .map { (playerUserId, availability) ->
+                            .map { (userId, availability) ->
                                 Plan.Session.Attendee(
-                                    playerDiscordId = playerUserId,
+                                    userId = userId,
                                     ifNeedBe = availability == AvailabilityStatus.IF_NEED_BE
                                 )
                             }
-                            .filter {
-                                val playerUserId = it.playerDiscordId
-                                playerUserId in campaign.gmDiscordIds || playerUserId in campaign.playerDiscordIds
-                            }
+                            .filter { activity.hasParticipant(it.userId) }
                             .filterNot { attendee ->
-                                val playerUserId = attendee.playerDiscordId
-                                planThusFar.count { it.hasAttendee(playerUserId) } == getSessionLimit(playerUserId)
+                                val userId = attendee.userId
+                                planThusFar.count { it.hasAttendee(userId) } == getSessionLimit(userId)
                             }
                             .toSet()
 
-                    val gmAttendees = potentialAttendees.filter { it.playerDiscordId in campaign.gmDiscordIds }.toSet()
-
-                    if (planThusFar.size < 2 && gmAttendees.size == campaign.gmDiscordIds.size) {
+                    val requiredAttendees =
                         potentialAttendees
-                            .minus(gmAttendees)
+                            .filter { activity.isRequiredParticipant(it.userId) }
+                            .toSet()
+
+                    if (planThusFar.size < 2 && requiredAttendees.size == activity.participants.count { !it.optional }) {
+                        potentialAttendees
+                            .minus(requiredAttendees)
                             .permutations()
-                            .filter { campaign.playerDiscordIds.size - it.size <= campaign.maxNumMissingPlayers }
+                            .filter { activity.participants.count { it.optional } - it.size <= activity.maxMissingOptionalParticipants }
                             .asSequence()
                             .flatMap { attendees ->
                                 recursivelyFindPossiblePlans(
                                     planThusFar = planThusFar + Plan.Session(
                                         date = currentDate,
-                                        campaignId = campaign.id,
-                                        attendees = attendees + gmAttendees
+                                        activityId = activity.id,
+                                        attendees = attendees + requiredAttendees
                                     ),
                                     remainingSlots = remainingSlots.drop(1)
                                 )
@@ -141,14 +142,14 @@ class Planner(
 
         data class Session(
             val date: LocalDate,
-            val campaignId: Int,
+            val activityId: Int,
             val attendees: Set<Attendee>
         ) {
-            data class Attendee(val playerDiscordId: Long, val ifNeedBe: Boolean)
+            data class Attendee(val userId: Long, val ifNeedBe: Boolean)
 
-            private val attendingPlayers: Set<Long> = attendees.map(Attendee::playerDiscordId).toSet()
+            private val attendeeUserIds: Set<Long> = attendees.map(Attendee::userId).toSet()
 
-            fun hasAttendee(playerDiscordId: Long) = playerDiscordId in attendingPlayers
+            fun hasAttendee(userId: Long) = userId in attendeeUserIds
         }
 
         private fun numDaysBetween(latestDate: LocalDate, earliestDate: LocalDate) =

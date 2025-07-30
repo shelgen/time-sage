@@ -7,8 +7,8 @@ class WeekFileDao {
     private val fileDao = CachedJsonFileDao<Json>(
         jsonClass = Json::class.java,
         initialContent = Json(
-            weekAvailabilityMessageDiscordId = null,
-            playerResponses = emptyMap()
+            availabilityMessageId = null,
+            responses = emptyMap()
         )
     )
 
@@ -20,10 +20,10 @@ class WeekFileDao {
         fileDao.loadOrInitialize(getWeekFile(guildId, mondayDate))
 
     data class Json(
-        val weekAvailabilityMessageDiscordId: Long?,
-        val playerResponses: Map<Long, PlayerResponse>,
+        val availabilityMessageId: Long?,
+        val responses: Map<Long, Response>,
     ) {
-        data class PlayerResponse(
+        data class Response(
             val sessionLimit: Int?,
             val availability: Map<LocalDate, AvailabilityStatus>
         )

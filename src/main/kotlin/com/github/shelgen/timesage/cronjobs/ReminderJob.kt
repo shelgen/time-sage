@@ -6,7 +6,7 @@ import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.nextMonday
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
-import com.github.shelgen.timesage.ui.screens.PlayerAvailabilityReminderScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityReminderScreen
 import org.quartz.CronScheduleBuilder
 import org.quartz.Job
 import org.quartz.JobExecutionContext
@@ -43,7 +43,7 @@ class ReminderJob : Job {
                     logger.warn("No message to nag about!")
                 } else {
                     channel!!.sendMessage(
-                        PlayerAvailabilityReminderScreen(
+                        AvailabilityReminderScreen(
                             weekMondayDate = weekMondayDate,
                             guildId = configuration.guildId
                         ).render()

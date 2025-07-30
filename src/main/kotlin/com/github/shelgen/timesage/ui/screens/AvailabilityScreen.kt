@@ -1,8 +1,10 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.atNormalStartTime
+import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.Participant
 import com.github.shelgen.timesage.domain.Week
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.WeekRepository
@@ -19,7 +21,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
+class AvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
     override fun renderComponents(configuration: Configuration) =
         WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate).let { week ->
             val dates = weekDatesForMonday(weekMondayDate)
@@ -40,7 +42,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
 
     private fun renderDateContainer(date: LocalDate, week: Week) = Container.of(
         Section.of(
-            Buttons.ToggleDateAvailability(date = date, screen = this@PlayerAvailabilityScreen).render(),
+            Buttons.ToggleDateAvailability(date = date, screen = this@AvailabilityScreen).render(),
             TextDisplay.of(
                 "### ${
                     timestamp(
@@ -49,7 +51,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
                     )
                 }\n" +
                         week
-                            .playerResponses
+                            .responses
                             .asSequence()
                             .filter { (_, response) -> response.sessionLimit != 0 }
                             .mapNotNull { (userId, response) -> response.availability[date]?.let { userId to it } }
@@ -78,12 +80,12 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
         listOf(
             Container.of(
                 Section.of(
-                    Buttons.ToggleWeekSessionLimit(screen = this@PlayerAvailabilityScreen).render(),
+                    Buttons.ToggleWeekSessionLimit(screen = this@AvailabilityScreen).render(),
                     TextDisplay.of(
                         "### Limits this week\n" +
                                 listOf(
                                     week
-                                        .playerResponses
+                                        .responses
                                         .asSequence()
                                         .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
                                         .filter { (_, sessionLimit) -> sessionLimit == 1 }
@@ -96,7 +98,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
                                             separator = "\n"
                                         ).orEmpty(),
                                     week
-                                        .playerResponses
+                                        .responses
                                         .asSequence()
                                         .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
                                         .filter { (_, sessionLimit) -> sessionLimit == 0 }
@@ -117,9 +119,10 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
 
     private fun renderMissingResponses(week: Week, configuration: Configuration) =
         listOfNotNull(
-            configuration.campaigns
-                .flatMap { it.gmDiscordIds + it.playerDiscordIds }
-                .filter { week.playerResponses[it] == null }
+            configuration.activities
+                .flatMap(Activity::participants)
+                .map(Participant::userId)
+                .filter { week.responses[it] == null }
                 .distinct()
                 .sorted()
                 .takeUnless(List<Long>::isEmpty)
@@ -135,12 +138,12 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
 
     companion object {
         fun reconstruct(parameters: List<String>, guildId: Long) =
-            PlayerAvailabilityScreen(weekMondayDate = LocalDate.parse(parameters.first()), guildId)
+            AvailabilityScreen(weekMondayDate = LocalDate.parse(parameters.first()), guildId)
     }
 
     class Buttons {
-        class ToggleDateAvailability(private val date: LocalDate, screen: PlayerAvailabilityScreen) :
-            ScreenButton<PlayerAvailabilityScreen>(
+        class ToggleDateAvailability(private val date: LocalDate, screen: AvailabilityScreen) :
+            ScreenButton<AvailabilityScreen>(
                 screen = screen
             ) {
             fun render() =
@@ -150,22 +153,22 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
                 event.processAndRerender {
                     val userId = event.user.idLong
                     WeekRepository.update(guildId = screen.guildId, mondayDate = screen.weekMondayDate) { week ->
-                        val playerResponse = week.playerResponses[userId]
-                        val oldAvailability = playerResponse?.availability[date]
+                        val response = week.responses[userId]
+                        val oldAvailability = response?.availability[date]
                         val newAvailability = when (oldAvailability) {
                             null -> AvailabilityStatus.AVAILABLE
                             AvailabilityStatus.AVAILABLE -> AvailabilityStatus.IF_NEED_BE
                             AvailabilityStatus.IF_NEED_BE -> AvailabilityStatus.UNAVAILABLE
                             AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.AVAILABLE
                         }
-                        logger.info("Updating player availability for ${event.user.name} from $oldAvailability to $newAvailability")
-                        if (playerResponse == null) {
-                            week.playerResponses[userId] = WeekRepository.MutableWeek.PlayerResponse(
+                        logger.info("Updating availability at $date from $oldAvailability to $newAvailability")
+                        if (response == null) {
+                            week.responses[userId] = WeekRepository.MutableWeek.Response(
                                 sessionLimit = null,
                                 availability = mutableMapOf(date to newAvailability)
                             )
                         } else {
-                            playerResponse.availability[date] = newAvailability
+                            response.availability[date] = newAvailability
                         }
                     }
                 }
@@ -174,8 +177,8 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
             override fun parameters(): List<String> = listOf(date.toString())
 
             object Reconstructor :
-                ScreenComponentReconstructor<PlayerAvailabilityScreen, ToggleDateAvailability>(
-                    screenClass = PlayerAvailabilityScreen::class,
+                ScreenComponentReconstructor<AvailabilityScreen, ToggleDateAvailability>(
+                    screenClass = AvailabilityScreen::class,
                     componentClass = ToggleDateAvailability::class
                 ) {
                 override fun reconstruct(
@@ -190,8 +193,8 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
             }
         }
 
-        class ToggleWeekSessionLimit(screen: PlayerAvailabilityScreen) :
-            ScreenButton<PlayerAvailabilityScreen>(
+        class ToggleWeekSessionLimit(screen: AvailabilityScreen) :
+            ScreenButton<AvailabilityScreen>(
                 screen = screen
             ) {
             fun render() =
@@ -201,21 +204,21 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
                 event.processAndRerender {
                     val userId = event.user.idLong
                     WeekRepository.update(guildId = screen.guildId, mondayDate = screen.weekMondayDate) { week ->
-                        val playerResponse = week.playerResponses[userId]
-                        val oldLimit = playerResponse?.sessionLimit
+                        val response = week.responses[userId]
+                        val oldLimit = response?.sessionLimit
                         val newLimit = when (oldLimit) {
                             0 -> 2
                             1 -> 0
                             else -> 1
                         }
-                        logger.info("Setting session limit for ${event.user.name} at week of ${screen.weekMondayDate} to $newLimit")
-                        if (playerResponse == null) {
-                            week.playerResponses[userId] = WeekRepository.MutableWeek.PlayerResponse(
+                        logger.info("Updating session limit at week of ${screen.weekMondayDate} from $oldLimit to $newLimit")
+                        if (response == null) {
+                            week.responses[userId] = WeekRepository.MutableWeek.Response(
                                 sessionLimit = newLimit,
                                 availability = mutableMapOf()
                             )
                         } else {
-                            playerResponse.sessionLimit = newLimit
+                            response.sessionLimit = newLimit
                         }
                     }
                 }
@@ -224,8 +227,8 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
             override fun parameters(): List<String> = emptyList()
 
             object Reconstructor :
-                ScreenComponentReconstructor<PlayerAvailabilityScreen, ToggleWeekSessionLimit>(
-                    screenClass = PlayerAvailabilityScreen::class,
+                ScreenComponentReconstructor<AvailabilityScreen, ToggleWeekSessionLimit>(
+                    screenClass = AvailabilityScreen::class,
                     componentClass = ToggleWeekSessionLimit::class
                 ) {
                 override fun reconstruct(

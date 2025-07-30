@@ -1,6 +1,8 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.Participant
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
@@ -34,11 +36,11 @@ class PlanAlternativeConcludedScreen(
                 TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
             )
         ) + listOfNotNull(
-            getNonParticipatingPlayers(plan, configuration)
+            getParticipantsLeftOut(plan, configuration)
                 .takeUnless(List<Long>::isEmpty)
-                ?.let { nonParticipatingPlayers ->
+                ?.let { participantsLeftOut ->
                     TextDisplay.of(
-                        nonParticipatingPlayers.joinToString(
+                        participantsLeftOut.joinToString(
                             prefix = DiscordFormatter.bold("Not participating this week") + "\n",
                             separator = "\n"
                         ) {
@@ -63,14 +65,14 @@ class PlanAlternativeConcludedScreen(
         )
     }
 
-    private fun getNonParticipatingPlayers(plan: Planner.Plan, configuration: Configuration) =
-        configuration.campaigns
-            .flatMap { it.gmDiscordIds + it.playerDiscordIds }
-            .distinct()
+    private fun getParticipantsLeftOut(plan: Planner.Plan, configuration: Configuration) =
+        configuration.activities
+            .flatMap(Activity::participants)
+            .map(Participant::userId)
             .minus(
                 plan.sessions
                     .flatMap(Planner.Plan.Session::attendees)
-                    .map(Planner.Plan.Session.Attendee::playerDiscordId)
+                    .map(Planner.Plan.Session.Attendee::userId)
                     .toSet()
             )
             .sorted()

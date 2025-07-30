@@ -1,6 +1,8 @@
 package com.github.shelgen.timesage.repositories
 
+import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.Participant
 
 object ConfigurationRepository {
     private val dao = ConfigurationFileDao()
@@ -25,65 +27,98 @@ object ConfigurationRepository {
             guildId = guildId,
             enabled = enabled,
             channelId = channelId,
-            campaigns = campaigns.map { it.toCampaign() }.toMutableSet(),
+            activities = activities.map { it.toActivity() },
         )
 
-    private fun ConfigurationFileDao.Json.Campaign.toCampaign(): Configuration.Campaign =
-        Configuration.Campaign(
-            id = this.id,
-            name = this.name,
-            gmDiscordIds = this.gmDiscordIds.toMutableSet(),
-            playerDiscordIds = this.playerDiscordIds.toMutableSet(),
-            maxNumMissingPlayers = this.maxNumMissingPlayers
+    private fun ConfigurationFileDao.Json.Activity.toActivity(): Activity =
+        Activity(
+            id = id,
+            name = name,
+            participants = participants.map { it.toParticipant() },
+            maxMissingOptionalParticipants = this.maxMissingOptionalParticipants
         )
+
+    private fun ConfigurationFileDao.Json.Participant.toParticipant(): Participant =
+        Participant(userId = userId, optional = optional)
 
     data class MutableConfiguration(
         val guildId: Long,
         var enabled: Boolean,
         var channelId: Long?,
-        val campaigns: MutableSet<MutableCampaign>
+        val activities: MutableSet<MutableActivity>
     ) {
         constructor(configuration: Configuration) : this(
             guildId = configuration.guildId,
             enabled = configuration.enabled,
             channelId = configuration.channelId,
-            campaigns = configuration.campaigns.map(::MutableCampaign).toMutableSet()
+            activities = configuration.activities.map(::MutableActivity).toMutableSet()
         )
 
-        fun getCampaign(campaignId: Int): MutableCampaign =
-            campaigns.first { it.id == campaignId }
+        fun getActivity(activityId: Int): MutableActivity =
+            activities.first { it.id == activityId }
 
-        data class MutableCampaign(
+        data class MutableActivity(
             val id: Int,
             var name: String,
-            val gmDiscordIds: MutableSet<Long>,
-            val playerDiscordIds: MutableSet<Long>,
-            var maxNumMissingPlayers: Int
-
+            val participants: MutableList<MutableParticipant>,
+            var maxMissingOptionalParticipants: Int
         ) {
-            constructor(campaign: Configuration.Campaign) : this(
-                id = campaign.id,
-                name = campaign.name,
-                gmDiscordIds = campaign.gmDiscordIds.toMutableSet(),
-                playerDiscordIds = campaign.playerDiscordIds.toMutableSet(),
-                maxNumMissingPlayers = campaign.maxNumMissingPlayers
+            constructor(activity: Activity) : this(
+                id = activity.id,
+                name = activity.name,
+                participants = activity.participants.map(::MutableParticipant).toMutableList(),
+                maxMissingOptionalParticipants = activity.maxMissingOptionalParticipants
             )
 
-            fun toJson(): ConfigurationFileDao.Json.Campaign =
-                ConfigurationFileDao.Json.Campaign(
+            data class MutableParticipant(val userId: Long, var optional: Boolean) {
+                constructor(participant: Participant) : this(
+                    userId = participant.userId,
+                    optional = participant.optional
+                )
+
+                fun toJson(): ConfigurationFileDao.Json.Participant =
+                    ConfigurationFileDao.Json.Participant(
+                        userId = userId,
+                        optional = optional
+                    )
+            }
+
+            fun toJson(): ConfigurationFileDao.Json.Activity =
+                ConfigurationFileDao.Json.Activity(
                     id = id,
                     name = name,
-                    gmDiscordIds = gmDiscordIds.toSortedSet(),
-                    playerDiscordIds = playerDiscordIds.toSortedSet(),
-                    maxNumMissingPlayers = maxNumMissingPlayers
+                    participants = participants.sortedBy { it.userId }.map { it.toJson() },
+                    maxMissingOptionalParticipants = maxMissingOptionalParticipants
                 )
+
+            fun setRequiredParticipants(userIds: List<Long>) {
+                userIds.distinct().forEach { userId ->
+                    val participant = participants.firstOrNull { it.userId == userId }
+                    if (participant == null) {
+                        participants.add(MutableParticipant(userId = userId, optional = false))
+                    } else {
+                        participant.optional = false
+                    }
+                }
+            }
+
+            fun setOptionalParticipants(userIds: List<Long>) {
+                userIds.distinct().forEach { userId ->
+                    val participant = participants.firstOrNull { it.userId == userId }
+                    if (participant == null) {
+                        participants.add(MutableParticipant(userId = userId, optional = true))
+                    } else {
+                        participant.optional = true
+                    }
+                }
+            }
         }
 
         fun toJson(): ConfigurationFileDao.Json =
             ConfigurationFileDao.Json(
                 enabled = enabled,
                 channelId = channelId,
-                campaigns = campaigns.map { it.toJson() }.toSortedSet(),
+                activities = activities.sortedBy { it.id }.map { it.toJson() },
             )
     }
 }

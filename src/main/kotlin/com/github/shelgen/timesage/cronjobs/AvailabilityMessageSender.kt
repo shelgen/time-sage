@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.nextMonday
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
-import com.github.shelgen.timesage.ui.screens.PlayerAvailabilityScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityScreen
 
 object AvailabilityMessageSender {
     fun postAvailabilityMessage(guildId: Long) {
@@ -27,7 +27,7 @@ object AvailabilityMessageSender {
                 if (discordMessageId == null) {
                     logger.info("Sending availability messsage for the week of Monday $weekMondayDate")
                     channel!!.sendMessage(
-                        PlayerAvailabilityScreen(
+                        AvailabilityScreen(
                             weekMondayDate = nextMonday(),
                             guildId = configuration.guildId
                         ).render()
