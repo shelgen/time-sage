@@ -43,7 +43,7 @@ class CachedJsonFileDao<T>(private val jsonClass: Class<T>, private val initialC
         val file = File(string)
         return loadFile(file) ?: initialContent.also {
             logger.debug("Initializing file ${file.path}")
-            save(file, it)
+            saveFile(file, it)
         }
     }
 
