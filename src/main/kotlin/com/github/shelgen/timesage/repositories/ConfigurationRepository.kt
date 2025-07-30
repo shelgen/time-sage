@@ -18,7 +18,7 @@ object ConfigurationRepository {
         return returnValue
     }
 
-    fun loadAll(): List<Configuration> = dao.findAllGuildIds().map(::loadOrInitialize)
+    fun findAllGuildIds() = dao.findAllGuildIds()
 
     private fun ConfigurationFileDao.Json.toConfiguration(guildId: Long): Configuration =
         Configuration(

@@ -62,7 +62,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     ConfigurationRepository.update(screen.guildId) { it.enabled = true }
-                    AvailabilityMessageSender.sendMessage()
+                    AvailabilityMessageSender.postAvailabilityMessage(screen.guildId)
                 }
             }
 
