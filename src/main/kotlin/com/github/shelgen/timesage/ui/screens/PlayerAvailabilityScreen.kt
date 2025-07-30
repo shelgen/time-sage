@@ -1,11 +1,10 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.atNormalStartTime
+import com.github.shelgen.timesage.domain.AvailabilityStatus
+import com.github.shelgen.timesage.domain.Week
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.WeekRepository
-import com.github.shelgen.timesage.repositories.WeekRepository.WeekDto.PlayerResponse.AvailabilityStatus
-import com.github.shelgen.timesage.repositories.updateWeek
-import com.github.shelgen.timesage.repositories.withReplacement
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import com.github.shelgen.timesage.ui.DiscordFormatter.timestamp
 import com.github.shelgen.timesage.weekDatesForMonday
@@ -21,7 +20,7 @@ import java.util.*
 
 class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
     override fun renderComponents() =
-        WeekRepository.load(guildId = guildId, weekMondayDate = weekMondayDate).let { week ->
+        WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate).let { week ->
             val dates = weekDatesForMonday(weekMondayDate)
             listOf(
                 renderHeader(dates.first(), dates.last()),
@@ -38,7 +37,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
         )
     )
 
-    private fun renderDateContainer(date: LocalDate, week: WeekRepository.WeekDto) = Container.of(
+    private fun renderDateContainer(date: LocalDate, week: Week) = Container.of(
         Section.of(
             Buttons.ToggleDateAvailability(date = date, screen = this@PlayerAvailabilityScreen).render(),
             TextDisplay.of(
@@ -74,7 +73,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
         )
     )
 
-    private fun renderWeekLimits(week: WeekRepository.WeekDto) =
+    private fun renderWeekLimits(week: Week) =
         listOf(
             Container.of(
                 Section.of(
@@ -115,7 +114,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
             )
         )
 
-    private fun renderMissingResponses(week: WeekRepository.WeekDto) =
+    private fun renderMissingResponses(week: Week) =
         listOfNotNull(
             configuration.campaigns
                 .flatMap { it.gmDiscordIds + it.playerDiscordIds }
@@ -149,8 +148,9 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    updateWeek(screen.guildId, screen.weekMondayDate) { week ->
-                        val oldAvailability = week.playerResponses[userId]?.availability[date]
+                    WeekRepository.update(guildId = screen.guildId, mondayDate = screen.weekMondayDate) { week ->
+                        val playerResponse = week.playerResponses[userId]
+                        val oldAvailability = playerResponse?.availability[date]
                         val newAvailability = when (oldAvailability) {
                             null -> AvailabilityStatus.AVAILABLE
                             AvailabilityStatus.AVAILABLE -> AvailabilityStatus.IF_NEED_BE
@@ -158,16 +158,14 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
                             AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.AVAILABLE
                         }
                         logger.info("Updating player availability for ${event.user.name} from $oldAvailability to $newAvailability")
-                        week.copy(
-                            playerResponses = week.playerResponses.withReplacement(userId) { oldResponse ->
-                                oldResponse?.copy(
-                                    availability = oldResponse.availability.withReplacement(date) { newAvailability }
-                                ) ?: WeekRepository.WeekDto.PlayerResponse(
-                                    sessionLimit = null,
-                                    availability = mapOf(date to newAvailability)
-                                )
-                            }
-                        )
+                        if (playerResponse == null) {
+                            week.playerResponses[userId] = WeekRepository.MutableWeek.PlayerResponse(
+                                sessionLimit = null,
+                                availability = mutableMapOf(date to newAvailability)
+                            )
+                        } else {
+                            playerResponse.availability[date] = newAvailability
+                        }
                     }
                 }
             }
@@ -201,24 +199,23 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    updateWeek(screen.guildId, screen.weekMondayDate) { week ->
-                        val oldLimit = week.playerResponses[userId]?.sessionLimit
+                    WeekRepository.update(guildId = screen.guildId, mondayDate = screen.weekMondayDate) { week ->
+                        val playerResponse = week.playerResponses[userId]
+                        val oldLimit = playerResponse?.sessionLimit
                         val newLimit = when (oldLimit) {
                             0 -> 2
                             1 -> 0
                             else -> 1
                         }
                         logger.info("Setting session limit for ${event.user.name} at week of ${screen.weekMondayDate} to $newLimit")
-                        week.copy(
-                            playerResponses = week.playerResponses.withReplacement(userId) { oldResponse ->
-                                oldResponse?.copy(
-                                    sessionLimit = newLimit
-                                ) ?: WeekRepository.WeekDto.PlayerResponse(
-                                    sessionLimit = newLimit,
-                                    availability = emptyMap()
-                                )
-                            }
-                        )
+                        if (playerResponse == null) {
+                            week.playerResponses[userId] = WeekRepository.MutableWeek.PlayerResponse(
+                                sessionLimit = newLimit,
+                                availability = mutableMapOf()
+                            )
+                        } else {
+                            playerResponse.sessionLimit = newLimit
+                        }
                     }
                 }
             }

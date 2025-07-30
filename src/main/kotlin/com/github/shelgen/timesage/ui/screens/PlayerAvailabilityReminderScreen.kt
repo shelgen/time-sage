@@ -9,7 +9,7 @@ import java.time.LocalDate
 
 class PlayerAvailabilityReminderScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
     override fun renderComponents(): List<MessageTopLevelComponent> {
-        val week = WeekRepository.load(guildId = guildId, weekMondayDate = weekMondayDate)
+        val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
         val playerResponses = week.playerResponses
 
         val unansweredPlayers = configuration.campaigns

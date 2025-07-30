@@ -5,7 +5,6 @@ import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.nextMonday
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
-import com.github.shelgen.timesage.repositories.updateWeek
 import com.github.shelgen.timesage.ui.screens.PlayerAvailabilityScreen
 
 object AvailabilityMessageSender {
@@ -21,9 +20,9 @@ object AvailabilityMessageSender {
                     val channel = JDAHolder.jda.getTextChannelById(channelId)
                     val weekMondayDate = nextMonday()
                     val discordMessageId =
-                        WeekRepository.load(
+                        WeekRepository.loadOrInitialize(
                             guildId = configuration.guildId,
-                            weekMondayDate = weekMondayDate
+                            mondayDate = weekMondayDate
                         ).weekAvailabilityMessageDiscordId
                     if (discordMessageId == null) {
                         logger.info("Sending availability messsage for the week of Monday $weekMondayDate")
@@ -34,10 +33,8 @@ object AvailabilityMessageSender {
                             ).render()
                         ).queue { message ->
                             val messageId = message.idLong
-                            updateWeek(guildId = configuration.guildId, weekMondayDate = weekMondayDate) {
-                                it.copy(
-                                    weekAvailabilityMessageDiscordId = messageId
-                                )
+                            WeekRepository.update(guildId = configuration.guildId, mondayDate = weekMondayDate) {
+                                it.weekAvailabilityMessageDiscordId = messageId
                             }
                         }
                     } else {

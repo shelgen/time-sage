@@ -10,7 +10,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.github.shelgen.timesage.repositories.ConfigurationRepository" level="DEBUG"/>
+    <logger name="com.github.shelgen.timesage" level="DEBUG"/>
 
     <root level="info">
         <appender-ref ref="STDOUT"/>

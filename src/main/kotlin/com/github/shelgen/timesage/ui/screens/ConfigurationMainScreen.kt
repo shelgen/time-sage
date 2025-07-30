@@ -2,7 +2,6 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.cronjobs.AvailabilityMessageSender
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
-import com.github.shelgen.timesage.repositories.updateConfiguration
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -59,7 +58,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
         ) {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
-                    updateConfiguration(screen.guildId) { it.copy(enabled = true) }
+                    ConfigurationRepository.update(screen.guildId) { it.enabled = true }
                     AvailabilityMessageSender.sendMessage()
                 }
             }
@@ -71,7 +70,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                     screenClass = ConfigurationMainScreen::class,
                     componentClass = Enable::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>, guildId: Long) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     Enable(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
@@ -83,7 +86,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
         ) {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
-                    updateConfiguration(screen.guildId) { it.copy(enabled = false) }
+                    ConfigurationRepository.update(screen.guildId) { it.enabled = false }
                 }
             }
 
@@ -94,7 +97,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                     screenClass = ConfigurationMainScreen::class,
                     componentClass = Disable::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>, guildId: Long) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     Disable(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
@@ -116,7 +123,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                     screenClass = ConfigurationMainScreen::class,
                     componentClass = EditCampaign::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>, guildId: Long) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     EditCampaign(
                         campaignId = componentParameters.first().toInt(),
                         screen = reconstruct(parameters = screenParameters, guildId = guildId)
@@ -131,18 +142,16 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
         ) {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { interactionHook ->
-                    val updatedConfiguration = updateConfiguration(screen.guildId) { configuration ->
-                        val campaignId = (configuration.campaigns.maxOfOrNull { it.id } ?: 0) + 1
-                        val newCampaign = ConfigurationRepository.ConfigurationDto.CampaignDto(
-                            id = campaignId,
+                    val newCampaignId = ConfigurationRepository.update(screen.guildId) { configuration ->
+                        ConfigurationRepository.MutableConfiguration.MutableCampaign(
+                            id = (configuration.campaigns.maxOfOrNull { it.id } ?: 0) + 1,
                             name = "New Campaign",
-                            gmDiscordIds = sortedSetOf(interactionHook.interaction.user.idLong),
-                            playerDiscordIds = sortedSetOf(),
+                            gmDiscordIds = mutableSetOf(interactionHook.interaction.user.idLong),
+                            playerDiscordIds = mutableSetOf(),
                             maxNumMissingPlayers = 0
-                        )
-                        configuration.copy(campaigns = (configuration.campaigns + newCampaign).toSortedSet())
+                        ).also(configuration.campaigns::add).id
                     }
-                    ConfigurationCampaignScreen(updatedConfiguration.campaigns.maxOf { it.id }, screen.guildId)
+                    ConfigurationCampaignScreen(newCampaignId, screen.guildId)
                 }
             }
 
@@ -153,7 +162,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                     screenClass = ConfigurationMainScreen::class,
                     componentClass = AddCampaign::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>, guildId: Long) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     AddCampaign(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }
@@ -170,7 +183,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val newChannelId = event.mentions.channels.firstOrNull()?.idLong
-                    updateConfiguration(screen.guildId) { it.copy(channelId = newChannelId) }
+                    ConfigurationRepository.update(screen.guildId) { it.channelId = newChannelId }
                 }
             }
 
@@ -181,7 +194,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                     screenClass = ConfigurationMainScreen::class,
                     componentClass = Channel::class
                 ) {
-                override fun reconstruct(screenParameters: List<String>, componentParameters: List<String>, guildId: Long) =
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    guildId: Long
+                ) =
                     Channel(screen = reconstruct(parameters = screenParameters, guildId = guildId))
             }
         }

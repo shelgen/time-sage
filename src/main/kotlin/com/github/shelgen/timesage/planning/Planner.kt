@@ -1,14 +1,15 @@
 package com.github.shelgen.timesage.planning
 
+import com.github.shelgen.timesage.domain.AvailabilityStatus
+import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.Week
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
-import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.weekDatesForMonday
 import java.time.LocalDate
 
 class Planner(
-    private val configuration: ConfigurationRepository.ConfigurationDto,
-    private val week: WeekRepository.WeekDto
+    private val configuration: Configuration,
+    private val week: Week
 ) {
     fun generatePossiblePlans(): List<Plan> {
         logger.info("Generating suggestions for week of Monday ${week.mondayDate}")
@@ -40,12 +41,12 @@ class Planner(
                     .filterNot { it.hasAttendee(playerUserId) }
                     .map(Plan.Session::date)
                     .map { getAvailability(playerUserId, it) }
-                    .any { it != WeekRepository.WeekDto.PlayerResponse.AvailabilityStatus.UNAVAILABLE }
+                    .any { it != AvailabilityStatus.UNAVAILABLE }
             }
 
     private fun getAvailability(playerUserId: Long, date: LocalDate) =
         week.playerResponses[playerUserId]?.availability[date]
-            ?: WeekRepository.WeekDto.PlayerResponse.AvailabilityStatus.UNAVAILABLE
+            ?: AvailabilityStatus.UNAVAILABLE
 
     private fun getSessionLimit(playerUserId: Long) =
         week.playerResponses[playerUserId]?.sessionLimit ?: 2
@@ -66,13 +67,13 @@ class Planner(
                             .asSequence()
                             .map { (playerUserId, response) ->
                                 playerUserId to (response.availability[currentDate]
-                                    ?: WeekRepository.WeekDto.PlayerResponse.AvailabilityStatus.UNAVAILABLE)
+                                    ?: AvailabilityStatus.UNAVAILABLE)
                             }
-                            .filterNot { (_, availability) -> availability == WeekRepository.WeekDto.PlayerResponse.AvailabilityStatus.UNAVAILABLE }
+                            .filterNot { (_, availability) -> availability == AvailabilityStatus.UNAVAILABLE }
                             .map { (playerUserId, availability) ->
                                 Plan.Session.Attendee(
                                     playerDiscordId = playerUserId,
-                                    ifNeedBe = availability == WeekRepository.WeekDto.PlayerResponse.AvailabilityStatus.IF_NEED_BE
+                                    ifNeedBe = availability == AvailabilityStatus.IF_NEED_BE
                                 )
                             }
                             .filter {

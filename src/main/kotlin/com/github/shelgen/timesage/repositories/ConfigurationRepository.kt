@@ -1,83 +1,89 @@
 package com.github.shelgen.timesage.repositories
 
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.github.benmanes.caffeine.cache.CacheLoader
-import com.github.benmanes.caffeine.cache.Caffeine
-import com.github.benmanes.caffeine.cache.LoadingCache
-import com.github.shelgen.timesage.logger
-import java.io.File
-import java.time.Duration
-import java.time.Instant
-import java.util.*
+import com.github.shelgen.timesage.domain.Configuration
 
 object ConfigurationRepository {
-    private val cache: LoadingCache<Long, ConfigurationDto> = Caffeine.newBuilder()
-        .build(CacheLoader(::loadFile))
+    private val dao = ConfigurationFileDao()
 
-    fun save(configuration: ConfigurationDto) {
-        val start = Instant.now()
-        val file = getConfigurationFile(configuration.guildId).also { it.parentFile.mkdirs() }
-        objectMapper
-            .writerWithDefaultPrettyPrinter()
-            .writeValue(file, configuration)
-        cache.invalidate(configuration.guildId)
-        logger.debug("Saved configuration to ${file.path} in ${Duration.between(start, Instant.now()).toMillis()}ms")
+    fun loadOrInitialize(guildId: Long): Configuration = dao.loadOrInitialize(guildId).toConfiguration(guildId)
+
+    fun <T> update(
+        guildId: Long,
+        modification: (configuration: MutableConfiguration) -> T
+    ): T {
+        val configuration = loadOrInitialize(guildId)
+        val mutableConfiguration = MutableConfiguration(configuration)
+        val returnValue = modification(mutableConfiguration)
+        dao.save(guildId, mutableConfiguration.toJson())
+        return returnValue
     }
 
-    fun load(guildId: Long): ConfigurationDto = cache.get(guildId)
+    fun loadAll(): List<Configuration> = dao.findAllGuildIds().map(::loadOrInitialize)
 
-    fun loadAll(): List<ConfigurationDto> =
-        SERVERS_DIR.listFiles { serverDir ->
-            serverDir.isDirectory &&
-                    serverDir.name.toLongOrNull() != null &&
-                    serverDir.listFiles { it.isFile && it.name == CONFIGURATION_FILE_NAME }.orEmpty().isNotEmpty()
-        }.orEmpty()
-            .map(File::getName)
-            .map(String::toLong)
-            .map(::load)
+    private fun ConfigurationFileDao.Json.toConfiguration(guildId: Long): Configuration =
+        Configuration(
+            guildId = guildId,
+            enabled = enabled,
+            channelId = channelId,
+            campaigns = campaigns.map { it.toCampaign() }.toMutableSet(),
+        )
 
-    private fun loadFile(guildId: Long): ConfigurationDto {
-        val start = Instant.now()
-        val file = getConfigurationFile(guildId)
-        return file
-            .takeIf(File::exists)
-            ?.let { file ->
-                objectMapper
-                    .readValue<ConfigurationDto>(file)
-                    .also {
-                        logger.debug(
-                            "Loaded configuration from ${file.path} in " +
-                                    "${Duration.between(start, Instant.now()).toMillis()}ms"
-                        )
-                    }
-            }
-            ?: ConfigurationDto(
-                guildId = guildId,
-                enabled = false,
-                channelId = null,
-                campaigns = sortedSetOf()
-            ).also { logger.debug("Created new configuration for guildId $guildId") }
-    }
+    private fun ConfigurationFileDao.Json.Campaign.toCampaign(): Configuration.Campaign =
+        Configuration.Campaign(
+            id = this.id,
+            name = this.name,
+            gmDiscordIds = this.gmDiscordIds.toMutableSet(),
+            playerDiscordIds = this.playerDiscordIds.toMutableSet(),
+            maxNumMissingPlayers = this.maxNumMissingPlayers
+        )
 
-    data class ConfigurationDto(
+    data class MutableConfiguration(
         val guildId: Long,
-        val enabled: Boolean,
-        val channelId: Long?,
-        val campaigns: SortedSet<CampaignDto>,
+        var enabled: Boolean,
+        var channelId: Long?,
+        val campaigns: MutableSet<MutableCampaign>
     ) {
-        data class CampaignDto(
+        constructor(configuration: Configuration) : this(
+            guildId = configuration.guildId,
+            enabled = configuration.enabled,
+            channelId = configuration.channelId,
+            campaigns = configuration.campaigns.map(::MutableCampaign).toMutableSet()
+        )
+
+        fun getCampaign(campaignId: Int): MutableCampaign =
+            campaigns.first { it.id == campaignId }
+
+        data class MutableCampaign(
             val id: Int,
-            val name: String,
-            val gmDiscordIds: SortedSet<Long>,
-            val playerDiscordIds: SortedSet<Long>,
-            val maxNumMissingPlayers: Int
-        ) : Comparable<CampaignDto> {
-            override fun compareTo(other: CampaignDto) = id.compareTo(other.id)
+            var name: String,
+            val gmDiscordIds: MutableSet<Long>,
+            val playerDiscordIds: MutableSet<Long>,
+            var maxNumMissingPlayers: Int
+
+        ) {
+            constructor(campaign: Configuration.Campaign) : this(
+                id = campaign.id,
+                name = campaign.name,
+                gmDiscordIds = campaign.gmDiscordIds.toMutableSet(),
+                playerDiscordIds = campaign.playerDiscordIds.toMutableSet(),
+                maxNumMissingPlayers = campaign.maxNumMissingPlayers
+            )
+
+            fun toJson(): ConfigurationFileDao.Json.Campaign =
+                ConfigurationFileDao.Json.Campaign(
+                    id = id,
+                    name = name,
+                    gmDiscordIds = gmDiscordIds.toSortedSet(),
+                    playerDiscordIds = playerDiscordIds.toSortedSet(),
+                    maxNumMissingPlayers = maxNumMissingPlayers
+                )
         }
+
+        fun toJson(): ConfigurationFileDao.Json =
+            ConfigurationFileDao.Json(
+                enabled = enabled,
+                channelId = channelId,
+                campaigns = campaigns.map { it.toJson() }.toSortedSet(),
+            )
     }
-
-    private fun getConfigurationFile(guildId: Long): File =
-        File(getServerDir(guildId), CONFIGURATION_FILE_NAME)
-
-    private const val CONFIGURATION_FILE_NAME = "configuration.json"
 }

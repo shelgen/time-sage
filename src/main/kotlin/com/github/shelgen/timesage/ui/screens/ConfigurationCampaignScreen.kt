@@ -1,8 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.repositories.getCampaign
-import com.github.shelgen.timesage.repositories.updateCampaign
-import com.github.shelgen.timesage.repositories.updateConfiguration
+import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -87,9 +85,8 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
         ) {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
-                    updateConfiguration(screen.guildId) { configuration ->
-                        val campaignToRemove = configuration.campaigns.first { it.id == screen.campaignId }
-                        configuration.copy(campaigns = (configuration.campaigns - campaignToRemove).toSortedSet())
+                    ConfigurationRepository.update(screen.guildId) { configuration ->
+                        configuration.campaigns.removeIf { it.id == screen.campaignId }
                     }
                     ConfigurationMainScreen(screen.guildId)
                 }
@@ -147,8 +144,10 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
-                    updateCampaign(guildId = screen.guildId, campaignId = screen.campaignId) {
-                        it.copy(gmDiscordIds = updatedUsers.toSortedSet())
+                    ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
+                        val campaign = configuration.getCampaign(campaignId = screen.campaignId)
+                        campaign.gmDiscordIds.clear()
+                        campaign.gmDiscordIds.addAll(updatedUsers)
                     }
                 }
             }
@@ -178,8 +177,10 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
-                    updateCampaign(guildId = screen.guildId, campaignId = screen.campaignId) {
-                        it.copy(playerDiscordIds = updatedUsers.toSortedSet())
+                    ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
+                        val campaign = configuration.getCampaign(campaignId = screen.campaignId)
+                        campaign.playerDiscordIds.clear()
+                        campaign.playerDiscordIds.addAll(updatedUsers)
                     }
                 }
             }
@@ -211,8 +212,9 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun handle(event: StringSelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedMaxNumMissingPlayers = event.values.first().toInt()
-                    updateCampaign(guildId = screen.guildId, campaignId = screen.campaignId) {
-                        it.copy(maxNumMissingPlayers = updatedMaxNumMissingPlayers)
+                    ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
+                        val campaign = configuration.getCampaign(campaignId = screen.campaignId)
+                        campaign.maxNumMissingPlayers = updatedMaxNumMissingPlayers
                     }
                 }
             }
@@ -247,8 +249,9 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
                     val updatedName = event.getValue("name")!!.asString
-                    updateCampaign(guildId = screen.guildId, campaignId = screen.campaignId) {
-                        it.copy(name = updatedName)
+                    ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
+                        val campaign = configuration.getCampaign(campaignId = screen.campaignId)
+                        campaign.name = updatedName
                     }
                 }
             }

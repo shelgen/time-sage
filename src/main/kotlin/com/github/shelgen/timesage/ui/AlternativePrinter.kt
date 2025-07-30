@@ -2,11 +2,9 @@ package com.github.shelgen.timesage.ui
 
 import com.github.shelgen.timesage.atNormalStartTime
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
-import com.github.shelgen.timesage.repositories.getCampaign
-import com.github.shelgen.timesage.repositories.getParticipants
+import com.github.shelgen.timesage.domain.Configuration
 
-class AlternativePrinter(private val configuration: ConfigurationRepository.ConfigurationDto) {
+class AlternativePrinter(private val configuration: Configuration) {
     fun printAlternative(alternativeNumber: Int, plan: Planner.Plan) =
         "-# Alternative $alternativeNumber (Score ${plan.score.toShortString()})\n" +
                 plan.print()

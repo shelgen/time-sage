@@ -1,80 +1,92 @@
 package com.github.shelgen.timesage.repositories
 
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.github.benmanes.caffeine.cache.CacheLoader
-import com.github.benmanes.caffeine.cache.Caffeine
-import com.github.benmanes.caffeine.cache.LoadingCache
-import com.github.shelgen.timesage.logger
-import java.io.File
-import java.time.Duration
-import java.time.Instant
+import com.github.shelgen.timesage.domain.AvailabilityStatus
+import com.github.shelgen.timesage.domain.Week
 import java.time.LocalDate
 
 object WeekRepository {
-    private val cache: LoadingCache<CacheKey, WeekDto> = Caffeine.newBuilder()
-        .build(CacheLoader { loadFile(guildId = it.guildId, weekMondayDate = it.weekMondayDate) })
+    private val dao = WeekFileDao()
 
-    data class CacheKey(val guildId: Long, val weekMondayDate: LocalDate)
+    fun loadOrInitialize(guildId: Long, mondayDate: LocalDate): Week =
+        dao.loadOrInitialize(guildId, mondayDate).toWeek(guildId, mondayDate)
 
-    fun save(week: WeekDto) {
-        val start = Instant.now()
-        val file = getWeekFile(guildId = week.guildId, weekMondayDate = week.mondayDate).also { it.parentFile.mkdirs() }
-        objectMapper
-            .writerWithDefaultPrettyPrinter()
-            .writeValue(file, week)
-        cache.invalidate(CacheKey(guildId = week.guildId, weekMondayDate = week.mondayDate))
-        logger.debug("Saved week to ${file.path} in ${Duration.between(start, Instant.now()).toMillis()}ms")
+    fun <T> update(
+        guildId: Long,
+        mondayDate: LocalDate,
+        modification: (week: MutableWeek) -> T
+    ): T {
+        val week = loadOrInitialize(guildId, mondayDate)
+        val mutableWeek = MutableWeek(week)
+        val returnValue = modification(mutableWeek)
+        dao.save(guildId, mondayDate, mutableWeek.toJson())
+        return returnValue
     }
 
-    fun load(guildId: Long, weekMondayDate: LocalDate): WeekDto = cache.get(
-        CacheKey(
+    private fun WeekFileDao.Json.toWeek(guildId: Long, mondayDate: LocalDate): Week =
+        Week(
             guildId = guildId,
-            weekMondayDate = weekMondayDate
+            mondayDate = mondayDate,
+            weekAvailabilityMessageDiscordId = weekAvailabilityMessageDiscordId,
+            playerResponses = playerResponses.map { (userId, response) ->
+                userId to response.toPlayerResponse()
+            }.toMap(),
         )
-    )
 
-    private fun loadFile(guildId: Long, weekMondayDate: LocalDate): WeekDto {
-        val start = Instant.now()
-        val file = getWeekFile(guildId = guildId, weekMondayDate = weekMondayDate)
-        return file
-            .takeIf(File::exists)
-            ?.let { file ->
-                objectMapper
-                    .readValue<WeekDto>(file)
-                    .also {
-                        logger.debug(
-                            "Loaded week from ${file.path} in " +
-                                    "${Duration.between(start, Instant.now()).toMillis()}ms"
-                        )
-                    }
-            }
-            ?: WeekDto(
-                guildId = guildId,
-                mondayDate = weekMondayDate,
-                weekAvailabilityMessageDiscordId = null,
-                playerResponses = emptyMap()
-            ).also { logger.debug("Created new week for monday date $weekMondayDate") }
-    }
+    private fun WeekFileDao.Json.PlayerResponse.toPlayerResponse(): Week.PlayerResponse =
+        Week.PlayerResponse(
+            sessionLimit = sessionLimit,
+            availability = availability.map { (date, status) -> date to status.toAvailabilityStatus() }.toMap()
+        )
 
-    data class WeekDto(
+    private fun WeekFileDao.Json.AvailabilityStatus.toAvailabilityStatus(): AvailabilityStatus =
+        when (this) {
+            WeekFileDao.Json.AvailabilityStatus.AVAILABLE -> AvailabilityStatus.AVAILABLE
+            WeekFileDao.Json.AvailabilityStatus.IF_NEED_BE -> AvailabilityStatus.IF_NEED_BE
+            WeekFileDao.Json.AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.UNAVAILABLE
+        }
+
+    data class MutableWeek(
         val guildId: Long,
         val mondayDate: LocalDate,
-        val weekAvailabilityMessageDiscordId: Long?,
-        val playerResponses: Map<Long, PlayerResponse>,
+        var weekAvailabilityMessageDiscordId: Long?,
+        val playerResponses: MutableMap<Long, PlayerResponse>,
     ) {
+        constructor(week: Week) : this(
+            guildId = week.guildId,
+            mondayDate = week.mondayDate,
+            weekAvailabilityMessageDiscordId = week.weekAvailabilityMessageDiscordId,
+            playerResponses = week.playerResponses.map { (userId, response) ->
+                userId to PlayerResponse(response)
+            }.toMap().toMutableMap()
+        )
+
         data class PlayerResponse(
-            val sessionLimit: Int?,
-            val availability: Map<LocalDate, AvailabilityStatus>
+            var sessionLimit: Int?,
+            val availability: MutableMap<LocalDate, AvailabilityStatus>
         ) {
-            enum class AvailabilityStatus {
-                AVAILABLE, IF_NEED_BE, UNAVAILABLE
-            }
+            constructor(playerResponse: Week.PlayerResponse) : this(
+                sessionLimit = playerResponse.sessionLimit,
+                availability = playerResponse.availability.toMutableMap()
+            )
         }
+
+        fun toJson(): WeekFileDao.Json =
+            WeekFileDao.Json(
+                weekAvailabilityMessageDiscordId = weekAvailabilityMessageDiscordId,
+                playerResponses = playerResponses.map { (userId, response) -> userId to response.toJson() }.toMap()
+            )
+
+        private fun PlayerResponse.toJson(): WeekFileDao.Json.PlayerResponse =
+            WeekFileDao.Json.PlayerResponse(
+                sessionLimit = sessionLimit,
+                availability = availability.map { (date, availability) -> date to availability.toJson() }.toMap()
+            )
+
+        private fun AvailabilityStatus.toJson(): WeekFileDao.Json.AvailabilityStatus =
+            when (this) {
+                AvailabilityStatus.AVAILABLE -> WeekFileDao.Json.AvailabilityStatus.AVAILABLE
+                AvailabilityStatus.IF_NEED_BE -> WeekFileDao.Json.AvailabilityStatus.IF_NEED_BE
+                AvailabilityStatus.UNAVAILABLE -> WeekFileDao.Json.AvailabilityStatus.UNAVAILABLE
+            }
     }
-
-    private fun getWeekFile(guildId: Long, weekMondayDate: LocalDate): File =
-        File(getWeekDir(guildId), "$weekMondayDate.json")
-
-    private fun getWeekDir(guildId: Long): File =
-        File(getServerDir(guildId), "weeks")
 }

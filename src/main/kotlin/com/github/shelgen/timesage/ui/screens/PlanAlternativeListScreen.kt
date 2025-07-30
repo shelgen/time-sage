@@ -19,14 +19,9 @@ class PlanAlternativeListScreen(
     guildId: Long
 ) : Screen(guildId) {
     override fun renderComponents(): List<MessageTopLevelComponent> {
-        val plans =
-            Planner(
-                configuration = configuration,
-                week = WeekRepository.load(
-                    guildId = guildId,
-                    weekMondayDate = weekMondayDate
-                )
-            ).generatePossiblePlans()
+        val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
+        val planner = Planner(configuration = configuration, week = week)
+        val plans = planner.generatePossiblePlans()
         val alternativeNumberedPlans =
             plans.drop(startIndex).take(size)
                 .mapIndexed { index, weekPlan -> startIndex + index + 1 to weekPlan }

@@ -25,7 +25,7 @@ import net.dv8tion.jda.api.utils.messages.MessageEditData
 import net.dv8tion.jda.api.utils.messages.MessageEditData.fromCreateData
 
 sealed class Screen(protected val guildId: Long) : SerializableWithParameters {
-    protected val configuration = ConfigurationRepository.load(guildId)
+    protected val configuration = ConfigurationRepository.loadOrInitialize(guildId)
 
     abstract fun renderComponents(): List<MessageTopLevelComponent>
 

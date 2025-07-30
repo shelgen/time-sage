@@ -19,13 +19,10 @@ class PlanAlternativeSuggestedScreen(
     guildId: Long
 ) : Screen(guildId) {
     override fun renderComponents(): List<MessageTopLevelComponent> {
-        val plan = Planner(
-            configuration = configuration,
-            week = WeekRepository.load(
-                guildId = guildId,
-                weekMondayDate = weekMondayDate
-            )
-        ).generatePossiblePlans()[alternativeNumber - 1]
+        val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
+        val planner = Planner(configuration = configuration, week = week)
+        val plans = planner.generatePossiblePlans()
+        val plan = plans[alternativeNumber - 1]
         return listOf(
             TextDisplay.of(
                 "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests this alternative:"

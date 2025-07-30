@@ -25,9 +25,9 @@ class ReminderJob : Job {
                     val weekMondayDate = nextMonday()
                     logger.info("Sending any reminders for the week of Monday $weekMondayDate")
                     val discordMessageId =
-                        WeekRepository.load(
+                        WeekRepository.loadOrInitialize(
                             guildId = configuration.guildId,
-                            weekMondayDate = weekMondayDate
+                            mondayDate = weekMondayDate
                         ).weekAvailabilityMessageDiscordId
                     if (discordMessageId == null) {
                         logger.warn("No message to nag about!")
