@@ -1,12 +1,13 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
-import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -18,7 +19,7 @@ class PlanAlternativeSuggestedScreen(
     val suggestingUserId: Long,
     guildId: Long
 ) : Screen(guildId) {
-    override fun renderComponents(): List<MessageTopLevelComponent> {
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
         val planner = Planner(configuration = configuration, week = week)
         val plans = planner.generatePossiblePlans()
@@ -57,10 +58,11 @@ class PlanAlternativeSuggestedScreen(
     class Buttons {
         class ConcludeWithThisAlternative(screen: PlanAlternativeSuggestedScreen) :
             ScreenButton<PlanAlternativeSuggestedScreen>(
-                style = ButtonStyle.SUCCESS,
-                label = "Conclude with this alternative",
                 screen = screen
             ) {
+            fun render() =
+                Button.success(CustomIdSerialization.serialize(this), "Conclude with this alternative")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanAlternativeConcludedScreen(

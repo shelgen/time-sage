@@ -1,19 +1,21 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.cronjobs.AvailabilityMessageSender
+import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
-import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.section.Section
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
 
 class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
-    override fun renderComponents(): List<MessageTopLevelComponent> =
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
         listOf(
             TextDisplay.of("# Time Sage configuration"),
             Section.of(
@@ -26,7 +28,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
             ),
             TextDisplay.of(DiscordFormatter.bold("Channel") + ":"),
             ActionRow.of(
-                SelectMenus.Channel(this@ConfigurationMainScreen).render()
+                SelectMenus.Channel(this@ConfigurationMainScreen).render(configuration)
             ),
             TextDisplay.of(DiscordFormatter.bold("Campaigns") + ":"),
         ) + if (configuration.campaigns.isEmpty()) {
@@ -52,10 +54,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
 
     class Buttons {
         class Enable(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
-            style = ButtonStyle.PRIMARY,
-            label = "Enable",
             screen = screen
         ) {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Enable")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     ConfigurationRepository.update(screen.guildId) { it.enabled = true }
@@ -80,10 +83,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
         }
 
         class Disable(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
-            style = ButtonStyle.PRIMARY,
-            label = "Disable",
             screen = screen
         ) {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Disable")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     ConfigurationRepository.update(screen.guildId) { it.enabled = false }
@@ -108,10 +112,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
 
         class EditCampaign(private val campaignId: Int, screen: ConfigurationMainScreen) :
             ScreenButton<ConfigurationMainScreen>(
-                style = ButtonStyle.PRIMARY,
-                label = "Edit...",
                 screen = screen
             ) {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Edit...")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { ConfigurationCampaignScreen(campaignId, screen.guildId) }
             }
@@ -136,10 +141,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
         }
 
         class AddCampaign(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
-            style = ButtonStyle.SUCCESS,
-            label = "Add new campaign",
             screen = screen
         ) {
+            fun render() =
+                Button.success(CustomIdSerialization.serialize(this), "Add new campaign")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { interactionHook ->
                     val newCampaignId = ConfigurationRepository.update(screen.guildId) { configuration ->
@@ -173,13 +179,16 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
     }
 
     class SelectMenus {
-        class Channel(screen: ConfigurationMainScreen) : ScreenChannelSelectMenu<ConfigurationMainScreen>(
-            minValues = 0,
-            maxValues = 1,
-            channelTypes = setOf(ChannelType.TEXT),
-            defaultSelectedChannelIds = screen.configuration.channelId?.let(::listOf).orEmpty(),
-            screen = screen
-        ) {
+        class Channel(screen: ConfigurationMainScreen) : ScreenEntitySelectMenu<ConfigurationMainScreen>(screen) {
+            fun render(configuration: Configuration) =
+                EntitySelectMenu
+                    .create(CustomIdSerialization.serialize(this), EntitySelectMenu.SelectTarget.CHANNEL)
+                    .setMinValues(0)
+                    .setMaxValues(1)
+                    .setChannelTypes(ChannelType.TEXT)
+                    .setDefaultValues(listOfNotNull(configuration.channelId?.let(EntitySelectMenu.DefaultValue::channel)))
+                    .build()
+
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val newChannelId = event.mentions.channels.firstOrNull()?.idLong

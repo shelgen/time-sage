@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
@@ -15,7 +16,7 @@ class PlanAlternativeConcludedScreen(
     val alternativeNumber: Int,
     guildId: Long
 ) : Screen(guildId) {
-    override fun renderComponents(): List<MessageTopLevelComponent> {
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
         val planner = Planner(configuration = configuration, week = week)
         val plans = planner.generatePossiblePlans()
@@ -33,7 +34,7 @@ class PlanAlternativeConcludedScreen(
                 TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
             )
         ) + listOfNotNull(
-            getNonParticipatingPlayers(plan)
+            getNonParticipatingPlayers(plan, configuration)
                 .takeUnless(List<Long>::isEmpty)
                 ?.let { nonParticipatingPlayers ->
                     TextDisplay.of(
@@ -62,7 +63,7 @@ class PlanAlternativeConcludedScreen(
         )
     }
 
-    private fun getNonParticipatingPlayers(plan: Planner.Plan) =
+    private fun getNonParticipatingPlayers(plan: Planner.Plan, configuration: Configuration) =
         configuration.campaigns
             .flatMap { it.gmDiscordIds + it.playerDiscordIds }
             .distinct()

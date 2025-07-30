@@ -2,13 +2,14 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.atNormalStartTime
 import com.github.shelgen.timesage.domain.AvailabilityStatus
+import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.Week
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import com.github.shelgen.timesage.ui.DiscordFormatter.timestamp
 import com.github.shelgen.timesage.weekDatesForMonday
-import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
@@ -19,14 +20,14 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
-    override fun renderComponents() =
+    override fun renderComponents(configuration: Configuration) =
         WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate).let { week ->
             val dates = weekDatesForMonday(weekMondayDate)
             listOf(
                 renderHeader(dates.first(), dates.last()),
                 dates.map { date -> renderDateContainer(date, week) },
                 renderWeekLimits(week),
-                renderMissingResponses(week)
+                renderMissingResponses(week, configuration)
             ).flatten()
         }
 
@@ -114,7 +115,7 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
             )
         )
 
-    private fun renderMissingResponses(week: Week) =
+    private fun renderMissingResponses(week: Week, configuration: Configuration) =
         listOfNotNull(
             configuration.campaigns
                 .flatMap { it.gmDiscordIds + it.playerDiscordIds }
@@ -140,11 +141,11 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
     class Buttons {
         class ToggleDateAvailability(private val date: LocalDate, screen: PlayerAvailabilityScreen) :
             ScreenButton<PlayerAvailabilityScreen>(
-                style = ButtonStyle.PRIMARY,
-                label = null,
-                emoji = Emoji.fromUnicode("U+2705"),
                 screen = screen
             ) {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), Emoji.fromUnicode("U+2705"))
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
@@ -191,11 +192,11 @@ class PlayerAvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : S
 
         class ToggleWeekSessionLimit(screen: PlayerAvailabilityScreen) :
             ScreenButton<PlayerAvailabilityScreen>(
-                style = ButtonStyle.SECONDARY,
-                label = null,
-                emoji = Emoji.fromUnicode("U+1F6AB"),
                 screen = screen
             ) {
+            fun render() =
+                Button.secondary(CustomIdSerialization.serialize(this), Emoji.fromUnicode("U+1F6AB"))
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong

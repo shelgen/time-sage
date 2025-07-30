@@ -11,14 +11,14 @@ import kotlin.reflect.full.isSubclassOf
  The random value is added because the ID must be unique for the bot.
  */
 object CustomIdSerialization {
-    fun serialize(screenComponent: ScreenComponent<*, *, *>): String {
+    fun serialize(screenComponent: ScreenComponent<*, *>): String {
         val screenPart = serializePart(screenComponent.screen)
         val componentPart = serializePart(screenComponent)
         val randomPart = Base64.getEncoder().encode(Random.Default.nextBytes(6)).decodeToString()
         return "$screenPart|$componentPart|$randomPart"
     }
 
-    fun <T : ScreenComponent<*, *, *>> deserialize(customId: String, expectedType: KClass<T>, guildId: Long): T {
+    fun <T : ScreenComponent<*, *>> deserialize(customId: String, expectedType: KClass<T>, guildId: Long): T {
         val (screenPart, componentPart, randomPart) = customId.split('|', limit = 3)
         val (screenClassNameHashcode, screenParameters) = deserializePart(screenPart)
         val (omponentClassNameHashcode, componentParameters) = deserializePart(componentPart)
@@ -58,7 +58,7 @@ interface SerializableWithParameters {
     fun parameters(): List<String>
 }
 
-sealed class ScreenComponentReconstructor<SCREEN : Screen, COMPONENT : ScreenComponent<SCREEN, *, *>>(
+sealed class ScreenComponentReconstructor<SCREEN : Screen, COMPONENT : ScreenComponent<SCREEN, *>>(
     val screenClass: KClass<SCREEN>,
     val componentClass: KClass<COMPONENT>
 ) {

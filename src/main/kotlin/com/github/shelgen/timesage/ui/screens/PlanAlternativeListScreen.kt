@@ -1,11 +1,12 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
-import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
@@ -18,7 +19,7 @@ class PlanAlternativeListScreen(
     val size: Int,
     guildId: Long
 ) : Screen(guildId) {
-    override fun renderComponents(): List<MessageTopLevelComponent> {
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
         val planner = Planner(configuration = configuration, week = week)
         val plans = planner.generatePossiblePlans()
@@ -34,7 +35,7 @@ class PlanAlternativeListScreen(
             val nextSize = size.coerceAtMost(totalNumAlternatives - nextStartIndex)
             listOf(
                 renderHeader(alternativeNumberedPlans, totalNumAlternatives),
-                renderAlternatives(alternativeNumberedPlans),
+                renderAlternatives(alternativeNumberedPlans, configuration),
                 renderShowMoreButton(nextSize)
             ).flatten()
         }
@@ -51,12 +52,12 @@ class PlanAlternativeListScreen(
             )
         )
 
-    private fun renderAlternatives(alternativeNumberedPlans: List<Pair<Int, Planner.Plan>>) =
+    private fun renderAlternatives(alternativeNumberedPlans: List<Pair<Int, Planner.Plan>>, configuration: Configuration) =
         alternativeNumberedPlans.map { (alternativeNumber, plan) ->
-            renderAlternative(alternativeNumber, plan)
+            renderAlternative(alternativeNumber, plan, configuration)
         }
 
-    private fun renderAlternative(alternativeNumber: Int, plan: Planner.Plan) = Container.of(
+    private fun renderAlternative(alternativeNumber: Int, plan: Planner.Plan, configuration: Configuration) = Container.of(
         Section.of(
             Buttons.SuggestAlternative(
                 alternativeNumber = alternativeNumber,
@@ -95,12 +96,12 @@ class PlanAlternativeListScreen(
             val alternativeNumber: Int,
             val alternativeHashcode: Int,
             screen: PlanAlternativeListScreen
-        ) :
-            ScreenButton<PlanAlternativeListScreen>(
-                style = ButtonStyle.PRIMARY,
-                label = "Suggest this",
-                screen = screen
-            ) {
+        ) : ScreenButton<PlanAlternativeListScreen>(
+            screen = screen
+        ) {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Suggest this")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanAlternativeSuggestedScreen(
@@ -138,10 +139,11 @@ class PlanAlternativeListScreen(
 
         class ShowMoreAlternatives(val nextSize: Int, screen: PlanAlternativeListScreen) :
             ScreenButton<PlanAlternativeListScreen>(
-                style = ButtonStyle.SECONDARY,
-                label = "Show $nextSize more...",
                 screen = screen
             ) {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Show $nextSize more...")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddEphemeralScreen {
                     PlanAlternativeListScreen(

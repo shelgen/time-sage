@@ -1,11 +1,16 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
-import net.dv8tion.jda.api.components.buttons.ButtonStyle
+import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.section.Section
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu.SelectTarget
+import net.dv8tion.jda.api.components.selections.SelectOption
+import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.components.textinput.TextInput
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
@@ -13,35 +18,36 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
+import net.dv8tion.jda.api.interactions.modals.Modal
 
 class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : Screen(guildId) {
-    override fun renderComponents(): List<MessageTopLevelComponent> =
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
         listOf(
             TextDisplay.of(
                 "# Time Sage configuration\n" +
                         "## Campaign settings"
             ),
             Section.of(
-                Buttons.EditName(this@ConfigurationCampaignScreen).render(),
+                Buttons.EditName(this).render(),
                 TextDisplay.of("### ${configuration.getCampaign(campaignId).name}")
             ),
             TextDisplay.of(DiscordFormatter.bold("GM's") + ":"),
             ActionRow.of(
-                SelectMenus.GMs(this@ConfigurationCampaignScreen).render()
+                SelectMenus.GMs(this).render(configuration)
             ),
             TextDisplay.of(DiscordFormatter.bold("Players") + ":"),
             ActionRow.of(
-                SelectMenus.Players(this@ConfigurationCampaignScreen).render()
+                SelectMenus.Players(this).render(configuration)
             ),
             TextDisplay.of(DiscordFormatter.bold("Maximum number of missing players") + ":"),
             ActionRow.of(
-                SelectMenus.MaxMissingPlayers(this@ConfigurationCampaignScreen).render()
+                SelectMenus.MaxMissingPlayers(this).render(configuration)
             ),
             ActionRow.of(
-                Buttons.Delete(this@ConfigurationCampaignScreen).render()
+                Buttons.Delete(this).render()
             ),
             ActionRow.of(
-                Buttons.Back(this@ConfigurationCampaignScreen).render()
+                Buttons.Back(this).render()
             )
         )
 
@@ -54,12 +60,15 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
 
     class Buttons {
         class EditName(screen: ConfigurationCampaignScreen) : ScreenButton<ConfigurationCampaignScreen>(
-            style = ButtonStyle.PRIMARY,
-            label = "Edit name...",
             screen = screen
         ) {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Edit name...")
+
             override fun handle(event: ButtonInteractionEvent) {
-                event.replyModal(Modals.EditName(screen).render()).queue()
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.guildId)
+                val modal = Modals.EditName(screen).render(configuration)
+                event.replyModal(modal).queue()
             }
 
             override fun parameters(): List<String> = emptyList()
@@ -79,10 +88,11 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
         }
 
         class Delete(screen: ConfigurationCampaignScreen) : ScreenButton<ConfigurationCampaignScreen>(
-            style = ButtonStyle.DANGER,
-            label = "Delete campaign",
             screen = screen
         ) {
+            fun render() =
+                Button.danger(CustomIdSerialization.serialize(this), "Delete campaign")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
                     ConfigurationRepository.update(screen.guildId) { configuration ->
@@ -109,10 +119,11 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
         }
 
         class Back(screen: ConfigurationCampaignScreen) : ScreenButton<ConfigurationCampaignScreen>(
-            style = ButtonStyle.SECONDARY,
-            label = "Back",
             screen = screen
         ) {
+            fun render() =
+                Button.secondary(CustomIdSerialization.serialize(this), "Back")
+
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { ConfigurationMainScreen(screen.guildId) }
             }
@@ -135,12 +146,17 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
     }
 
     class SelectMenus {
-        class GMs(screen: ConfigurationCampaignScreen) : ScreenUserSelectMenu<ConfigurationCampaignScreen>(
-            minValues = 1,
-            maxValues = 25,
-            defaultSelectedUserIds = screen.configuration.getCampaign(screen.campaignId).gmDiscordIds,
-            screen = screen
-        ) {
+        class GMs(screen: ConfigurationCampaignScreen) : ScreenEntitySelectMenu<ConfigurationCampaignScreen>(screen) {
+            fun render(configuration: Configuration) =
+                EntitySelectMenu
+                    .create(CustomIdSerialization.serialize(this), SelectTarget.USER)
+                    .setMinValues(1)
+                    .setMaxValues(25)
+                    .setDefaultValues(
+                        configuration.getCampaign(screen.campaignId).gmDiscordIds
+                            .map(EntitySelectMenu.DefaultValue::user)
+                    ).build()
+
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
@@ -168,12 +184,17 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
         }
 
         class Players(screen: ConfigurationCampaignScreen) :
-            ScreenUserSelectMenu<ConfigurationCampaignScreen>(
-                minValues = 1,
-                maxValues = 25,
-                defaultSelectedUserIds = screen.configuration.getCampaign(screen.campaignId).playerDiscordIds,
-                screen = screen
-            ) {
+            ScreenEntitySelectMenu<ConfigurationCampaignScreen>(screen) {
+            fun render(configuration: Configuration) =
+                EntitySelectMenu
+                    .create(CustomIdSerialization.serialize(this), SelectTarget.USER)
+                    .setMinValues(0)
+                    .setMaxValues(25)
+                    .setDefaultValues(
+                        configuration.getCampaign(screen.campaignId).playerDiscordIds
+                            .map(EntitySelectMenu.DefaultValue::user)
+                    ).build()
+
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
@@ -202,13 +223,15 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
         }
 
         class MaxMissingPlayers(screen: ConfigurationCampaignScreen) :
-            ScreenStringSelectMenu<ConfigurationCampaignScreen>(
-                minValues = 1,
-                maxValues = 1,
-                options = (0..4).map(Int::toString),
-                defaultSelectedValues = listOf(screen.configuration.getCampaign(screen.campaignId).maxNumMissingPlayers.toString()),
-                screen = screen
-            ) {
+            ScreenStringSelectMenu<ConfigurationCampaignScreen>(screen) {
+            fun render(configuration: Configuration) =
+                StringSelectMenu.create(CustomIdSerialization.serialize(this))
+                    .setMinValues(1)
+                    .setMaxValues(1)
+                    .addOptions((0..4).map(Int::toString).map { SelectOption.of(it, it) })
+                    .setDefaultValues(configuration.getCampaign(screen.campaignId).maxNumMissingPlayers.toString())
+                    .build()
+
             override fun handle(event: StringSelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedMaxNumMissingPlayers = event.values.first().toInt()
@@ -236,16 +259,20 @@ class ConfigurationCampaignScreen(private val campaignId: Int, guildId: Long) : 
     }
 
     class Modals {
-        class EditName(screen: ConfigurationCampaignScreen) : ScreenModal<ConfigurationCampaignScreen>(
-            title = "Edit name for campaign",
-            textInputs = listOf(
-                TextInput.create("name", "Name", TextInputStyle.SHORT)
-                    .setPlaceholder("Name of the campaign")
-                    .setValue(screen.configuration.getCampaign(screen.campaignId).name)
+        class EditName(screen: ConfigurationCampaignScreen) : ScreenModal<ConfigurationCampaignScreen>(screen) {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit name for campaign")
+                    .addComponents(
+                        ActionRow.of(
+                            TextInput.create("name", "Name", TextInputStyle.SHORT)
+                                .setPlaceholder("Name of the campaign")
+                                .setValue(configuration.getCampaign(screen.campaignId).name)
+                                .build()
+                        )
+                    )
                     .build()
-            ),
-            screen = screen
-        ) {
+
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
                     val updatedName = event.getValue("name")!!.asString

@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
+import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -8,7 +9,7 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import java.time.LocalDate
 
 class PlayerAvailabilityReminderScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
-    override fun renderComponents(): List<MessageTopLevelComponent> {
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
         val playerResponses = week.playerResponses
 
