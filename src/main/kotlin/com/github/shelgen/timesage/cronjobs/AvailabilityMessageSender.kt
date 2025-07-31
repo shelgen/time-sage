@@ -15,27 +15,27 @@ object AvailabilityMessageSender {
             logger.info("Disabled, not sending a message.")
         } else {
             val channel = JDAHolder.jda.getTextChannelById(context.channelId)
-            val weekMondayDate = nextMonday()
+            val startDate = nextMonday()
             val existingMessageId =
                 WeekRepository.loadOrInitialize(
-                    mondayDate = weekMondayDate,
+                    startDate = startDate,
                     context = context
                 ).messageDiscordId
             if (existingMessageId == null) {
-                logger.info("Sending availability messsage for the week of Monday $weekMondayDate")
+                logger.info("Sending availability messsage for the week starting $startDate")
                 channel!!.sendMessage(
                     AvailabilityScreen(
-                        weekMondayDate = nextMonday(),
+                        startDate = nextMonday(),
                         context = context
                     ).render()
                 ).queue { message ->
                     val messageId = message.idLong
-                    WeekRepository.update(mondayDate = weekMondayDate, context = context) {
+                    WeekRepository.update(startDate = startDate, context = context) {
                         it.messageDiscordId = messageId
                     }
                 }
             } else {
-                logger.info("Availability messsage for the week of Monday $weekMondayDate has already been sent")
+                logger.info("Availability messsage for the week starting $startDate has already been sent")
             }
         }
     }

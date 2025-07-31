@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.domain
 import java.time.LocalDate
 
 data class Week(
-    val mondayDate: LocalDate,
+    val startDate: LocalDate,
     val messageDiscordId: Long?,
     val responses: Map<Long, Response>,
 ) {

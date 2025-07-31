@@ -15,13 +15,13 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.time.LocalDate
 
 class PlanAlternativeListScreen(
-    val weekMondayDate: LocalDate,
+    val startDate: LocalDate,
     val startIndex: Int,
     val size: Int,
     context: OperationContext
 ) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(mondayDate = weekMondayDate, context = context)
+        val week = WeekRepository.loadOrInitialize(startDate = startDate, context = context)
         val planner = Planner(configuration = configuration, week = week)
         val plans = planner.generatePossiblePlans()
         val alternativeNumberedPlans =
@@ -81,11 +81,11 @@ class PlanAlternativeListScreen(
     } else emptyList()
 
     override fun parameters(): List<String> =
-        listOf(weekMondayDate.toString(), startIndex.toString(), size.toString())
+        listOf(startDate.toString(), startIndex.toString(), size.toString())
 
     companion object {
         fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeListScreen(
-            weekMondayDate = LocalDate.parse(parameters[0]),
+            startDate = LocalDate.parse(parameters[0]),
             startIndex = parameters[1].toInt(),
             size = parameters[2].toInt(),
             context = context
@@ -106,7 +106,7 @@ class PlanAlternativeListScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanAlternativeSuggestedScreen(
-                        weekMondayDate = screen.weekMondayDate,
+                        startDate = screen.startDate,
                         alternativeNumber = alternativeNumber,
                         suggestingUserId = event.user.idLong,
                         context = screen.context
@@ -145,7 +145,7 @@ class PlanAlternativeListScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddEphemeralScreen {
                     PlanAlternativeListScreen(
-                        weekMondayDate = screen.weekMondayDate,
+                        startDate = screen.startDate,
                         startIndex = screen.startIndex + screen.size,
                         size = nextSize,
                         context = screen.context

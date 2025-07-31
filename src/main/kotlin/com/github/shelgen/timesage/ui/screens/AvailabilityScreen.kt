@@ -6,7 +6,7 @@ import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import com.github.shelgen.timesage.ui.DiscordFormatter.timestamp
-import com.github.shelgen.timesage.weekDatesForMonday
+import com.github.shelgen.timesage.weekDatesStartingWith
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.section.Section
@@ -17,10 +17,10 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-class AvailabilityScreen(val weekMondayDate: LocalDate, context: OperationContext) : Screen(context) {
+class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration) =
-        WeekRepository.loadOrInitialize(mondayDate = weekMondayDate, context = context).let { week ->
-            val dates = weekDatesForMonday(weekMondayDate)
+        WeekRepository.loadOrInitialize(startDate = startDate, context = context).let { week ->
+            val dates = weekDatesStartingWith(startDate)
             listOf(
                 renderHeader(dates.first(), dates.last(), configuration),
                 dates.map { date -> renderDateContainer(date, week) },
@@ -144,11 +144,11 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, context: OperationContex
                 ?.let { Container.of(it).withAccentColor(0xFFB6C1) }
         )
 
-    override fun parameters(): List<String> = listOf(weekMondayDate.toString())
+    override fun parameters(): List<String> = listOf(startDate.toString())
 
     companion object {
         fun reconstruct(parameters: List<String>, context: OperationContext) =
-            AvailabilityScreen(weekMondayDate = LocalDate.parse(parameters.first()), context)
+            AvailabilityScreen(startDate = LocalDate.parse(parameters.first()), context)
     }
 
     class Buttons {
@@ -162,7 +162,7 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, context: OperationContex
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    WeekRepository.update(mondayDate = screen.weekMondayDate, context = screen.context) { week ->
+                    WeekRepository.update(startDate = screen.startDate, context = screen.context) { week ->
                         val response = week.responses[userId]
                         val oldAvailability = response?.availability[date]
                         val newAvailability = when (oldAvailability) {
@@ -213,7 +213,7 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, context: OperationContex
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    WeekRepository.update(mondayDate = screen.weekMondayDate, context = screen.context) { week ->
+                    WeekRepository.update(startDate = screen.startDate, context = screen.context) { week ->
                         val response = week.responses[userId]
                         val oldLimit = response?.sessionLimit
                         val newLimit = when (oldLimit) {
@@ -221,7 +221,7 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, context: OperationContex
                             1 -> 0
                             else -> 1
                         }
-                        logger.info("Updating session limit at week of ${screen.weekMondayDate} from $oldLimit to $newLimit")
+                        logger.info("Updating session limit at week of ${screen.startDate} from $oldLimit to $newLimit")
                         if (response == null) {
                             week.responses[userId] = WeekRepository.MutableWeek.Response(
                                 sessionLimit = newLimit,

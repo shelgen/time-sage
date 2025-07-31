@@ -30,11 +30,11 @@ class ReminderJob : Job {
             logger.info("Disabled, not sending a message.")
         } else {
             val channel = JDAHolder.jda.getTextChannelById(context.channelId)
-            val weekMondayDate = nextMonday()
-            logger.info("Sending any reminders for the week of Monday $weekMondayDate")
+            val startDate = nextMonday()
+            logger.info("Sending any reminders for the week starting $startDate")
             val discordMessageId =
                 WeekRepository.loadOrInitialize(
-                    mondayDate = weekMondayDate,
+                    startDate = startDate,
                     context = context
                 ).messageDiscordId
             if (discordMessageId == null) {
@@ -42,7 +42,7 @@ class ReminderJob : Job {
             } else {
                 channel!!.sendMessage(
                     AvailabilityReminderScreen(
-                        weekMondayDate = weekMondayDate,
+                        startDate = startDate,
                         context = context
                     ).render()
                 ).queue()

@@ -15,13 +15,13 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.time.LocalDate
 
 class PlanAlternativeSuggestedScreen(
-    val weekMondayDate: LocalDate,
+    val startDate: LocalDate,
     val alternativeNumber: Int,
     val suggestingUserId: Long,
     context: OperationContext
 ) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(mondayDate = weekMondayDate, context = context)
+        val week = WeekRepository.loadOrInitialize(startDate = startDate, context = context)
         val planner = Planner(configuration = configuration, week = week)
         val plans = planner.generatePossiblePlans()
         val plan = plans[alternativeNumber - 1]
@@ -42,14 +42,14 @@ class PlanAlternativeSuggestedScreen(
 
     override fun parameters(): List<String> =
         listOf(
-            weekMondayDate.toString(),
+            startDate.toString(),
             alternativeNumber.toString(),
             suggestingUserId.toString()
         )
 
     companion object {
         fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeSuggestedScreen(
-            weekMondayDate = LocalDate.parse(parameters[0]),
+            startDate = LocalDate.parse(parameters[0]),
             alternativeNumber = parameters[1].toInt(),
             suggestingUserId = parameters[2].toLong(),
             context = context
@@ -67,7 +67,7 @@ class PlanAlternativeSuggestedScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanAlternativeConcludedScreen(
-                        weekMondayDate = screen.weekMondayDate,
+                        startDate = screen.startDate,
                         alternativeNumber = screen.alternativeNumber,
                         context = screen.context
                     )

@@ -9,24 +9,24 @@ import java.util.TreeMap
 object WeekRepository {
     private val dao = WeekFileDao()
 
-    fun loadOrInitialize(mondayDate: LocalDate, context: OperationContext): Week =
-        dao.loadOrInitialize(mondayDate, context).toWeek(mondayDate)
+    fun loadOrInitialize(startDate: LocalDate, context: OperationContext): Week =
+        dao.loadOrInitialize(startDate, context).toWeek(startDate)
 
     fun <T> update(
-        mondayDate: LocalDate,
+        startDate: LocalDate,
         context: OperationContext,
         modification: (week: MutableWeek) -> T
     ): T {
-        val week = loadOrInitialize(mondayDate, context)
+        val week = loadOrInitialize(startDate, context)
         val mutableWeek = MutableWeek(week)
         val returnValue = modification(mutableWeek)
-        dao.save(mondayDate, context, mutableWeek.toJson())
+        dao.save(startDate, context, mutableWeek.toJson())
         return returnValue
     }
 
-    private fun WeekFileDao.Json.toWeek(mondayDate: LocalDate): Week =
+    private fun WeekFileDao.Json.toWeek(startDate: LocalDate): Week =
         Week(
-            mondayDate = mondayDate,
+            startDate = startDate,
             messageDiscordId = availabilityMessageId,
             responses = responses.map { (userId, response) ->
                 userId to response.toResponse()
@@ -47,12 +47,12 @@ object WeekRepository {
         }
 
     data class MutableWeek(
-        val mondayDate: LocalDate,
+        val startDate: LocalDate,
         var messageDiscordId: Long?,
         val responses: MutableMap<Long, Response>,
     ) {
         constructor(week: Week) : this(
-            mondayDate = week.mondayDate,
+            startDate = week.startDate,
             messageDiscordId = week.messageDiscordId,
             responses = week.responses.map { (userId, response) ->
                 userId to Response(response)

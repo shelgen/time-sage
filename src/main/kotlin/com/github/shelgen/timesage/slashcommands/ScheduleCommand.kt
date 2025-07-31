@@ -16,7 +16,7 @@ object ScheduleCommand : AbstractSlashCommand(
             MDC.setContextMap(outerMdc)
             it.sendMessage(
                 PlanAlternativeListScreen(
-                    weekMondayDate = nextMonday(),
+                    startDate = nextMonday(),
                     startIndex = 0,
                     size = 3,
                     context = context

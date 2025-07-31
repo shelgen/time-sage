@@ -4,7 +4,7 @@ import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.Week
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.weekDatesForMonday
+import com.github.shelgen.timesage.weekDatesStartingWith
 import java.time.LocalDate
 
 class Planner(
@@ -12,8 +12,8 @@ class Planner(
     private val week: Week
 ) {
     fun generatePossiblePlans(): List<Plan> {
-        logger.info("Generating suggestions for week of Monday ${week.mondayDate}")
-        return findAllWeekPlansSortedByScore(weekDatesForMonday(week.mondayDate)).toList()
+        logger.info("Generating suggestions for week starting ${week.startDate}")
+        return findAllWeekPlansSortedByScore(weekDatesStartingWith(week.startDate)).toList()
     }
 
     private fun findAllWeekPlansSortedByScore(weekDates: List<LocalDate>) =

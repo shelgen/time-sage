@@ -11,9 +11,9 @@ import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import java.time.LocalDate
 
-class AvailabilityReminderScreen(val weekMondayDate: LocalDate, context: OperationContext) : Screen(context) {
+class AvailabilityReminderScreen(val startDate: LocalDate, context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(mondayDate = weekMondayDate, context = context)
+        val week = WeekRepository.loadOrInitialize(startDate = startDate, context = context)
 
         val unansweredParticipants = configuration.activities
             .flatMap(Activity::participants)
@@ -36,10 +36,10 @@ class AvailabilityReminderScreen(val weekMondayDate: LocalDate, context: Operati
         }
     }
 
-    override fun parameters(): List<String> = listOf(weekMondayDate.toString())
+    override fun parameters(): List<String> = listOf(startDate.toString())
 
     companion object {
         fun reconstruct(parameters: List<String>, context: OperationContext) =
-            AvailabilityReminderScreen(weekMondayDate = LocalDate.parse(parameters.first()), context)
+            AvailabilityReminderScreen(startDate = LocalDate.parse(parameters.first()), context)
     }
 }

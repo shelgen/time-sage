@@ -13,12 +13,12 @@ class WeekFileDao {
         )
     )
 
-    fun save(mondayDate: LocalDate, context: OperationContext, json: Json) {
-        fileDao.save(getWeekFile(context, mondayDate), json)
+    fun save(startDate: LocalDate, context: OperationContext, json: Json) {
+        fileDao.save(getWeekFile(startDate, context), json)
     }
 
-    fun loadOrInitialize(mondayDate: LocalDate, context: OperationContext): Json =
-        fileDao.loadOrInitialize(getWeekFile(context, mondayDate))
+    fun loadOrInitialize(startDate: LocalDate, context: OperationContext): Json =
+        fileDao.loadOrInitialize(getWeekFile(startDate, context))
 
     data class Json(
         val availabilityMessageId: Long?,
@@ -34,8 +34,8 @@ class WeekFileDao {
         }
     }
 
-    private fun getWeekFile(context: OperationContext, mondayDate: LocalDate): File =
-        File(getWeeksDir(context), "$mondayDate.json")
+    private fun getWeekFile(startDate: LocalDate, context: OperationContext): File =
+        File(getWeeksDir(context), "$startDate.json")
 
     private fun getWeeksDir(context: OperationContext): File =
         File(getChannelDir(context), "weeks")
