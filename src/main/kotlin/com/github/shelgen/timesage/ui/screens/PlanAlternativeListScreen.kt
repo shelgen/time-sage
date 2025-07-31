@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
@@ -17,10 +18,10 @@ class PlanAlternativeListScreen(
     val weekMondayDate: LocalDate,
     val startIndex: Int,
     val size: Int,
-    guildId: Long
-) : Screen(guildId) {
+    context: OperationContext
+) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
+        val week = WeekRepository.loadOrInitialize(mondayDate = weekMondayDate, context = context)
         val planner = Planner(configuration = configuration, week = week)
         val plans = planner.generatePossiblePlans()
         val alternativeNumberedPlans =
@@ -83,11 +84,11 @@ class PlanAlternativeListScreen(
         listOf(weekMondayDate.toString(), startIndex.toString(), size.toString())
 
     companion object {
-        fun reconstruct(parameters: List<String>, guildId: Long) = PlanAlternativeListScreen(
+        fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeListScreen(
             weekMondayDate = LocalDate.parse(parameters[0]),
             startIndex = parameters[1].toInt(),
             size = parameters[2].toInt(),
-            guildId = guildId
+            context = context
         )
     }
 
@@ -108,7 +109,7 @@ class PlanAlternativeListScreen(
                         weekMondayDate = screen.weekMondayDate,
                         alternativeNumber = alternativeNumber,
                         suggestingUserId = event.user.idLong,
-                        guildId = screen.guildId
+                        context = screen.context
                     )
                 }
             }
@@ -124,15 +125,12 @@ class PlanAlternativeListScreen(
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
                     SuggestAlternative(
                         alternativeNumber = componentParameters[0].toInt(),
                         alternativeHashcode = componentParameters[1].toInt(),
-                        screen = reconstruct(
-                            parameters = screenParameters,
-                            guildId = guildId
-                        )
+                        screen = reconstruct(parameters = screenParameters, context = context)
                     )
             }
         }
@@ -150,7 +148,7 @@ class PlanAlternativeListScreen(
                         weekMondayDate = screen.weekMondayDate,
                         startIndex = screen.startIndex + screen.size,
                         size = nextSize,
-                        guildId = screen.guildId
+                        context = screen.context
                     )
                 }
             }
@@ -165,14 +163,11 @@ class PlanAlternativeListScreen(
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
                     ShowMoreAlternatives(
                         nextSize = componentParameters.first().toInt(),
-                        screen = reconstruct(
-                            parameters = screenParameters,
-                            guildId = guildId
-                        )
+                        screen = reconstruct(parameters = screenParameters, context = context)
                     )
             }
         }

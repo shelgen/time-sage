@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.events.Event
@@ -16,13 +17,13 @@ import net.dv8tion.jda.api.utils.messages.MessageEditData
 import net.dv8tion.jda.api.utils.messages.MessageEditData.fromCreateData
 import org.slf4j.MDC
 
-sealed class Screen(protected val guildId: Long) : SerializableWithParameters {
+sealed class Screen(protected val context: OperationContext) : SerializableWithParameters {
     abstract fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent>
 
     fun render(): MessageCreateData =
         MessageCreateBuilder()
             .useComponentsV2()
-            .addComponents(renderComponents(ConfigurationRepository.loadOrInitialize(guildId)))
+            .addComponents(renderComponents(ConfigurationRepository.loadOrInitialize(context)))
             .build()
 
     fun renderEdit(): MessageEditData = fromCreateData(render())

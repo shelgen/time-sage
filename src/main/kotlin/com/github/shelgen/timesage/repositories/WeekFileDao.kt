@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.repositories
 
+import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
 import java.time.LocalDate
 
@@ -12,12 +13,12 @@ class WeekFileDao {
         )
     )
 
-    fun save(guildId: Long, mondayDate: LocalDate, json: Json) {
-        fileDao.save(getWeekFile(guildId, mondayDate), json)
+    fun save(mondayDate: LocalDate, context: OperationContext, json: Json) {
+        fileDao.save(getWeekFile(context, mondayDate), json)
     }
 
-    fun loadOrInitialize(guildId: Long, mondayDate: LocalDate): Json =
-        fileDao.loadOrInitialize(getWeekFile(guildId, mondayDate))
+    fun loadOrInitialize(mondayDate: LocalDate, context: OperationContext): Json =
+        fileDao.loadOrInitialize(getWeekFile(context, mondayDate))
 
     data class Json(
         val availabilityMessageId: Long?,
@@ -33,9 +34,9 @@ class WeekFileDao {
         }
     }
 
-    private fun getWeekFile(guildId: Long, mondayDate: LocalDate): File =
-        File(getWeekDir(guildId), "$mondayDate.json")
+    private fun getWeekFile(context: OperationContext, mondayDate: LocalDate): File =
+        File(getWeeksDir(context), "$mondayDate.json")
 
-    private fun getWeekDir(guildId: Long): File =
-        File(getServerDir(guildId), "weeks")
+    private fun getWeeksDir(context: OperationContext): File =
+        File(getChannelDir(context), "weeks")
 }

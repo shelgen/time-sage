@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.repositories
 
+import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
 
 class ConfigurationFileDao {
@@ -7,33 +8,29 @@ class ConfigurationFileDao {
         jsonClass = Json::class.java,
         initialContent = Json(
             enabled = false,
-            channelId = null,
             activities = emptyList()
         )
     )
 
-    fun save(guildId: Long, json: Json) {
-        fileDao.save(getConfigurationFile(guildId), json)
+    fun save(context: OperationContext, json: Json) {
+        fileDao.save(getConfigurationFile(context), json)
     }
 
-    fun loadOrInitialize(guildId: Long): Json =
-        fileDao.loadOrInitialize(getConfigurationFile(guildId))
+    fun loadOrInitialize(context: OperationContext): Json =
+        fileDao.loadOrInitialize(getConfigurationFile(context))
 
-    fun findAllGuildIds(): List<Long> =
-        SERVERS_DIR.listFiles { serverDir ->
-            serverDir.isDirectory &&
-                    serverDir.name.toLongOrNull() != null &&
-                    serverDir.listFiles { it.isFile && it.name == CONFIGURATION_FILE_NAME }.orEmpty().isNotEmpty()
-        }.orEmpty()
-            .map(File::getName)
-            .map(String::toLong)
+    fun findAllOperationContexts(): List<OperationContext> =
+        findAllGuildIds().flatMap { guildId ->
+            findAllChannelIds(guildId).map { channelId ->
+                OperationContext(guildId = guildId, channelId = channelId)
+            }
+        }.filter { context -> getConfigurationFile(context).exists() }
 
-    private fun getConfigurationFile(guildId: Long): File =
-        File(getServerDir(guildId), CONFIGURATION_FILE_NAME)
+    private fun getConfigurationFile(context: OperationContext): File =
+        File(getChannelDir(context), CONFIGURATION_FILE_NAME)
 
     data class Json(
         val enabled: Boolean,
-        val channelId: Long?,
         val activities: List<Activity>
     ) {
         data class Activity(

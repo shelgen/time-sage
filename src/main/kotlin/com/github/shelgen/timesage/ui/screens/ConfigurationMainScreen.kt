@@ -1,23 +1,27 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.cronjobs.AvailabilityMessageSender
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.section.Section
-import net.dv8tion.jda.api.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
-import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
 
-class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
+class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
         listOf(
             TextDisplay.of("# Time Sage configuration"),
+            TextDisplay.of(
+                "${DiscordFormatter.mentionChannel(context.channelId)} in " +
+                        JDAHolder.jda.getGuildById(context.guildId)?.name
+            ),
+            TextDisplay.of("-# All configuration is specific for this channel in this server."),
             Section.of(
                 if (configuration.enabled) {
                     Buttons.Disable(this).render()
@@ -25,10 +29,6 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                     Buttons.Enable(this).render()
                 },
                 TextDisplay.of(DiscordFormatter.bold("Enabled") + ": " + (if (configuration.enabled) "Yes" else "No"))
-            ),
-            TextDisplay.of(DiscordFormatter.bold("Channel") + ":"),
-            ActionRow.of(
-                SelectMenus.Channel(this).render(configuration)
             ),
             TextDisplay.of(DiscordFormatter.bold("Activities") + ":"),
         ) + if (configuration.activities.isEmpty()) {
@@ -49,7 +49,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
     override fun parameters(): List<String> = emptyList()
 
     companion object {
-        fun reconstruct(parameters: List<String>, guildId: Long) = ConfigurationMainScreen(guildId)
+        fun reconstruct(parameters: List<String>, context: OperationContext) = ConfigurationMainScreen(context)
     }
 
     class Buttons {
@@ -61,8 +61,8 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(screen.guildId) { it.enabled = true }
-                    AvailabilityMessageSender.postAvailabilityMessage(screen.guildId)
+                    ConfigurationRepository.update(screen.context) { it.enabled = true }
+                    AvailabilityMessageSender.postAvailabilityMessage(screen.context)
                 }
             }
 
@@ -76,9 +76,9 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    Enable(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    Enable(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
 
@@ -90,7 +90,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(screen.guildId) { it.enabled = false }
+                    ConfigurationRepository.update(screen.context) { it.enabled = false }
                 }
             }
 
@@ -104,9 +104,9 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    Disable(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    Disable(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
 
@@ -118,7 +118,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                 Button.primary(CustomIdSerialization.serialize(this), "Edit...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationActivityScreen(activityId, screen.guildId) }
+                event.processAndNavigateTo { ConfigurationActivityScreen(activityId, screen.context) }
             }
 
             override fun parameters(): List<String> = listOf(activityId.toString())
@@ -131,11 +131,11 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
                     EditActivity(
                         activityId = componentParameters.first().toInt(),
-                        screen = reconstruct(parameters = screenParameters, guildId = guildId)
+                        screen = reconstruct(parameters = screenParameters, context = context)
                     )
             }
         }
@@ -148,7 +148,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { interactionHook ->
-                    val newActivityId = ConfigurationRepository.update(screen.guildId) { configuration ->
+                    val newActivityId = ConfigurationRepository.update(screen.context) { configuration ->
                         ConfigurationRepository.MutableConfiguration.MutableActivity(
                             id = (configuration.activities.maxOfOrNull { it.id } ?: 0) + 1,
                             name = "New Activity",
@@ -161,7 +161,7 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                             maxMissingOptionalParticipants = 0
                         ).also(configuration.activities::add).id
                     }
-                    ConfigurationActivityScreen(newActivityId, screen.guildId)
+                    ConfigurationActivityScreen(newActivityId, screen.context)
                 }
             }
 
@@ -175,44 +175,9 @@ class ConfigurationMainScreen(guildId: Long) : Screen(guildId) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    AddActivity(screen = reconstruct(parameters = screenParameters, guildId = guildId))
-            }
-        }
-    }
-
-    class SelectMenus {
-        class Channel(screen: ConfigurationMainScreen) : ScreenEntitySelectMenu<ConfigurationMainScreen>(screen) {
-            fun render(configuration: Configuration) =
-                EntitySelectMenu
-                    .create(CustomIdSerialization.serialize(this), EntitySelectMenu.SelectTarget.CHANNEL)
-                    .setMinValues(0)
-                    .setMaxValues(1)
-                    .setChannelTypes(ChannelType.TEXT)
-                    .setDefaultValues(listOfNotNull(configuration.channelId?.let(EntitySelectMenu.DefaultValue::channel)))
-                    .build()
-
-            override fun handle(event: EntitySelectInteractionEvent) {
-                event.processAndRerender {
-                    val newChannelId = event.mentions.channels.firstOrNull()?.idLong
-                    ConfigurationRepository.update(screen.guildId) { it.channelId = newChannelId }
-                }
-            }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, Channel>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = Channel::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    guildId: Long
-                ) =
-                    Channel(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    AddActivity(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
     }

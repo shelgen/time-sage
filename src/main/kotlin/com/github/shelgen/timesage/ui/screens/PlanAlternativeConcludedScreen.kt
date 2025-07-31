@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.Participant
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.WeekRepository
@@ -16,10 +17,10 @@ import java.time.LocalDate
 class PlanAlternativeConcludedScreen(
     val weekMondayDate: LocalDate,
     val alternativeNumber: Int,
-    guildId: Long
-) : Screen(guildId) {
+    context: OperationContext
+) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
+        val week = WeekRepository.loadOrInitialize(mondayDate = weekMondayDate, context = context)
         val planner = Planner(configuration = configuration, week = week)
         val plans = planner.generatePossiblePlans()
         val plan = plans[alternativeNumber - 1]
@@ -58,10 +59,10 @@ class PlanAlternativeConcludedScreen(
         )
 
     companion object {
-        fun reconstruct(parameters: List<String>, guildId: Long) = PlanAlternativeConcludedScreen(
+        fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeConcludedScreen(
             weekMondayDate = LocalDate.parse(parameters[0]),
             alternativeNumber = parameters[1].toInt(),
-            guildId = guildId
+            context = context
         )
     }
 

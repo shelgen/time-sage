@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
@@ -17,10 +18,10 @@ class PlanAlternativeSuggestedScreen(
     val weekMondayDate: LocalDate,
     val alternativeNumber: Int,
     val suggestingUserId: Long,
-    guildId: Long
-) : Screen(guildId) {
+    context: OperationContext
+) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate)
+        val week = WeekRepository.loadOrInitialize(mondayDate = weekMondayDate, context = context)
         val planner = Planner(configuration = configuration, week = week)
         val plans = planner.generatePossiblePlans()
         val plan = plans[alternativeNumber - 1]
@@ -47,11 +48,11 @@ class PlanAlternativeSuggestedScreen(
         )
 
     companion object {
-        fun reconstruct(parameters: List<String>, guildId: Long) = PlanAlternativeSuggestedScreen(
+        fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeSuggestedScreen(
             weekMondayDate = LocalDate.parse(parameters[0]),
             alternativeNumber = parameters[1].toInt(),
             suggestingUserId = parameters[2].toLong(),
-            guildId = guildId
+            context = context
         )
     }
 
@@ -68,7 +69,7 @@ class PlanAlternativeSuggestedScreen(
                     PlanAlternativeConcludedScreen(
                         weekMondayDate = screen.weekMondayDate,
                         alternativeNumber = screen.alternativeNumber,
-                        guildId = screen.guildId
+                        context = screen.context
                     )
                 }
             }
@@ -83,9 +84,9 @@ class PlanAlternativeSuggestedScreen(
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    ConcludeWithThisAlternative(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    ConcludeWithThisAlternative(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
     }

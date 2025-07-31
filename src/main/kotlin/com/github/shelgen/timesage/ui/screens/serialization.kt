@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.domain.OperationContext
 import java.util.*
 import kotlin.random.Random
 import kotlin.reflect.KClass
@@ -18,7 +19,7 @@ object CustomIdSerialization {
         return "$screenPart|$componentPart|$randomPart"
     }
 
-    fun <T : ScreenComponent<*, *>> deserialize(customId: String, expectedType: KClass<T>, guildId: Long): T {
+    fun <T : ScreenComponent<*, *>> deserialize(customId: String, expectedType: KClass<T>, context: OperationContext): T {
         val (screenPart, componentPart, randomPart) = customId.split('|', limit = 3)
         val (screenClassNameHashcode, screenParameters) = deserializePart(screenPart)
         val (omponentClassNameHashcode, componentParameters) = deserializePart(componentPart)
@@ -36,7 +37,7 @@ object CustomIdSerialization {
         return reconstructor.reconstruct(
             screenParameters = screenParameters,
             componentParameters = componentParameters,
-            guildId = guildId
+            context = context
         ) as T
     }
 
@@ -62,5 +63,5 @@ sealed class ScreenComponentReconstructor<SCREEN : Screen, COMPONENT : ScreenCom
     val screenClass: KClass<SCREEN>,
     val componentClass: KClass<COMPONENT>
 ) {
-    abstract fun reconstruct(screenParameters: List<String>, componentParameters: List<String>, guildId: Long): COMPONENT
+    abstract fun reconstruct(screenParameters: List<String>, componentParameters: List<String>, context: OperationContext): COMPONENT
 }

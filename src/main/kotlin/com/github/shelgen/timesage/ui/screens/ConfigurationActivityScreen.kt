@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.Participant
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -21,7 +22,7 @@ import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionE
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.interactions.modals.Modal
 
-class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : Screen(guildId) {
+class ConfigurationActivityScreen(private val activityId: Int, context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
         listOf(
             TextDisplay.of(
@@ -55,8 +56,8 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
     override fun parameters(): List<String> = listOf(activityId.toString())
 
     companion object {
-        fun reconstruct(parameters: List<String>, guildId: Long) =
-            ConfigurationActivityScreen(activityId = parameters.first().toInt(), guildId)
+        fun reconstruct(parameters: List<String>, context: OperationContext) =
+            ConfigurationActivityScreen(activityId = parameters.first().toInt(), context)
     }
 
     class Buttons {
@@ -67,7 +68,7 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 Button.primary(CustomIdSerialization.serialize(this), "Edit name...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.guildId)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
                 val modal = Modals.EditName(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -82,9 +83,9 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    EditName(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    EditName(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
 
@@ -96,10 +97,10 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
-                    ConfigurationRepository.update(screen.guildId) { configuration ->
+                    ConfigurationRepository.update(screen.context) { configuration ->
                         configuration.activities.removeIf { it.id == screen.activityId }
                     }
-                    ConfigurationMainScreen(screen.guildId)
+                    ConfigurationMainScreen(screen.context)
                 }
             }
 
@@ -113,9 +114,9 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    Delete(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    Delete(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
 
@@ -126,7 +127,7 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 Button.secondary(CustomIdSerialization.serialize(this), "Back")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationMainScreen(screen.guildId) }
+                event.processAndNavigateTo { ConfigurationMainScreen(screen.context) }
             }
 
             override fun parameters(): List<String> = emptyList()
@@ -139,15 +140,16 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    Back(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    Back(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
     }
 
     class SelectMenus {
-        class RequiredParticipants(screen: ConfigurationActivityScreen) : ScreenEntitySelectMenu<ConfigurationActivityScreen>(screen) {
+        class RequiredParticipants(screen: ConfigurationActivityScreen) :
+            ScreenEntitySelectMenu<ConfigurationActivityScreen>(screen) {
             fun render(configuration: Configuration) =
                 EntitySelectMenu
                     .create(CustomIdSerialization.serialize(this), SelectTarget.USER)
@@ -164,7 +166,7 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
-                    ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
                         val activity = configuration.getActivity(activityId = screen.activityId)
                         activity.setRequiredParticipants(updatedUsers)
                     }
@@ -180,9 +182,9 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    RequiredParticipants(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    RequiredParticipants(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
 
@@ -204,7 +206,7 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
             override fun handle(event: EntitySelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedUsers = event.mentions.users.map { it.idLong }
-                    ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
                         val activity = configuration.getActivity(activityId = screen.activityId)
                         activity.setOptionalParticipants(updatedUsers)
                     }
@@ -221,9 +223,9 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    OptionalParticipants(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    OptionalParticipants(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
 
@@ -240,7 +242,7 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
             override fun handle(event: StringSelectInteractionEvent) {
                 event.processAndRerender {
                     val updatedMaxMissingOptionalParticipants = event.values.first().toInt()
-                    ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
                         val activity = configuration.getActivity(activityId = screen.activityId)
                         activity.maxMissingOptionalParticipants = updatedMaxMissingOptionalParticipants
                     }
@@ -257,13 +259,10 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
                     MaxMissingOptionalParticipants(
-                        screen = reconstruct(
-                            parameters = screenParameters,
-                            guildId = guildId
-                        )
+                        screen = reconstruct(parameters = screenParameters, context = context)
                     )
             }
         }
@@ -287,7 +286,7 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
                     val updatedName = event.getValue("name")!!.asString
-                    ConfigurationRepository.update(guildId = screen.guildId) { configuration ->
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
                         val activity = configuration.getActivity(activityId = screen.activityId)
                         activity.name = updatedName
                     }
@@ -304,9 +303,9 @@ class ConfigurationActivityScreen(private val activityId: Int, guildId: Long) : 
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
-                    EditName(screen = reconstruct(parameters = screenParameters, guildId = guildId))
+                    EditName(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
     }

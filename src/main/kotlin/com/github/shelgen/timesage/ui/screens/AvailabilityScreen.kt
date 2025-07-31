@@ -17,9 +17,9 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-class AvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(guildId) {
+class AvailabilityScreen(val weekMondayDate: LocalDate, context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration) =
-        WeekRepository.loadOrInitialize(guildId = guildId, mondayDate = weekMondayDate).let { week ->
+        WeekRepository.loadOrInitialize(mondayDate = weekMondayDate, context = context).let { week ->
             val dates = weekDatesForMonday(weekMondayDate)
             listOf(
                 renderHeader(dates.first(), dates.last(), configuration),
@@ -147,8 +147,8 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(
     override fun parameters(): List<String> = listOf(weekMondayDate.toString())
 
     companion object {
-        fun reconstruct(parameters: List<String>, guildId: Long) =
-            AvailabilityScreen(weekMondayDate = LocalDate.parse(parameters.first()), guildId)
+        fun reconstruct(parameters: List<String>, context: OperationContext) =
+            AvailabilityScreen(weekMondayDate = LocalDate.parse(parameters.first()), context)
     }
 
     class Buttons {
@@ -162,7 +162,7 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    WeekRepository.update(guildId = screen.guildId, mondayDate = screen.weekMondayDate) { week ->
+                    WeekRepository.update(mondayDate = screen.weekMondayDate, context = screen.context) { week ->
                         val response = week.responses[userId]
                         val oldAvailability = response?.availability[date]
                         val newAvailability = when (oldAvailability) {
@@ -194,11 +194,11 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
+                    context: OperationContext
                 ) =
                     ToggleDateAvailability(
                         date = LocalDate.parse(componentParameters.first()),
-                        screen = reconstruct(parameters = screenParameters, guildId = guildId)
+                        screen = reconstruct(screenParameters, context)
                     )
             }
         }
@@ -213,7 +213,7 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    WeekRepository.update(guildId = screen.guildId, mondayDate = screen.weekMondayDate) { week ->
+                    WeekRepository.update(mondayDate = screen.weekMondayDate, context = screen.context) { week ->
                         val response = week.responses[userId]
                         val oldLimit = response?.sessionLimit
                         val newLimit = when (oldLimit) {
@@ -244,11 +244,8 @@ class AvailabilityScreen(val weekMondayDate: LocalDate, guildId: Long) : Screen(
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
-                    guildId: Long
-                ) =
-                    ToggleWeekSessionLimit(
-                        screen = reconstruct(parameters = screenParameters, guildId = guildId)
-                    )
+                    context: OperationContext
+                ) = ToggleWeekSessionLimit(screen = reconstruct(screenParameters, context))
             }
         }
     }

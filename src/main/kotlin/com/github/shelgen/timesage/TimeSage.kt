@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage
 
 import com.github.shelgen.timesage.cronjobs.CronJobScheduling
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.slashcommands.AbstractSlashCommand
 import com.github.shelgen.timesage.ui.screens.*
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
@@ -9,6 +10,7 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
+import net.dv8tion.jda.api.interactions.Interaction
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions
 import net.dv8tion.jda.api.interactions.commands.build.Commands
 import org.slf4j.LoggerFactory
@@ -40,81 +42,78 @@ class TimeSage : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        MDC.putCloseable(MDC_GUILD_ID, event.guild?.idLong?.toString()).use {
-            MDC.putCloseable(MDC_USER_NAME, event.user.name).use {
-                val id = event.componentId
-                logger.info("Received ButtonInteractionEvent (custom id $id)")
-                val button = CustomIdSerialization.deserialize(
-                    customId = id,
-                    expectedType = ScreenButton::class,
-                    guildId = event.guild!!.idLong
-                )
-                button.handle(event)
-            }
+        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+            val id = event.componentId
+            logger.info("Received ButtonInteractionEvent (custom id $id)")
+            val button = CustomIdSerialization.deserialize(
+                customId = id,
+                expectedType = ScreenButton::class,
+                context = context
+            )
+            button.handle(event)
         }
     }
 
     override fun onEntitySelectInteraction(event: EntitySelectInteractionEvent) {
-        MDC.putCloseable(MDC_GUILD_ID, event.guild?.idLong?.toString()).use {
-            MDC.putCloseable(MDC_USER_NAME, event.user.name).use {
-                val id = event.componentId
-                logger.info("Received EntitySelectInteractionEvent (custom id $id)")
-                val selectMenu = CustomIdSerialization.deserialize(
-                    customId = id,
-                    expectedType = ScreenEntitySelectMenu::class,
-                    guildId = event.guild!!.idLong
-                )
-                selectMenu.handle(event)
-            }
+        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+            val id = event.componentId
+            logger.info("Received EntitySelectInteractionEvent (custom id $id)")
+            val selectMenu = CustomIdSerialization.deserialize(
+                customId = id,
+                expectedType = ScreenEntitySelectMenu::class,
+                context = context
+            )
+            selectMenu.handle(event)
         }
     }
 
     override fun onStringSelectInteraction(event: StringSelectInteractionEvent) {
-        MDC.putCloseable(MDC_GUILD_ID, event.guild?.idLong?.toString()).use {
-            MDC.putCloseable(MDC_USER_NAME, event.user.name).use {
-                val id = event.componentId
-                logger.info("Received StringSelectInteractionEvent (custom id $id)")
-                val selectMenu = CustomIdSerialization.deserialize(
-                    customId = id,
-                    expectedType = ScreenStringSelectMenu::class,
-                    guildId = event.guild!!.idLong
-                )
-                selectMenu.handle(event)
-            }
+        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+            val id = event.componentId
+            logger.info("Received StringSelectInteractionEvent (custom id $id)")
+            val selectMenu = CustomIdSerialization.deserialize(
+                customId = id,
+                expectedType = ScreenStringSelectMenu::class,
+                context = context
+            )
+            selectMenu.handle(event)
         }
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
-        MDC.putCloseable(MDC_GUILD_ID, event.guild?.idLong?.toString()).use {
-            MDC.putCloseable(MDC_USER_NAME, event.user.name).use {
-                val id = event.modalId
-                logger.info("Received ModalInteractionEvent (custom id $id)")
-                val modal = CustomIdSerialization.deserialize(
-                    customId = id,
-                    expectedType = ScreenModal::class,
-                    guildId = event.guild!!.idLong
-                )
-                modal.handle(event)
-            }
+        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+            val id = event.modalId
+            logger.info("Received ModalInteractionEvent (custom id $id)")
+            val modal = CustomIdSerialization.deserialize(
+                customId = id,
+                expectedType = ScreenModal::class,
+                context = context
+            )
+            modal.handle(event)
         }
     }
 
     override fun onSlashCommandInteraction(event: SlashCommandInteractionEvent) {
-        MDC.putCloseable(MDC_GUILD_ID, event.guild?.idLong?.toString()).use {
-            MDC.putCloseable(MDC_USER_NAME, event.user.name).use {
-                val name = event.name
-                logger.info("Received SlashCommandInteractionEvent (name $name)")
-                val command = slashCommands.find { command -> command.name == name }
-                if (command == null) {
-                    event.reply("Sorry, I don't recognize the command you just used. Maybe it's an outdated one?")
-                        .queue()
-                } else {
-                    command.handle(
-                        event = event,
-                        guildId = event.guild!!.idLong
-                    )
-                }
+        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+            val name = event.name
+            logger.info("Received SlashCommandInteractionEvent (name $name)")
+            val command = slashCommands.find { command -> command.name == name }
+            if (command == null) {
+                event.reply("Sorry, I don't recognize the command you just used. Maybe it's an outdated one?")
+                    .queue()
+            } else {
+                command.handle(
+                    event = event,
+                    context = context
+                )
             }
         }
     }
+
+    private fun withUser(name: String, block: (OperationContext) -> Unit) {
+        MDC.putCloseable(MDC_USER_NAME, name).use({ block })
+    }
+
+    private fun Interaction.toOperationContext(): OperationContext =
+        OperationContext(guildId = guild!!.idLong, channelId = channel!!.idLong)
 }

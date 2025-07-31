@@ -2,31 +2,30 @@ package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.Participant
 
 object ConfigurationRepository {
     private val dao = ConfigurationFileDao()
 
-    fun loadOrInitialize(guildId: Long): Configuration = dao.loadOrInitialize(guildId).toConfiguration(guildId)
+    fun loadOrInitialize(context: OperationContext): Configuration = dao.loadOrInitialize(context).toConfiguration()
 
     fun <T> update(
-        guildId: Long,
+        context: OperationContext,
         modification: (configuration: MutableConfiguration) -> T
     ): T {
-        val configuration = loadOrInitialize(guildId)
+        val configuration = loadOrInitialize(context)
         val mutableConfiguration = MutableConfiguration(configuration)
         val returnValue = modification(mutableConfiguration)
-        dao.save(guildId, mutableConfiguration.toJson())
+        dao.save(context, mutableConfiguration.toJson())
         return returnValue
     }
 
-    fun findAllGuildIds() = dao.findAllGuildIds()
+    fun findAllOperationContexts() = dao.findAllOperationContexts()
 
-    private fun ConfigurationFileDao.Json.toConfiguration(guildId: Long): Configuration =
+    private fun ConfigurationFileDao.Json.toConfiguration(): Configuration =
         Configuration(
-            guildId = guildId,
             enabled = enabled,
-            channelId = channelId,
             activities = activities.map { it.toActivity() },
         )
 
@@ -42,15 +41,11 @@ object ConfigurationRepository {
         Participant(userId = userId, optional = optional)
 
     data class MutableConfiguration(
-        val guildId: Long,
         var enabled: Boolean,
-        var channelId: Long?,
         val activities: MutableSet<MutableActivity>
     ) {
         constructor(configuration: Configuration) : this(
-            guildId = configuration.guildId,
             enabled = configuration.enabled,
-            channelId = configuration.channelId,
             activities = configuration.activities.map(::MutableActivity).toMutableSet()
         )
 
@@ -117,7 +112,6 @@ object ConfigurationRepository {
         fun toJson(): ConfigurationFileDao.Json =
             ConfigurationFileDao.Json(
                 enabled = enabled,
-                channelId = channelId,
                 activities = activities.sortedBy { it.id }.map { it.toJson() },
             )
     }

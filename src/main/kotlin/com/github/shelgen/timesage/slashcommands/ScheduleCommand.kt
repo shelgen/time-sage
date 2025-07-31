@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.slashcommands
 
+import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.nextMonday
 import com.github.shelgen.timesage.ui.screens.PlanAlternativeListScreen
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -9,7 +10,7 @@ object ScheduleCommand : AbstractSlashCommand(
     name = "tsschedule",
     description = "Attempt to schedule next week's sessions",
 ) {
-    override fun handle(event: SlashCommandInteractionEvent, guildId: Long) {
+    override fun handle(event: SlashCommandInteractionEvent, context: OperationContext) {
         val outerMdc = MDC.getCopyOfContextMap()
         event.deferReply(true).queue {
             MDC.setContextMap(outerMdc)
@@ -18,7 +19,7 @@ object ScheduleCommand : AbstractSlashCommand(
                     weekMondayDate = nextMonday(),
                     startIndex = 0,
                     size = 3,
-                    guildId = guildId
+                    context = context
                 ).render()
             ).queue()
             MDC.clear()
