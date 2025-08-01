@@ -18,7 +18,7 @@ class MutableUserResponse(
     )
 
     companion object {
-        val DEFAULT = MutableUserResponse(
+        fun createNew() = MutableUserResponse(
             sessionLimit = null,
             availabilities = MutableDateAvailabilities(mutableMapOf())
         )

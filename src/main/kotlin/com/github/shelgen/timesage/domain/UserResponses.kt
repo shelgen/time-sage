@@ -21,5 +21,5 @@ class MutableUserResponses(
     )
 
     override fun forUserId(userId: Long): MutableUserResponse? = map[userId]
-    fun getOrSetForUserId(userId: Long): MutableUserResponse = map.getOrPut(userId) { MutableUserResponse.DEFAULT }
+    fun getOrSetForUserId(userId: Long): MutableUserResponse = map.getOrPut(userId) { MutableUserResponse.createNew() }
 }
