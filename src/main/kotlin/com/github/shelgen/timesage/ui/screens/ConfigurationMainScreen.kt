@@ -148,19 +148,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { interactionHook ->
-                    val newActivityId = ConfigurationRepository.update(screen.context) { configuration ->
-                        ConfigurationRepository.MutableConfiguration.MutableActivity(
-                            id = (configuration.activities.maxOfOrNull { it.id } ?: 0) + 1,
-                            name = "New Activity",
-                            participants = mutableListOf(
-                                ConfigurationRepository.MutableConfiguration.MutableActivity.MutableParticipant(
-                                    userId = interactionHook.interaction.user.idLong,
-                                    optional = false
-                                )
-                            ),
-                            maxMissingOptionalParticipants = 0
-                        ).also(configuration.activities::add).id
-                    }
+                    val newActivityId = ConfigurationRepository.update(screen.context) { it.addNewActivity() }
                     ConfigurationActivityScreen(newActivityId, screen.context)
                 }
             }

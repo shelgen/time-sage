@@ -4,8 +4,8 @@ import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.nextWeekStartDate
-import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
+import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityScreen
 
 object AvailabilityMessageSender {
@@ -31,7 +31,7 @@ object AvailabilityMessageSender {
                 ).queue { message ->
                     val messageId = message.idLong
                     AvailabilitiesWeekRepository.update(startDate = startDate, context = context) {
-                        it.messageDiscordId = messageId
+                        it.messageId = messageId
                     }
                 }
             } else {

@@ -47,11 +47,11 @@ class Planner(
             }
 
     private fun getAvailability(userId: Long, date: LocalDate) =
-        week.responses[userId]?.availabilities[date]
+        week.responses.forUserId(userId)?.availabilities?.forDate(date)
             ?: AvailabilityStatus.UNAVAILABLE
 
     private fun getSessionLimit(userId: Long) =
-        week.responses[userId]?.sessionLimit ?: 2
+        week.responses.forUserId(userId)?.sessionLimit ?: 2
 
     private fun recursivelyFindPossiblePlans(
         planThusFar: List<Plan.Session> = emptyList(),
@@ -65,10 +65,10 @@ class Planner(
                 .asSequence()
                 .flatMap { activity ->
                     val potentialAttendees =
-                        week.responses
+                        week.responses.map
                             .asSequence()
                             .map { (userId, response) ->
-                                userId to (response.availabilities[currentDate]
+                                userId to (response.availabilities.forDate(currentDate)
                                     ?: AvailabilityStatus.UNAVAILABLE)
                             }
                             .filterNot { (_, availability) -> availability == AvailabilityStatus.UNAVAILABLE }

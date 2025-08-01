@@ -18,7 +18,7 @@ class AvailabilityReminderScreen(val startDate: LocalDate, context: OperationCon
         val unansweredParticipants = configuration.activities
             .flatMap(Activity::participants)
             .map(Participant::userId)
-            .filter { week.responses[it] == null }
+            .filter { week.responses.forUserId(it) == null }
             .distinct()
             .sorted()
 

@@ -62,9 +62,12 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                 }\n" +
                         week
                             .responses
+                            .map
                             .asSequence()
                             .filter { (_, response) -> response.sessionLimit != 0 }
-                            .mapNotNull { (userId, response) -> response.availabilities[date]?.let { userId to it } }
+                            .mapNotNull { (userId, response) ->
+                                response.availabilities.forDate(date)?.let { userId to it }
+                            }
                             .filter { (_, availability) ->
                                 availability in setOf(
                                     AvailabilityStatus.AVAILABLE,
@@ -96,6 +99,7 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                                 listOf(
                                     week
                                         .responses
+                                        .map
                                         .asSequence()
                                         .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
                                         .filter { (_, sessionLimit) -> sessionLimit == 1 }
@@ -109,6 +113,7 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                                         ).orEmpty(),
                                     week
                                         .responses
+                                        .map
                                         .asSequence()
                                         .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
                                         .filter { (_, sessionLimit) -> sessionLimit == 0 }
@@ -132,7 +137,7 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
             configuration.activities
                 .flatMap(Activity::participants)
                 .map(Participant::userId)
-                .filter { week.responses[it] == null }
+                .filter { week.responses.forUserId(it) == null }
                 .distinct()
                 .sorted()
                 .takeUnless(List<Long>::isEmpty)
@@ -162,9 +167,11 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    AvailabilitiesWeekRepository.update(startDate = screen.startDate, context = screen.context) { week ->
-                        val response = week.responses[userId]
-                        val oldAvailability = response?.availability[date]
+                    AvailabilitiesWeekRepository.update(
+                        startDate = screen.startDate,
+                        context = screen.context
+                    ) { week ->
+                        val oldAvailability = week.responses.forUserId(userId)?.availabilities?.forDate(date)
                         val newAvailability = when (oldAvailability) {
                             null -> AvailabilityStatus.AVAILABLE
                             AvailabilityStatus.AVAILABLE -> AvailabilityStatus.IF_NEED_BE
@@ -172,14 +179,7 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                             AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.AVAILABLE
                         }
                         logger.info("Updating availability at $date from $oldAvailability to $newAvailability")
-                        if (response == null) {
-                            week.responses[userId] = AvailabilitiesWeekRepository.MutableWeek.Response(
-                                sessionLimit = null,
-                                availability = mutableMapOf(date to newAvailability)
-                            )
-                        } else {
-                            response.availability[date] = newAvailability
-                        }
+                        week.setUserDateAvailability(userId, date, newAvailability)
                     }
                 }
             }
@@ -213,23 +213,18 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    AvailabilitiesWeekRepository.update(startDate = screen.startDate, context = screen.context) { week ->
-                        val response = week.responses[userId]
-                        val oldLimit = response?.sessionLimit
+                    AvailabilitiesWeekRepository.update(
+                        startDate = screen.startDate,
+                        context = screen.context
+                    ) { week ->
+                        val oldLimit = week.responses.forUserId(userId)?.sessionLimit
                         val newLimit = when (oldLimit) {
                             0 -> 2
                             1 -> 0
                             else -> 1
                         }
                         logger.info("Updating session limit at week of ${screen.startDate} from $oldLimit to $newLimit")
-                        if (response == null) {
-                            week.responses[userId] = AvailabilitiesWeekRepository.MutableWeek.Response(
-                                sessionLimit = newLimit,
-                                availability = mutableMapOf()
-                            )
-                        } else {
-                            response.sessionLimit = newLimit
-                        }
+                        week.setUserSessionLimit(userId, newLimit)
                     }
                 }
             }

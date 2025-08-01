@@ -2,19 +2,32 @@ package com.github.shelgen.timesage.domain
 
 import java.time.LocalDate
 
-class AvailabilitiesWeek(
-    val messageId: Long?,
-    val responses: Map<Long, Response>,
+open class AvailabilitiesWeek(
+    open val messageId: Long?,
+    open val responses: UserResponses
 ) {
-    data class Response(
-        val sessionLimit: Int?,
-        val availabilities: Map<LocalDate, AvailabilityStatus>
-    )
-
     companion object {
         val DEFAULT = AvailabilitiesWeek(
             messageId = null,
-            responses = emptyMap()
+            responses = UserResponses.NONE
         )
+    }
+}
+
+class MutableAvailabilitiesWeek(
+    override var messageId: Long?,
+    override val responses: MutableUserResponses,
+) : AvailabilitiesWeek(messageId, responses) {
+    constructor(week: AvailabilitiesWeek) : this(
+        messageId = week.messageId,
+        responses = MutableUserResponses(userResponses = week.responses)
+    )
+
+    fun setUserDateAvailability(userId: Long, date: LocalDate, availabilityStatus: AvailabilityStatus) {
+        responses.getOrSetForUserId(userId).availabilities.setForDate(date, availabilityStatus)
+    }
+
+    fun setUserSessionLimit(userId: Long, sessionLimit: Int) {
+        responses.getOrSetForUserId(userId).sessionLimit = sessionLimit
     }
 }
