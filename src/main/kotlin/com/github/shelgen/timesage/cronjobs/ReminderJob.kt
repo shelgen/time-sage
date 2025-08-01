@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.cronjobs
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.nextMonday
+import com.github.shelgen.timesage.nextWeekStartDate
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityReminderScreen
@@ -30,7 +30,7 @@ class ReminderJob : Job {
             logger.info("Disabled, not sending a message.")
         } else {
             val channel = JDAHolder.jda.getTextChannelById(context.channelId)
-            val startDate = nextMonday()
+            val startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek)
             logger.info("Sending any reminders for the week starting $startDate")
             val discordMessageId =
                 WeekRepository.loadOrInitialize(

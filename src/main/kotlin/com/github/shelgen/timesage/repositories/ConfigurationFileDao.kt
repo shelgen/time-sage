@@ -2,12 +2,17 @@ package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
+import java.time.DayOfWeek
 
 class ConfigurationFileDao {
     private val fileDao = CachedJsonFileDao<Json>(
         jsonClass = Json::class.java,
         initialContent = Json(
             enabled = false,
+            scheduling = Json.Scheduling(
+                type = Json.SchedulingType.WEEKLY,
+                startDayOfWeek = DayOfWeek.MONDAY,
+            ),
             activities = emptyList()
         )
     )
@@ -31,6 +36,7 @@ class ConfigurationFileDao {
 
     data class Json(
         val enabled: Boolean,
+        val scheduling: Scheduling,
         val activities: List<Activity>
     ) {
         data class Activity(
@@ -39,6 +45,13 @@ class ConfigurationFileDao {
             val participants: List<Participant>,
             val maxMissingOptionalParticipants: Int
         )
+
+        data class Scheduling(
+            val type: SchedulingType,
+            val startDayOfWeek: DayOfWeek
+        )
+
+        enum class SchedulingType { WEEKLY }
 
         data class Participant(val userId: Long, val optional: Boolean)
     }

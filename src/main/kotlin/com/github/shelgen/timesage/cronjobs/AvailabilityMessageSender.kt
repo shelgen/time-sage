@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.cronjobs
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.nextMonday
+import com.github.shelgen.timesage.nextWeekStartDate
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.WeekRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityScreen
@@ -15,7 +15,7 @@ object AvailabilityMessageSender {
             logger.info("Disabled, not sending a message.")
         } else {
             val channel = JDAHolder.jda.getTextChannelById(context.channelId)
-            val startDate = nextMonday()
+            val startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek)
             val existingMessageId =
                 WeekRepository.loadOrInitialize(
                     startDate = startDate,
@@ -25,7 +25,7 @@ object AvailabilityMessageSender {
                 logger.info("Sending availability messsage for the week starting $startDate")
                 channel!!.sendMessage(
                     AvailabilityScreen(
-                        startDate = nextMonday(),
+                        startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek),
                         context = context
                     ).render()
                 ).queue { message ->

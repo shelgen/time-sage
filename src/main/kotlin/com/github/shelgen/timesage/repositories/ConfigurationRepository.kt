@@ -4,6 +4,7 @@ import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.Participant
+import java.time.DayOfWeek
 
 object ConfigurationRepository {
     private val dao = ConfigurationFileDao()
@@ -26,8 +27,16 @@ object ConfigurationRepository {
     private fun ConfigurationFileDao.Json.toConfiguration(): Configuration =
         Configuration(
             enabled = enabled,
+            scheduling = toScheduling(),
             activities = activities.map { it.toActivity() },
         )
+
+    private fun ConfigurationFileDao.Json.toScheduling(): Configuration.Scheduling = Configuration.Scheduling(
+        type = when (scheduling.type) {
+            ConfigurationFileDao.Json.SchedulingType.WEEKLY -> Configuration.SchedulingType.WEEKLY
+        },
+        startDayOfWeek = scheduling.startDayOfWeek
+    )
 
     private fun ConfigurationFileDao.Json.Activity.toActivity(): Activity =
         Activity(
@@ -42,15 +51,27 @@ object ConfigurationRepository {
 
     data class MutableConfiguration(
         var enabled: Boolean,
+        val scheduling: MutableScheduling,
         val activities: MutableSet<MutableActivity>
     ) {
         constructor(configuration: Configuration) : this(
             enabled = configuration.enabled,
+            scheduling = MutableScheduling(configuration.scheduling),
             activities = configuration.activities.map(::MutableActivity).toMutableSet()
         )
 
         fun getActivity(activityId: Int): MutableActivity =
             activities.first { it.id == activityId }
+
+        data class MutableScheduling(
+            val type: Configuration.SchedulingType,
+            val startDayOfWeek: DayOfWeek
+        ) {
+            constructor(scheduling: Configuration.Scheduling) : this(
+                type = scheduling.type,
+                startDayOfWeek = scheduling.startDayOfWeek
+            )
+        }
 
         data class MutableActivity(
             val id: Int,
@@ -112,6 +133,12 @@ object ConfigurationRepository {
         fun toJson(): ConfigurationFileDao.Json =
             ConfigurationFileDao.Json(
                 enabled = enabled,
+                scheduling = ConfigurationFileDao.Json.Scheduling(
+                    type = when (scheduling.type) {
+                        Configuration.SchedulingType.WEEKLY -> ConfigurationFileDao.Json.SchedulingType.WEEKLY
+                    },
+                    startDayOfWeek = scheduling.startDayOfWeek
+                ),
                 activities = activities.sortedBy { it.id }.map { it.toJson() },
             )
     }
