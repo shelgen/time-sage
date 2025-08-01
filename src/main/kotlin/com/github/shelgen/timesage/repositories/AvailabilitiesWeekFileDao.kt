@@ -4,21 +4,15 @@ import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
 import java.time.LocalDate
 
-class WeekFileDao {
-    private val fileDao = CachedJsonFileDao<Json>(
-        jsonClass = Json::class.java,
-        initialContent = Json(
-            availabilityMessageId = null,
-            responses = emptyMap()
-        )
-    )
+class AvailabilitiesWeekFileDao {
+    private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
 
     fun save(startDate: LocalDate, context: OperationContext, json: Json) {
         fileDao.save(getWeekFile(startDate, context), json)
     }
 
-    fun loadOrInitialize(startDate: LocalDate, context: OperationContext): Json =
-        fileDao.loadOrInitialize(getWeekFile(startDate, context))
+    fun load(startDate: LocalDate, context: OperationContext): Json? =
+        fileDao.load(getWeekFile(startDate, context))
 
     data class Json(
         val availabilityMessageId: Long?,

@@ -18,7 +18,7 @@ object ScheduleCommand : AbstractSlashCommand(
             val configuration = ConfigurationRepository.loadOrInitialize(context)
             it.sendMessage(
                 PlanAlternativeListScreen(
-                    startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek),
+                    weekStartDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek),
                     startIndex = 0,
                     size = 3,
                     context = context

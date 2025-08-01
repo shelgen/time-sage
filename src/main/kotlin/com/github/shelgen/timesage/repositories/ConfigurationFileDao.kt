@@ -5,24 +5,14 @@ import java.io.File
 import java.time.DayOfWeek
 
 class ConfigurationFileDao {
-    private val fileDao = CachedJsonFileDao<Json>(
-        jsonClass = Json::class.java,
-        initialContent = Json(
-            enabled = false,
-            scheduling = Json.Scheduling(
-                type = Json.SchedulingType.WEEKLY,
-                startDayOfWeek = DayOfWeek.MONDAY,
-            ),
-            activities = emptyList()
-        )
-    )
+    private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
 
     fun save(context: OperationContext, json: Json) {
         fileDao.save(getConfigurationFile(context), json)
     }
 
-    fun loadOrInitialize(context: OperationContext): Json =
-        fileDao.loadOrInitialize(getConfigurationFile(context))
+    fun load(context: OperationContext): Json? =
+        fileDao.load(getConfigurationFile(context))
 
     fun findAllOperationContexts(): List<OperationContext> =
         findAllGuildIds().flatMap { guildId ->
@@ -36,7 +26,7 @@ class ConfigurationFileDao {
 
     data class Json(
         val enabled: Boolean,
-        val scheduling: Scheduling,
+        val scheduling: Scheduling?,
         val activities: List<Activity>
     ) {
         data class Activity(

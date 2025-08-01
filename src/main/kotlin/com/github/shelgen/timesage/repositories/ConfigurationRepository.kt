@@ -9,7 +9,10 @@ import java.time.DayOfWeek
 object ConfigurationRepository {
     private val dao = ConfigurationFileDao()
 
-    fun loadOrInitialize(context: OperationContext): Configuration = dao.loadOrInitialize(context).toConfiguration()
+    fun loadOrInitialize(context: OperationContext): Configuration =
+        dao.load(context)
+            ?.toConfiguration()
+            ?: Configuration.DEFAULT
 
     fun <T> update(
         context: OperationContext,
@@ -27,15 +30,15 @@ object ConfigurationRepository {
     private fun ConfigurationFileDao.Json.toConfiguration(): Configuration =
         Configuration(
             enabled = enabled,
-            scheduling = toScheduling(),
+            scheduling = scheduling?.toScheduling() ?: Configuration.Scheduling.DEFAULT,
             activities = activities.map { it.toActivity() },
         )
 
-    private fun ConfigurationFileDao.Json.toScheduling(): Configuration.Scheduling = Configuration.Scheduling(
-        type = when (scheduling.type) {
+    private fun ConfigurationFileDao.Json.Scheduling.toScheduling() = Configuration.Scheduling(
+        type = when (type) {
             ConfigurationFileDao.Json.SchedulingType.WEEKLY -> Configuration.SchedulingType.WEEKLY
         },
-        startDayOfWeek = scheduling.startDayOfWeek
+        startDayOfWeek = startDayOfWeek
     )
 
     private fun ConfigurationFileDao.Json.Activity.toActivity(): Activity =

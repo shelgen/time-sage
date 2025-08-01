@@ -2,18 +2,19 @@ package com.github.shelgen.timesage.planning
 
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.Week
+import com.github.shelgen.timesage.domain.AvailabilitiesWeek
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.weekDatesStartingWith
 import java.time.LocalDate
 
 class Planner(
     private val configuration: Configuration,
-    private val week: Week
+    private val weekStartDate: LocalDate,
+    private val week: AvailabilitiesWeek
 ) {
     fun generatePossiblePlans(): List<Plan> {
-        logger.info("Generating suggestions for week starting ${week.startDate}")
-        return findAllWeekPlansSortedByScore(weekDatesStartingWith(week.startDate)).toList()
+        logger.info("Generating suggestions for week starting ${weekStartDate}")
+        return findAllWeekPlansSortedByScore(weekDatesStartingWith(weekStartDate)).toList()
     }
 
     private fun findAllWeekPlansSortedByScore(weekDates: List<LocalDate>) =
@@ -46,7 +47,7 @@ class Planner(
             }
 
     private fun getAvailability(userId: Long, date: LocalDate) =
-        week.responses[userId]?.availability[date]
+        week.responses[userId]?.availabilities[date]
             ?: AvailabilityStatus.UNAVAILABLE
 
     private fun getSessionLimit(userId: Long) =
@@ -67,7 +68,7 @@ class Planner(
                         week.responses
                             .asSequence()
                             .map { (userId, response) ->
-                                userId to (response.availability[currentDate]
+                                userId to (response.availabilities[currentDate]
                                     ?: AvailabilityStatus.UNAVAILABLE)
                             }
                             .filterNot { (_, availability) -> availability == AvailabilityStatus.UNAVAILABLE }

@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.WeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -15,14 +15,14 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.time.LocalDate
 
 class PlanAlternativeSuggestedScreen(
-    val startDate: LocalDate,
+    val weekStartDate: LocalDate,
     val alternativeNumber: Int,
     val suggestingUserId: Long,
     context: OperationContext
 ) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(startDate = startDate, context = context)
-        val planner = Planner(configuration = configuration, week = week)
+        val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = weekStartDate, context = context)
+        val planner = Planner(configuration = configuration, weekStartDate = weekStartDate, week = week)
         val plans = planner.generatePossiblePlans()
         val plan = plans[alternativeNumber - 1]
         return listOf(
@@ -42,14 +42,14 @@ class PlanAlternativeSuggestedScreen(
 
     override fun parameters(): List<String> =
         listOf(
-            startDate.toString(),
+            weekStartDate.toString(),
             alternativeNumber.toString(),
             suggestingUserId.toString()
         )
 
     companion object {
         fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeSuggestedScreen(
-            startDate = LocalDate.parse(parameters[0]),
+            weekStartDate = LocalDate.parse(parameters[0]),
             alternativeNumber = parameters[1].toInt(),
             suggestingUserId = parameters[2].toLong(),
             context = context
@@ -67,7 +67,7 @@ class PlanAlternativeSuggestedScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanAlternativeConcludedScreen(
-                        startDate = screen.startDate,
+                        weekStartDate = screen.weekStartDate,
                         alternativeNumber = screen.alternativeNumber,
                         context = screen.context
                     )

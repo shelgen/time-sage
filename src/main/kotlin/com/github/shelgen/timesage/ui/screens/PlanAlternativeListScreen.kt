@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.WeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -15,14 +15,14 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.time.LocalDate
 
 class PlanAlternativeListScreen(
-    val startDate: LocalDate,
+    val weekStartDate: LocalDate,
     val startIndex: Int,
     val size: Int,
     context: OperationContext
 ) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(startDate = startDate, context = context)
-        val planner = Planner(configuration = configuration, week = week)
+        val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = weekStartDate, context = context)
+        val planner = Planner(configuration = configuration, weekStartDate = weekStartDate, week = week)
         val plans = planner.generatePossiblePlans()
         val alternativeNumberedPlans =
             plans.drop(startIndex).take(size)
@@ -81,11 +81,11 @@ class PlanAlternativeListScreen(
     } else emptyList()
 
     override fun parameters(): List<String> =
-        listOf(startDate.toString(), startIndex.toString(), size.toString())
+        listOf(weekStartDate.toString(), startIndex.toString(), size.toString())
 
     companion object {
         fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeListScreen(
-            startDate = LocalDate.parse(parameters[0]),
+            weekStartDate = LocalDate.parse(parameters[0]),
             startIndex = parameters[1].toInt(),
             size = parameters[2].toInt(),
             context = context
@@ -106,7 +106,7 @@ class PlanAlternativeListScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanAlternativeSuggestedScreen(
-                        startDate = screen.startDate,
+                        weekStartDate = screen.weekStartDate,
                         alternativeNumber = alternativeNumber,
                         suggestingUserId = event.user.idLong,
                         context = screen.context
@@ -145,7 +145,7 @@ class PlanAlternativeListScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddEphemeralScreen {
                     PlanAlternativeListScreen(
-                        startDate = screen.startDate,
+                        weekStartDate = screen.weekStartDate,
                         startIndex = screen.startIndex + screen.size,
                         size = nextSize,
                         context = screen.context

@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.nextWeekStartDate
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
-import com.github.shelgen.timesage.repositories.WeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityReminderScreen
 import com.github.shelgen.timesage.withContextMDC
 import org.quartz.CronScheduleBuilder
@@ -33,10 +33,10 @@ class ReminderJob : Job {
             val startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek)
             logger.info("Sending any reminders for the week starting $startDate")
             val discordMessageId =
-                WeekRepository.loadOrInitialize(
+                AvailabilitiesWeekRepository.loadOrInitialize(
                     startDate = startDate,
                     context = context
-                ).messageDiscordId
+                ).messageId
             if (discordMessageId == null) {
                 logger.warn("No message to nag about!")
             } else {

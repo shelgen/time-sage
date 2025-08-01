@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.Participant
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.WeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import com.github.shelgen.timesage.weekDatesStartingWith
@@ -15,16 +15,16 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import java.time.LocalDate
 
 class PlanAlternativeConcludedScreen(
-    val startDate: LocalDate,
+    val weekStartDate: LocalDate,
     val alternativeNumber: Int,
     context: OperationContext
 ) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(startDate = startDate, context = context)
-        val planner = Planner(configuration = configuration, week = week)
+        val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = weekStartDate, context = context)
+        val planner = Planner(configuration = configuration, weekStartDate = weekStartDate, week = week)
         val plans = planner.generatePossiblePlans()
         val plan = plans[alternativeNumber - 1]
-        val dates = weekDatesStartingWith(startDate)
+        val dates = weekDatesStartingWith(weekStartDate)
         return listOf(
             TextDisplay.of(
                 "## Plan for the week of " +
@@ -54,13 +54,13 @@ class PlanAlternativeConcludedScreen(
 
     override fun parameters(): List<String> =
         listOf(
-            startDate.toString(),
+            weekStartDate.toString(),
             alternativeNumber.toString(),
         )
 
     companion object {
         fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeConcludedScreen(
-            startDate = LocalDate.parse(parameters[0]),
+            weekStartDate = LocalDate.parse(parameters[0]),
             alternativeNumber = parameters[1].toInt(),
             context = context
         )

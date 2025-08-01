@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.Participant
-import com.github.shelgen.timesage.repositories.WeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
@@ -13,7 +13,7 @@ import java.time.LocalDate
 
 class AvailabilityReminderScreen(val startDate: LocalDate, context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = WeekRepository.loadOrInitialize(startDate = startDate, context = context)
+        val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = startDate, context = context)
 
         val unansweredParticipants = configuration.activities
             .flatMap(Activity::participants)
@@ -28,7 +28,7 @@ class AvailabilityReminderScreen(val startDate: LocalDate, context: OperationCon
                 TextDisplay.of(
                     "Hey ${unansweredParticipants.joinToString(separator = ", ") { DiscordFormatter.mentionUser(it) }}!" +
                             " Looks like I'm missing your availability for the next week's schedule." +
-                            " Could you check it out? ${"https://discord.com/channels/${channel.guild.idLong}/${channel.idLong}/${week.messageDiscordId}"}"
+                            " Could you check it out? ${"https://discord.com/channels/${channel.guild.idLong}/${channel.idLong}/${week.messageId}"}"
                 )
             )
         } else {

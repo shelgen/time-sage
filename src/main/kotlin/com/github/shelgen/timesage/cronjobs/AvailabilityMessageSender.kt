@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.nextWeekStartDate
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
-import com.github.shelgen.timesage.repositories.WeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityScreen
 
 object AvailabilityMessageSender {
@@ -17,10 +17,10 @@ object AvailabilityMessageSender {
             val channel = JDAHolder.jda.getTextChannelById(context.channelId)
             val startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek)
             val existingMessageId =
-                WeekRepository.loadOrInitialize(
+                AvailabilitiesWeekRepository.loadOrInitialize(
                     startDate = startDate,
                     context = context
-                ).messageDiscordId
+                ).messageId
             if (existingMessageId == null) {
                 logger.info("Sending availability messsage for the week starting $startDate")
                 channel!!.sendMessage(
@@ -30,7 +30,7 @@ object AvailabilityMessageSender {
                     ).render()
                 ).queue { message ->
                     val messageId = message.idLong
-                    WeekRepository.update(startDate = startDate, context = context) {
+                    AvailabilitiesWeekRepository.update(startDate = startDate, context = context) {
                         it.messageDiscordId = messageId
                     }
                 }

@@ -10,10 +10,18 @@ data class Configuration(
     data class Scheduling(
         val type: SchedulingType,
         val startDayOfWeek: DayOfWeek
-    )
+    ) {
+        companion object {
+            val DEFAULT = Scheduling(type = SchedulingType.WEEKLY, startDayOfWeek = DayOfWeek.MONDAY)
+        }
+    }
 
     enum class SchedulingType { WEEKLY }
 
     fun getActivity(activityId: Int): Activity =
         activities.first { it.id == activityId }
+
+    companion object {
+        val DEFAULT = Configuration(enabled = false, scheduling = Scheduling.DEFAULT, activities = emptyList())
+    }
 }

@@ -13,9 +13,9 @@ import java.io.File
 import java.time.Duration
 import java.time.Instant
 
-class CachedJsonFileDao<T>(private val jsonClass: Class<T>, private val initialContent: T) {
-    private val cache: LoadingCache<String, T> = Caffeine.newBuilder()
-        .build(CacheLoader(::loadOrCreateFile))
+class CachedJsonFileDao<T>(private val jsonClass: Class<T>) {
+    private val cache: LoadingCache<String, T?> = Caffeine.newBuilder()
+        .build(CacheLoader(::loadFile))
 
     private val objectMapper: ObjectMapper = jacksonObjectMapper()
         .registerModule(JavaTimeModule())
@@ -27,7 +27,7 @@ class CachedJsonFileDao<T>(private val jsonClass: Class<T>, private val initialC
         cache.invalidate(file.absolutePath)
     }
 
-    fun loadOrInitialize(file: File): T =
+    fun load(file: File): T? =
         cache.get(file.absolutePath)
 
     private fun saveFile(file: File, json: T) {
@@ -39,15 +39,8 @@ class CachedJsonFileDao<T>(private val jsonClass: Class<T>, private val initialC
         logger.debug("Saved file ${file.path} in ${Duration.between(start, Instant.now()).toMillis()}ms")
     }
 
-    private fun loadOrCreateFile(string: String): T {
+    private fun loadFile(string: String): T? {
         val file = File(string)
-        return loadFile(file) ?: initialContent.also {
-            logger.debug("Initializing file ${file.path}")
-            saveFile(file, it)
-        }
-    }
-
-    private fun loadFile(file: File): T? {
         if (!file.exists()) {
             logger.info("File ${file.path} does not yet exist")
             return null
@@ -58,4 +51,5 @@ class CachedJsonFileDao<T>(private val jsonClass: Class<T>, private val initialC
         logger.debug("Loaded file ${file.path} in ${Duration.between(start, Instant.now()).toMillis()}ms")
         return json
     }
+
 }
