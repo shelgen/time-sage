@@ -26,14 +26,19 @@ class ConfigurationFileDao {
 
     data class Json(
         val enabled: Boolean,
-        val scheduling: Scheduling?,
+        val scheduling: Scheduling,
         val activities: List<Activity>
     ) {
         data class Activity(
             val id: Int,
             val name: String,
-            val participants: List<Participant>,
+            val participants: Participants,
             val maxMissingOptionalParticipants: Int
+        )
+
+        data class Participants(
+            val required: Set<Long>,
+            val optional: Set<Long>
         )
 
         data class Scheduling(
@@ -42,8 +47,6 @@ class ConfigurationFileDao {
         )
 
         enum class SchedulingType { WEEKLY }
-
-        data class Participant(val userId: Long, val optional: Boolean)
     }
 
     companion object {

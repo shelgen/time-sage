@@ -38,25 +38,26 @@ object ConfigurationRepository {
         ConfigurationFileDao.Json.SchedulingType.WEEKLY -> SchedulingType.WEEKLY
     }
 
-    private fun ConfigurationFileDao.Json.Activity.toDomain() = Activity(
-        id = id,
-        name = name,
-        participants = participants.map { it.toDomain() },
-        maxMissingOptionalParticipants = this.maxMissingOptionalParticipants
-    )
+    private fun ConfigurationFileDao.Json.Activity.toDomain(): Activity {
+        return Activity(
+            id = id,
+            name = name,
+            participants = participants.toDomain(),
+            maxMissingOptionalParticipants = this.maxMissingOptionalParticipants
+        )
+    }
 
-    private fun ConfigurationFileDao.Json.Participant.toDomain() = Participant(
-        userId = userId,
-        optional = optional
-    )
+    private fun ConfigurationFileDao.Json.Participants.toDomain(): List<Participant> =
+        required.map { Participant(userId = it, optional = false) } +
+                optional.map { Participant(userId = it, optional = true) }
 
-    private fun MutableConfiguration.toJson() = ConfigurationFileDao.Json(
+    private fun Configuration.toJson() = ConfigurationFileDao.Json(
         enabled = enabled,
         scheduling = scheduling.toJson(),
         activities = activities.sortedBy { it.id }.map { it.toJson() },
     )
 
-    private fun MutableScheduling.toJson() = ConfigurationFileDao.Json.Scheduling(
+    private fun Scheduling.toJson() = ConfigurationFileDao.Json.Scheduling(
         type = type.toJson(),
         startDayOfWeek = startDayOfWeek
     )
@@ -65,15 +66,15 @@ object ConfigurationRepository {
         SchedulingType.WEEKLY -> ConfigurationFileDao.Json.SchedulingType.WEEKLY
     }
 
-    private fun MutableActivity.toJson() = ConfigurationFileDao.Json.Activity(
+    private fun Activity.toJson() = ConfigurationFileDao.Json.Activity(
         id = id,
         name = name,
-        participants = participants.sortedBy { it.userId }.map { it.toJson() },
+        participants = participants.toJson(),
         maxMissingOptionalParticipants = maxMissingOptionalParticipants
     )
 
-    private fun MutableParticipant.toJson() = ConfigurationFileDao.Json.Participant(
-        userId = userId,
-        optional = optional
+    private fun List<Participant>.toJson() = ConfigurationFileDao.Json.Participants(
+        required = filterNot { it.optional }.map { it.userId }.toSortedSet(),
+        optional = filter { it.optional }.map { it.userId }.toSortedSet(),
     )
 }
