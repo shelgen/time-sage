@@ -179,7 +179,7 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                             AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.AVAILABLE
                         }
                         logger.info("Updating availability at $date from $oldAvailability to $newAvailability")
-                        week.setUserDateAvailability(userId, date, newAvailability)
+                        week.setUserDateAvailability(userId = userId, date = date, availabilityStatus = newAvailability)
                     }
                 }
             }
