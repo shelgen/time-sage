@@ -10,8 +10,14 @@ import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.section.Section
+import net.dv8tion.jda.api.components.selections.SelectOption
+import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
+import java.time.DayOfWeek
+import java.time.format.TextStyle
+import java.util.*
 
 class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
@@ -30,6 +36,8 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 },
                 TextDisplay.of(DiscordFormatter.bold("Enabled") + ": " + (if (configuration.enabled) "Yes" else "No"))
             ),
+            TextDisplay.of(DiscordFormatter.bold("Start day of week") + ":"),
+            ActionRow.of(SelectMenus.StartDayOfWeek(this).render(configuration)),
             TextDisplay.of(DiscordFormatter.bold("Activities") + ":"),
         ) + if (configuration.activities.isEmpty()) {
             listOf(TextDisplay.of(DiscordFormatter.italics("There are currently no activities.")))
@@ -166,6 +174,53 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     context: OperationContext
                 ) =
                     AddActivity(screen = reconstruct(parameters = screenParameters, context = context))
+            }
+        }
+    }
+
+    class SelectMenus {
+        class StartDayOfWeek(screen: ConfigurationMainScreen) :
+            ScreenStringSelectMenu<ConfigurationMainScreen>(screen) {
+            fun render(configuration: Configuration) =
+                StringSelectMenu.create(CustomIdSerialization.serialize(this))
+                    .setMinValues(1)
+                    .setMaxValues(1)
+                    .addOptions(DayOfWeek.entries.map {
+                        SelectOption.of(
+                            it.getDisplayName(TextStyle.FULL, Locale.US),
+                            it.value.toString()
+                        )
+                    })
+                    .setDefaultValues(configuration.scheduling.startDayOfWeek.value.toString())
+                    .build()
+
+            override fun handle(event: StringSelectInteractionEvent) {
+                event.processAndRerender {
+                    val updatedStartDayOfWeek = DayOfWeek.of(event.values.first().toInt())
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                        configuration.scheduling.startDayOfWeek = updatedStartDayOfWeek
+                    }
+                }
+            }
+
+            override fun parameters(): List<String> = emptyList()
+
+            object Reconstructor :
+                ScreenComponentReconstructor<ConfigurationMainScreen, StartDayOfWeek>(
+                    screenClass = ConfigurationMainScreen::class,
+                    componentClass = StartDayOfWeek::class
+                ) {
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    context: OperationContext
+                ) =
+                    StartDayOfWeek(
+                        screen = ConfigurationMainScreen.Companion.reconstruct(
+                            parameters = screenParameters,
+                            context = context
+                        )
+                    )
             }
         }
     }
