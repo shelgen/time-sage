@@ -3,6 +3,7 @@ package com.github.shelgen.timesage.repositories
 import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
 import java.time.DayOfWeek
+import java.time.LocalTime
 
 class ConfigurationFileDao {
     private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
@@ -43,10 +44,20 @@ class ConfigurationFileDao {
 
         data class Scheduling(
             val type: SchedulingType,
-            val startDayOfWeek: DayOfWeek
+            val startDayOfWeek: DayOfWeek,
+            val timeSlotRules: List<SlotRule>?
         )
 
         enum class SchedulingType { WEEKLY }
+
+        data class SlotRule(
+            val dayType: DayType,
+            val timeOfDayUtc: LocalTime
+        )
+
+        enum class DayType {
+            MONDAYS, TUESDAYS, WEDNESDAYS, THURSDAYS, FRIDAYS, SATURDAYS, SUNDAYS, WEEKDAYS, WEEKENDS, EVERY_DAY
+        }
     }
 
     companion object {
