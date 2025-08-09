@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.domain
 
-import java.time.LocalDate
+import java.time.Instant
 
 open class AvailabilitiesWeek(
     open val messageId: Long?,
@@ -23,8 +23,8 @@ class MutableAvailabilitiesWeek(
         responses = MutableUserResponses(userResponses = week.responses)
     )
 
-    fun setUserDateAvailability(userId: Long, date: LocalDate, availabilityStatus: AvailabilityStatus) {
-        responses.getOrSetForUserId(userId).availabilities.setForDate(date, availabilityStatus)
+    fun setUserTimeSlotAvailability(userId: Long, timeSlot: Instant, availabilityStatus: AvailabilityStatus) {
+        responses.getOrSetForUserId(userId).availabilities.setForTimeSlot(timeSlot, availabilityStatus)
     }
 
     fun setUserSessionLimit(userId: Long, sessionLimit: Int) {

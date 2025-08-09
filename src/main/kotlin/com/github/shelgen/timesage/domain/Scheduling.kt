@@ -1,6 +1,19 @@
 package com.github.shelgen.timesage.domain
 
 import java.time.DayOfWeek
+import java.time.LocalDate
+
+data class DatePeriod(
+    val fromDate: LocalDate,
+    val toDate: LocalDate
+) {
+    fun dates(): List<LocalDate> = fromDate.datesUntil(toDate.plusDays(1)).toList()
+
+    companion object {
+        fun weekFrom(startDate: LocalDate) =
+            DatePeriod(startDate, startDate.plusDays(6))
+    }
+}
 
 open class Scheduling(
     open val type: SchedulingType,
@@ -14,6 +27,9 @@ open class Scheduling(
             timeSlotRules = listOf(TimeSlotRule.DEFAULT)
         )
     }
+
+    fun getTimeSlots(datePeriod: DatePeriod) =
+        timeSlotRules.flatMap { it.getTimeSlots(datePeriod) }.distinct().sorted()
 }
 
 class MutableScheduling(

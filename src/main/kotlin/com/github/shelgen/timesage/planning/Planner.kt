@@ -1,11 +1,13 @@
 package com.github.shelgen.timesage.planning
 
+import com.github.shelgen.timesage.domain.AvailabilitiesWeek
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.AvailabilitiesWeek
+import com.github.shelgen.timesage.domain.DatePeriod
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.weekDatesStartingWith
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 class Planner(
     private val configuration: Configuration,
@@ -14,11 +16,13 @@ class Planner(
 ) {
     fun generatePossiblePlans(): List<Plan> {
         logger.info("Generating suggestions for week starting ${weekStartDate}")
-        return findAllWeekPlansSortedByScore(weekDatesStartingWith(weekStartDate)).toList()
+        val datePeriod = DatePeriod.weekFrom(weekStartDate)
+        val timeSlots = configuration.scheduling.getTimeSlots(datePeriod)
+        return findAllWeekPlansSortedByScore(timeSlots).toList()
     }
 
-    private fun findAllWeekPlansSortedByScore(weekDates: List<LocalDate>) =
-        recursivelyFindPossiblePlans(planThusFar = emptyList(), remainingSlots = weekDates)
+    private fun findAllWeekPlansSortedByScore(timeSlots: List<Instant>) =
+        recursivelyFindPossiblePlans(planThusFar = emptyList(), remainingTimeSlots = timeSlots)
             .distinct()
             .filterNot(List<Plan.Session>::isEmpty)
             .filterNot(::isSuboptimalForAParticipant)
@@ -41,13 +45,13 @@ class Planner(
                         activity.hasParticipant(participant.userId)
                     }
                     .filterNot { it.hasAttendee(userId) }
-                    .map(Plan.Session::date)
+                    .map(Plan.Session::timeSlot)
                     .map { getAvailability(userId, it) }
                     .any { it != AvailabilityStatus.UNAVAILABLE }
             }
 
-    private fun getAvailability(userId: Long, date: LocalDate) =
-        week.responses.forUserId(userId)?.availabilities?.forDate(date)
+    private fun getAvailability(userId: Long, timeSlot: Instant) =
+        week.responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot)
             ?: AvailabilityStatus.UNAVAILABLE
 
     private fun getSessionLimit(userId: Long) =
@@ -55,10 +59,10 @@ class Planner(
 
     private fun recursivelyFindPossiblePlans(
         planThusFar: List<Plan.Session> = emptyList(),
-        remainingSlots: List<LocalDate>
+        remainingTimeSlots: List<Instant>
     ): Sequence<List<Plan.Session>> {
-        val currentDate = remainingSlots.firstOrNull()
-        return if (currentDate == null) {
+        val currentTimeSlot = remainingTimeSlots.firstOrNull()
+        return if (currentTimeSlot == null) {
             sequenceOf(planThusFar)
         } else {
             configuration.activities
@@ -68,7 +72,7 @@ class Planner(
                         week.responses.map
                             .asSequence()
                             .map { (userId, response) ->
-                                userId to (response.availabilities.forDate(currentDate)
+                                userId to (response.availabilities.forTimeSlot(currentTimeSlot)
                                     ?: AvailabilityStatus.UNAVAILABLE)
                             }
                             .filterNot { (_, availability) -> availability == AvailabilityStatus.UNAVAILABLE }
@@ -99,11 +103,11 @@ class Planner(
                             .flatMap { attendees ->
                                 recursivelyFindPossiblePlans(
                                     planThusFar = planThusFar + Plan.Session(
-                                        date = currentDate,
+                                        timeSlot = currentTimeSlot,
                                         activityId = activity.id,
                                         attendees = attendees + requiredAttendees
                                     ),
-                                    remainingSlots = remainingSlots.drop(1)
+                                    remainingTimeSlots = remainingTimeSlots.drop(1)
                                 )
                             }
                     } else {
@@ -111,7 +115,7 @@ class Planner(
                     }
                 } + recursivelyFindPossiblePlans(
                 planThusFar = planThusFar,
-                remainingSlots = remainingSlots.drop(1)
+                remainingTimeSlots = remainingTimeSlots.drop(1)
             )
         }
     }
@@ -121,7 +125,12 @@ class Planner(
             numberOfAttendees = sessions.asSequence().flatMap(Session::attendees).count { !it.ifNeedBe },
             numberOfIfNeedBeAttendees = sessions.asSequence().flatMap(Session::attendees).count { it.ifNeedBe },
             noTwoDaysInSequence = if (sessions.asSequence().drop(1)
-                    .mapIndexed { i, session -> numDaysBetween(session.date, sessions[i].date) }.all { it >= 2 }
+                    .mapIndexed { i, session ->
+                        numDaysBetween(
+                            latestDate = session.timeSlot.atOffset(ZoneOffset.UTC).toLocalDate(),
+                            earliestDate = sessions[i].timeSlot.atOffset(ZoneOffset.UTC).toLocalDate()
+                        )
+                    }.all { it >= 2 }
             ) 1 else 0
         )
 
@@ -142,7 +151,7 @@ class Planner(
         }
 
         data class Session(
-            val date: LocalDate,
+            val timeSlot: Instant,
             val activityId: Int,
             val attendees: Set<Attendee>
         ) {

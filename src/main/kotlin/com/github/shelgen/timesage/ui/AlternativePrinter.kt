@@ -1,6 +1,5 @@
 package com.github.shelgen.timesage.ui
 
-import com.github.shelgen.timesage.atNormalStartTime
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.Participant
 import com.github.shelgen.timesage.planning.Planner
@@ -18,7 +17,7 @@ class AlternativePrinter(private val configuration: Configuration) {
                 printParticipants()
 
     private fun Planner.Plan.Session.printTime() =
-        DiscordFormatter.timestamp(date.atNormalStartTime(), DiscordFormatter.TimestampFormat.LONG_DATE_TIME)
+        DiscordFormatter.timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)
 
     private fun Planner.Plan.Session.printActivity(): String =
         DiscordFormatter.bold(configuration.getActivity(activityId).name)

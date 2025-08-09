@@ -1,21 +1,21 @@
 package com.github.shelgen.timesage.domain
 
-import java.time.LocalDate
+import java.time.Instant
 
 open class DateAvailabilities(
-    open val map: Map<LocalDate, AvailabilityStatus>
+    open val map: Map<Instant, AvailabilityStatus>
 ) {
-    fun forDate(date: LocalDate): AvailabilityStatus? = map[date]
+    fun forTimeSlot(timeSlot: Instant): AvailabilityStatus? = map[timeSlot]
 }
 
 class MutableDateAvailabilities(
-    override val map: MutableMap<LocalDate, AvailabilityStatus>
+    override val map: MutableMap<Instant, AvailabilityStatus>
 ) : DateAvailabilities(map) {
     constructor(userResponses: DateAvailabilities) : this(
         map = userResponses.map.toMutableMap()
     )
 
-    fun setForDate(date: LocalDate, availabilityStatus: AvailabilityStatus) {
-        map[date] = availabilityStatus
+    fun setForTimeSlot(timeSlot: Instant, availabilityStatus: AvailabilityStatus) {
+        map[timeSlot] = availabilityStatus
     }
 }

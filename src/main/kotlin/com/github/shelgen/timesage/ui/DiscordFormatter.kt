@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.ui
 
-import java.time.OffsetDateTime
+import java.time.Instant
 
 object DiscordFormatter {
     fun bold(text: String) = "**$text**"
@@ -8,8 +8,8 @@ object DiscordFormatter {
     fun quote(text: String) = text.split("\n").joinToString(separator = "\n", postfix = "\n") { "> $it" }
     fun strikethrough(text: String) = "~~${text}~~"
     fun underline(text: String) = "__${text}__"
-    fun timestamp(offsetDateTime: OffsetDateTime, format: TimestampFormat) =
-        "<t:${offsetDateTime.toEpochSecond()}:${format.formatValue}>"
+    fun timestamp(instant: Instant, format: TimestampFormat) =
+        "<t:${instant.epochSecond}:${format.formatValue}>"
 
     fun mentionUser(id: Long) = "<@$id>"
     fun mentionChannel(id: Long) = "<#$id>"

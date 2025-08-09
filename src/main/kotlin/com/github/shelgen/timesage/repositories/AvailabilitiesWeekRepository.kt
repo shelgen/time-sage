@@ -31,7 +31,11 @@ object AvailabilitiesWeekRepository {
 
     private fun AvailabilitiesWeekFileDao.Json.Response.toDomain() = UserResponse(
         sessionLimit = sessionLimit,
-        availabilities = DateAvailabilities(availability.map { (date, status) -> date to status.toDomain() }.toMap())
+        availabilities = DateAvailabilities(
+            availability.map { (timeSlot, status) ->
+                timeSlot to status.toDomain()
+            }.toMap()
+        )
     )
 
     private fun AvailabilitiesWeekFileDao.Json.AvailabilityStatus.toDomain() = when (this) {
@@ -47,7 +51,9 @@ object AvailabilitiesWeekRepository {
 
     private fun UserResponse.toJson() = AvailabilitiesWeekFileDao.Json.Response(
         sessionLimit = sessionLimit,
-        availability = availabilities.map.map { (date, availability) -> date to availability.toJson() }.toMap(TreeMap())
+        availability = availabilities.map.map { (timeSlot, availability) ->
+            timeSlot to availability.toJson()
+        }.toMap(TreeMap())
     )
 
     private fun AvailabilityStatus.toJson() = when (this) {

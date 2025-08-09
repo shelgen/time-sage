@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
+import java.time.Instant
 import java.time.LocalDate
 
 class AvailabilitiesWeekFileDao {
@@ -20,7 +21,7 @@ class AvailabilitiesWeekFileDao {
     ) {
         data class Response(
             val sessionLimit: Int?,
-            val availability: Map<LocalDate, AvailabilityStatus>
+            val availability: Map<Instant, AvailabilityStatus>
         )
 
         enum class AvailabilityStatus {

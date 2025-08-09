@@ -1,18 +1,17 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.atNormalStartTime
 import com.github.shelgen.timesage.domain.*
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import com.github.shelgen.timesage.ui.DiscordFormatter.timestamp
-import com.github.shelgen.timesage.weekDatesStartingWith
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -20,10 +19,11 @@ import java.util.*
 class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration) =
         AvailabilitiesWeekRepository.loadOrInitialize(startDate = startDate, context = context).let { week ->
-            val dates = weekDatesStartingWith(startDate)
+            val datePeriod = DatePeriod.weekFrom(startDate)
+            val timeSlots = configuration.scheduling.getTimeSlots(datePeriod)
             listOf(
-                renderHeader(dates.first(), dates.last(), configuration),
-                dates.map { date -> renderDateContainer(date, week) },
+                renderHeader(datePeriod.fromDate, datePeriod.toDate, configuration),
+                timeSlots.map { timeSlot -> renderTimeSlotContainer(timeSlot, week) },
                 renderWeekLimits(week),
                 renderMissingResponses(week, configuration)
             ).flatten()
@@ -50,23 +50,18 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                         .joinToString("\n") { "- $it" }
         }
 
-    private fun renderDateContainer(date: LocalDate, week: AvailabilitiesWeek) = Container.of(
+    private fun renderTimeSlotContainer(timeSlot: Instant, week: AvailabilitiesWeek) = Container.of(
         Section.of(
-            Buttons.ToggleDateAvailability(date = date, screen = this@AvailabilityScreen).render(),
+            Buttons.ToggleTimeSlotAvailability(timeSlot = timeSlot, screen = this@AvailabilityScreen).render(),
             TextDisplay.of(
-                "### ${
-                    timestamp(
-                        date.atNormalStartTime(),
-                        DiscordFormatter.TimestampFormat.LONG_DATE_TIME
-                    )
-                }\n" +
+                "### ${timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
                         week
                             .responses
                             .map
                             .asSequence()
                             .filter { (_, response) -> response.sessionLimit != 0 }
                             .mapNotNull { (userId, response) ->
-                                response.availabilities.forDate(date)?.let { userId to it }
+                                response.availabilities.forTimeSlot(timeSlot)?.let { userId to it }
                             }
                             .filter { (_, availability) ->
                                 availability in setOf(
@@ -157,7 +152,7 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
     }
 
     class Buttons {
-        class ToggleDateAvailability(private val date: LocalDate, screen: AvailabilityScreen) :
+        class ToggleTimeSlotAvailability(private val timeSlot: Instant, screen: AvailabilityScreen) :
             ScreenButton<AvailabilityScreen>(
                 screen = screen
             ) {
@@ -171,33 +166,37 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                         startDate = screen.startDate,
                         context = screen.context
                     ) { week ->
-                        val oldAvailability = week.responses.forUserId(userId)?.availabilities?.forDate(date)
+                        val oldAvailability = week.responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot)
                         val newAvailability = when (oldAvailability) {
                             null -> AvailabilityStatus.AVAILABLE
                             AvailabilityStatus.AVAILABLE -> AvailabilityStatus.IF_NEED_BE
                             AvailabilityStatus.IF_NEED_BE -> AvailabilityStatus.UNAVAILABLE
                             AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.AVAILABLE
                         }
-                        logger.info("Updating availability at $date from $oldAvailability to $newAvailability")
-                        week.setUserDateAvailability(userId = userId, date = date, availabilityStatus = newAvailability)
+                        logger.info("Updating availability at $timeSlot from $oldAvailability to $newAvailability")
+                        week.setUserTimeSlotAvailability(
+                            userId = userId,
+                            timeSlot = timeSlot,
+                            availabilityStatus = newAvailability
+                        )
                     }
                 }
             }
 
-            override fun parameters(): List<String> = listOf(date.toString())
+            override fun parameters(): List<String> = listOf(timeSlot.toString())
 
             object Reconstructor :
-                ScreenComponentReconstructor<AvailabilityScreen, ToggleDateAvailability>(
+                ScreenComponentReconstructor<AvailabilityScreen, ToggleTimeSlotAvailability>(
                     screenClass = AvailabilityScreen::class,
-                    componentClass = ToggleDateAvailability::class
+                    componentClass = ToggleTimeSlotAvailability::class
                 ) {
                 override fun reconstruct(
                     screenParameters: List<String>,
                     componentParameters: List<String>,
                     context: OperationContext
                 ) =
-                    ToggleDateAvailability(
-                        date = LocalDate.parse(componentParameters.first()),
+                    ToggleTimeSlotAvailability(
+                        timeSlot = Instant.parse(componentParameters.first()),
                         screen = reconstruct(screenParameters, context)
                     )
             }
