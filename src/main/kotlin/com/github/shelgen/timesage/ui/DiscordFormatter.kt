@@ -15,12 +15,12 @@ object DiscordFormatter {
     fun mentionChannel(id: Long) = "<#$id>"
 
     enum class TimestampFormat(val formatValue: String) {
-        RELATIVE_TIME("R"), // 0 seconds ago
-        LONG_DATE("D"), // March 5, 2020
-        SHORT_DATE("d"), // 05/03/2020
-        LONG_TIME("T"), // 11:28:27 AM
-        SHORT_TIME("t"), // 11:28 AM
-        LONG_DATE_TIME("F"), // Thursday, March 5, 2020 11:28:27 AM
-        SHORT_DATE_TIME("f") // 5 March 2020 11:28
+        RELATIVE_TIME("R"), // 48 seconds ago
+        LONG_DATE("D"), // August 9, 2025
+        SHORT_DATE("d"), // 8/9/25
+        LONG_TIME("T"), // 1:52:00 PM
+        SHORT_TIME("t"), // 1:52 PM
+        LONG_DATE_TIME("F"), // Saturday, August 9, 2025 at 1:52 PM
+        SHORT_DATE_TIME("f") // August 9, 2025 at 1:52 PM
     }
 }
