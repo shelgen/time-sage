@@ -77,4 +77,5 @@ class PlanAlternativeConcludedScreen(
                     .toSet()
             )
             .sorted()
+            .distinct()
 }
