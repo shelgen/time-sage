@@ -20,7 +20,7 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
     override fun renderComponents(configuration: Configuration) =
         AvailabilitiesWeekRepository.loadOrInitialize(startDate = startDate, context = context).let { week ->
             val datePeriod = DatePeriod.weekFrom(startDate)
-            val timeSlots = configuration.scheduling.getTimeSlots(datePeriod)
+            val timeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
             listOf(
                 renderHeader(datePeriod.fromDate, datePeriod.toDate, configuration),
                 timeSlots.map { timeSlot -> renderTimeSlotContainer(timeSlot, week) },

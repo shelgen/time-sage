@@ -4,6 +4,7 @@ import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalTime
+import java.util.TimeZone
 
 class ConfigurationFileDao {
     private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
@@ -27,6 +28,7 @@ class ConfigurationFileDao {
 
     data class Json(
         val enabled: Boolean,
+        val timeZone: TimeZone?,
         val scheduling: Scheduling,
         val activities: List<Activity>
     ) {
@@ -52,7 +54,8 @@ class ConfigurationFileDao {
 
         data class SlotRule(
             val dayType: DayType,
-            val timeOfDayUtc: LocalTime
+            val timeOfDayUtc: LocalTime?,
+            val timeOfDay: LocalTime?,
         )
 
         enum class DayType {

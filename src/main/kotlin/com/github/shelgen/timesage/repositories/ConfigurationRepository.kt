@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.domain.*
+import java.util.*
 
 object ConfigurationRepository {
     private val dao = ConfigurationFileDao()
@@ -25,7 +26,8 @@ object ConfigurationRepository {
 
     private fun ConfigurationFileDao.Json.toDomain() = Configuration(
         enabled = enabled,
-        scheduling = scheduling?.toDomain() ?: Scheduling.DEFAULT,
+        timeZone = timeZone ?: TimeZone.getTimeZone("UTC"),
+        scheduling = scheduling.toDomain(),
         activities = activities.map { it.toDomain() },
     )
 
@@ -41,7 +43,7 @@ object ConfigurationRepository {
 
     private fun ConfigurationFileDao.Json.SlotRule.toDomain() = TimeSlotRule(
         dayType = dayType.toDomain(),
-        timeOfDayUtc = timeOfDayUtc
+        timeOfDay = timeOfDayUtc ?: timeOfDay!!,
     )
 
     private fun ConfigurationFileDao.Json.DayType.toDomain(): DayType = when (this) {
@@ -72,6 +74,7 @@ object ConfigurationRepository {
 
     private fun Configuration.toJson() = ConfigurationFileDao.Json(
         enabled = enabled,
+        timeZone = timeZone,
         scheduling = scheduling.toJson(),
         activities = activities.sortedBy { it.id }.map { it.toJson() },
     )
@@ -88,7 +91,8 @@ object ConfigurationRepository {
 
     private fun TimeSlotRule.toJson() = ConfigurationFileDao.Json.SlotRule(
         dayType = dayType.toJson(),
-        timeOfDayUtc = timeOfDayUtc
+        timeOfDayUtc = null,
+        timeOfDay = timeOfDay,
     )
 
     private fun DayType.toJson(): ConfigurationFileDao.Json.DayType = when (this) {

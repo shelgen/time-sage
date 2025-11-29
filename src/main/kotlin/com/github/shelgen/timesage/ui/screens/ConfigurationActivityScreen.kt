@@ -8,6 +8,7 @@ import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
+import net.dv8tion.jda.api.components.label.Label
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.components.selections.EntitySelectMenu.SelectTarget
@@ -20,7 +21,7 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent
-import net.dv8tion.jda.api.interactions.modals.Modal
+import net.dv8tion.jda.api.modals.Modal
 
 class ConfigurationActivityScreen(private val activityId: Int, context: OperationContext) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
@@ -274,8 +275,9 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
                 Modal
                     .create(CustomIdSerialization.serialize(this), "Edit name for activity")
                     .addComponents(
-                        ActionRow.of(
-                            TextInput.create("name", "Name", TextInputStyle.SHORT)
+                        Label.of(
+                            "Name",
+                            TextInput.create("name", TextInputStyle.SHORT)
                                 .setPlaceholder("Name of the activity")
                                 .setValue(configuration.getActivity(screen.activityId).name)
                                 .build()

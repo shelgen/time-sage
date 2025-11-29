@@ -17,7 +17,7 @@ class Planner(
     fun generatePossiblePlans(): List<Plan> {
         logger.info("Generating suggestions for week starting ${weekStartDate}")
         val datePeriod = DatePeriod.weekFrom(weekStartDate)
-        val timeSlots = configuration.scheduling.getTimeSlots(datePeriod)
+        val timeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
         return findAllWeekPlansSortedByScore(timeSlots).toList()
     }
 

@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.domain
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.util.TimeZone
 
 data class DatePeriod(
     val fromDate: LocalDate,
@@ -28,8 +29,8 @@ open class Scheduling(
         )
     }
 
-    fun getTimeSlots(datePeriod: DatePeriod) =
-        timeSlotRules.flatMap { it.getTimeSlots(datePeriod) }.distinct().sorted()
+    fun getTimeSlots(datePeriod: DatePeriod, timeZone: TimeZone) =
+        timeSlotRules.flatMap { it.getTimeSlots(datePeriod, timeZone) }.distinct().sorted()
 }
 
 class MutableScheduling(

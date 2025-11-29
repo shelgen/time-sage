@@ -3,15 +3,16 @@ package com.github.shelgen.timesage.domain
 import java.time.DayOfWeek
 import java.time.LocalDate
 
-enum class DayType(private val daysOfWeek: Set<DayOfWeek>) {
-    MONDAYS(setOf(DayOfWeek.MONDAY)),
-    TUESDAYS(setOf(DayOfWeek.TUESDAY)),
-    WEDNESDAYS(setOf(DayOfWeek.WEDNESDAY)),
-    THURSDAYS(setOf(DayOfWeek.THURSDAY)),
-    FRIDAYS(setOf(DayOfWeek.FRIDAY)),
-    SATURDAYS(setOf(DayOfWeek.SATURDAY)),
-    SUNDAYS(setOf(DayOfWeek.SUNDAY)),
+enum class DayType(val humanReadableName: String, private val daysOfWeek: Set<DayOfWeek>) {
+    MONDAYS("Mondays", setOf(DayOfWeek.MONDAY)),
+    TUESDAYS("Tuesdays", setOf(DayOfWeek.TUESDAY)),
+    WEDNESDAYS("Wednesdays", setOf(DayOfWeek.WEDNESDAY)),
+    THURSDAYS("Thursdays", setOf(DayOfWeek.THURSDAY)),
+    FRIDAYS("Fridays", setOf(DayOfWeek.FRIDAY)),
+    SATURDAYS("Saturdays", setOf(DayOfWeek.SATURDAY)),
+    SUNDAYS("Sundays", setOf(DayOfWeek.SUNDAY)),
     WEEKDAYS(
+        "Weekdays",
         setOf(
             DayOfWeek.MONDAY,
             DayOfWeek.TUESDAY,
@@ -21,12 +22,14 @@ enum class DayType(private val daysOfWeek: Set<DayOfWeek>) {
         )
     ),
     WEEKENDS(
+        "Weekends",
         setOf(
             DayOfWeek.SATURDAY,
             DayOfWeek.SUNDAY
         )
     ),
     EVERY_DAY(
+        "Every day",
         setOf(
             DayOfWeek.MONDAY,
             DayOfWeek.TUESDAY,

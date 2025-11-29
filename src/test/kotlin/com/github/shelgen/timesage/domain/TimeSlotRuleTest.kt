@@ -6,6 +6,7 @@ import org.junit.jupiter.params.provider.FieldSource
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.TimeZone
 
 class TimeSlotRuleTest {
     companion object {
@@ -123,7 +124,7 @@ class TimeSlotRuleTest {
         val rule = TimeSlotRule(parameters.dayType, LocalTime.parse(parameters.timeUtc))
 
         // When:
-        val timeSlots = rule.getTimeSlots(datePeriod)
+        val timeSlots = rule.getTimeSlots(datePeriod, TimeZone.getTimeZone("UTC"))
 
         // Then:
         assertEquals(parameters.expectedInstants.map(Instant::parse), timeSlots)
