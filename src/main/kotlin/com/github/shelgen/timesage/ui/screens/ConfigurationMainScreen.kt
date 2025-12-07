@@ -77,10 +77,10 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 )
             }
         } + listOf(
-            ActionRow.of(
+            listOfNotNull(
                 Buttons.AddActivity(this).render(),
-                Buttons.DeleteActivities(this).render()
-            )
+                if (configuration.activities.isEmpty()) null else Buttons.DeleteActivities(this).render()
+            ).let { ActionRow.of(it) }
         )
 
     class Buttons {
