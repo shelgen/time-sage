@@ -11,7 +11,7 @@ object JDAHolder {
         val botToken = File("time-sage-bot.token").readText().trim()
         logger.info("Logging on with token")
         val build = JDABuilder.createDefault(botToken)
-            .setActivity(Activity.playing(" at being developed"))
+            .setActivity(Activity.customStatus("Being developed"))
             .build()
         logger.info("Waiting for JDA to be ready")
         logger.info(
