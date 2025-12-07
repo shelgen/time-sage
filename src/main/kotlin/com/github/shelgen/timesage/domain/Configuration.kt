@@ -42,10 +42,10 @@ class MutableConfiguration(
     override fun getActivity(activityId: Int): MutableActivity =
         activities.first { it.id == activityId }
 
-    fun addNewActivity(): Int {
+    fun addNewActivity(): MutableActivity {
         val id = (activities.maxOfOrNull { it.id } ?: 0) + 1
         val activity = MutableActivity.createNew(id)
         activities.add(activity)
-        return id
+        return activity
     }
 }

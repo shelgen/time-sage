@@ -2,10 +2,7 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.cronjobs.AvailabilityMessageSender
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DayType
-import com.github.shelgen.timesage.domain.OperationContext
-import com.github.shelgen.timesage.domain.TimeSlotRule
+import com.github.shelgen.timesage.domain.*
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -13,6 +10,8 @@ import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.label.Label
 import net.dv8tion.jda.api.components.section.Section
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu
+import net.dv8tion.jda.api.components.selections.EntitySelectMenu.SelectTarget
 import net.dv8tion.jda.api.components.selections.SelectOption
 import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
@@ -136,7 +135,9 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Edit...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationActivityScreen(activityId, screen.context) }
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val modal = Modals.EditActivity(activityId, screen).render(configuration)
+                event.replyModal(modal).queue()
             }
         }
 
@@ -145,10 +146,9 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.success(CustomIdSerialization.serialize(this), "Add new activity...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { interactionHook ->
-                    val newActivityId = ConfigurationRepository.update(screen.context) { it.addNewActivity() }
-                    ConfigurationActivityScreen(newActivityId, screen.context)
-                }
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val modal = Modals.AddActivity(screen).render(configuration)
+                event.replyModal(modal).queue()
             }
         }
 
@@ -223,6 +223,123 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                             )
                         )
                         DayOfWeek.of(event.getValue("startDayOfWeek")!!.asStringList.first().toInt())
+                    }
+                }
+            }
+        }
+
+        class AddActivity(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Add activity")
+                    .addComponents(
+                        Label.of(
+                            "Name",
+                            TextInput.create("name", TextInputStyle.SHORT)
+                                .setPlaceholder("Name of the activity")
+                                .build()
+                        ),
+                        Label.of(
+                            "Required participants",
+                            EntitySelectMenu.create("requiredParticipants", SelectTarget.USER)
+                                .setMinValues(1)
+                                .setMaxValues(25)
+                                .build()
+                        ),
+                        Label.of(
+                            "Optional participants",
+                            EntitySelectMenu.create("optionalParticipants", SelectTarget.USER)
+                                .setRequired(false)
+                                .setMinValues(0)
+                                .setMaxValues(25)
+                                .build()
+                        ),
+                        Label.of(
+                            "Max missing optional participants",
+                            StringSelectMenu.create("maxMissingOptional")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions((0..4).map(Int::toString).map { SelectOption.of(it, it) })
+                                .setDefaultValues("1")
+                                .build()
+                        )
+                    )
+                    .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                        val activity = configuration.addNewActivity()
+                        activity.name = event.getValue("name")!!.asString
+                        activity.setOptionalParticipants(event.getValue("optionalParticipants")!!.asLongList)
+                        activity.setRequiredParticipants(event.getValue("requiredParticipants")!!.asLongList)
+                        activity.maxMissingOptionalParticipants =
+                            event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
+                    }
+                }
+            }
+        }
+
+        class EditActivity(private val activityId: Int, override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit activity")
+                    .addComponents(
+                        Label.of(
+                            "Name",
+                            TextInput.create("name", TextInputStyle.SHORT)
+                                .setPlaceholder("Name of the activity")
+                                .setValue(configuration.getActivity(activityId).name)
+                                .build()
+                        ),
+                        Label.of(
+                            "Required participants",
+                            EntitySelectMenu.create("requiredParticipants", SelectTarget.USER)
+                                .setMinValues(1)
+                                .setMaxValues(25)
+                                .setDefaultValues(
+                                    configuration.getActivity(activityId)
+                                        .participants
+                                        .filterNot(Participant::optional)
+                                        .map(Participant::userId)
+                                        .map(EntitySelectMenu.DefaultValue::user)
+                                ).build()
+                        ),
+                        Label.of(
+                            "Optional participants",
+                            EntitySelectMenu.create("optionalParticipants", SelectTarget.USER)
+                                .setRequired(false)
+                                .setMinValues(0)
+                                .setMaxValues(25)
+                                .setDefaultValues(
+                                    configuration.getActivity(activityId)
+                                        .participants
+                                        .filter(Participant::optional)
+                                        .map(Participant::userId)
+                                        .map(EntitySelectMenu.DefaultValue::user)
+                                ).build()
+                        ),
+                        Label.of(
+                            "Max missing optional participants",
+                            StringSelectMenu.create("maxMissingOptional")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions((0..4).map(Int::toString).map { SelectOption.of(it, it) })
+                                .setDefaultValues(configuration.getActivity(activityId).maxMissingOptionalParticipants.toString())
+                                .build()
+                        )
+                    )
+                    .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                        val activity = configuration.getActivity(activityId = activityId)
+                        activity.name = event.getValue("name")!!.asString
+                        activity.setOptionalParticipants(event.getValue("optionalParticipants")!!.asLongList)
+                        activity.setRequiredParticipants(event.getValue("requiredParticipants")!!.asLongList)
+                        activity.maxMissingOptionalParticipants =
+                            event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
                     }
                 }
             }
