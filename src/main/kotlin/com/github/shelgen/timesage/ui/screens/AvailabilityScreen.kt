@@ -144,18 +144,11 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                 ?.let { Container.of(it).withAccentColor(0xFFB6C1) }
         )
 
-    override fun parameters(): List<String> = listOf(startDate.toString())
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) =
-            AvailabilityScreen(startDate = LocalDate.parse(parameters.first()), context)
-    }
-
     class Buttons {
-        class ToggleTimeSlotAvailability(private val timeSlot: Instant, screen: AvailabilityScreen) :
-            ScreenButton<AvailabilityScreen>(
-                screen = screen
-            ) {
+        class ToggleTimeSlotAvailability(
+            private val timeSlot: Instant,
+            override val screen: AvailabilityScreen
+        ) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), Emoji.fromUnicode("U+2705"))
 
@@ -182,30 +175,9 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                     }
                 }
             }
-
-            override fun parameters(): List<String> = listOf(timeSlot.toString())
-
-            object Reconstructor :
-                ScreenComponentReconstructor<AvailabilityScreen, ToggleTimeSlotAvailability>(
-                    screenClass = AvailabilityScreen::class,
-                    componentClass = ToggleTimeSlotAvailability::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    ToggleTimeSlotAvailability(
-                        timeSlot = Instant.parse(componentParameters.first()),
-                        screen = reconstruct(screenParameters, context)
-                    )
-            }
         }
 
-        class ToggleWeekSessionLimit(screen: AvailabilityScreen) :
-            ScreenButton<AvailabilityScreen>(
-                screen = screen
-            ) {
+        class ToggleWeekSessionLimit(override val screen: AvailabilityScreen) : ScreenButton {
             fun render() =
                 Button.secondary(CustomIdSerialization.serialize(this), Emoji.fromUnicode("U+1F6AB"))
 
@@ -226,20 +198,6 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                         week.setUserSessionLimit(userId, newLimit)
                     }
                 }
-            }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<AvailabilityScreen, ToggleWeekSessionLimit>(
-                    screenClass = AvailabilityScreen::class,
-                    componentClass = ToggleWeekSessionLimit::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) = ToggleWeekSessionLimit(screen = reconstruct(screenParameters, context))
             }
         }
     }

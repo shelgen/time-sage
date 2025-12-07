@@ -45,9 +45,8 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val id = event.componentId
             logger.info("Received ButtonInteractionEvent (custom id $id)")
-            val button = CustomIdSerialization.deserialize(
+            val button = CustomIdSerialization.deserialize<ScreenButton>(
                 customId = id,
-                expectedType = ScreenButton::class,
                 context = context
             )
             button.handle(event)
@@ -58,9 +57,8 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val id = event.componentId
             logger.info("Received EntitySelectInteractionEvent (custom id $id)")
-            val selectMenu = CustomIdSerialization.deserialize(
+            val selectMenu = CustomIdSerialization.deserialize<ScreenEntitySelectMenu>(
                 customId = id,
-                expectedType = ScreenEntitySelectMenu::class,
                 context = context
             )
             selectMenu.handle(event)
@@ -71,9 +69,8 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val id = event.componentId
             logger.info("Received StringSelectInteractionEvent (custom id $id)")
-            val selectMenu = CustomIdSerialization.deserialize(
+            val selectMenu = CustomIdSerialization.deserialize<ScreenStringSelectMenu>(
                 customId = id,
-                expectedType = ScreenStringSelectMenu::class,
                 context = context
             )
             selectMenu.handle(event)
@@ -84,9 +81,8 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val id = event.modalId
             logger.info("Received ModalInteractionEvent (custom id $id)")
-            val modal = CustomIdSerialization.deserialize(
+            val modal = CustomIdSerialization.deserialize<ScreenModal>(
                 customId = id,
-                expectedType = ScreenModal::class,
                 context = context
             )
             modal.handle(event)

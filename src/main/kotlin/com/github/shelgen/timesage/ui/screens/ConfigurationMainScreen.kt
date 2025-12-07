@@ -84,16 +84,8 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             )
         )
 
-    override fun parameters(): List<String> = emptyList()
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) = ConfigurationMainScreen(context)
-    }
-
     class Buttons {
-        class Enable(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
-            screen = screen
-        ) {
+        class Enable(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Enable")
 
@@ -103,26 +95,9 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     AvailabilityMessageSender.postAvailabilityMessage(screen.context)
                 }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, Enable>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = Enable::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    Enable(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
 
-        class Disable(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
-            screen = screen
-        ) {
+        class Disable(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Disable")
 
@@ -131,55 +106,18 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     ConfigurationRepository.update(screen.context) { it.enabled = false }
                 }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, Disable>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = Disable::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    Disable(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
 
-        class ChangeTimeZone(screen: ConfigurationMainScreen) :
-            ScreenButton<ConfigurationMainScreen>(
-                screen = screen
-            ) {
+        class ChangeTimeZone(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Change time zone...")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { ConfigurationTimeZoneMainScreen(screen.context) }
             }
-
-            override fun parameters(): List<String> = listOf()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, ChangeTimeZone>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = ChangeTimeZone::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    ChangeTimeZone(
-                        screen = reconstruct(parameters = screenParameters, context = context)
-                    )
-            }
         }
 
-        class EditScheduling(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
-            screen = screen
-        ) {
+        class EditScheduling(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Edit scheduling...")
 
@@ -188,61 +126,21 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 val modal = Modals.EditScheduling(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, EditScheduling>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = EditScheduling::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    EditScheduling(
-                        screen = reconstruct(
-                            parameters = screenParameters,
-                            context = context
-                        )
-                    )
-            }
         }
 
-        class EditActivity(private val activityId: Int, screen: ConfigurationMainScreen) :
-            ScreenButton<ConfigurationMainScreen>(
-                screen = screen
-            ) {
+        class EditActivity(
+            private val activityId: Int,
+            override val screen: ConfigurationMainScreen
+        ) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Edit...")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { ConfigurationActivityScreen(activityId, screen.context) }
             }
-
-            override fun parameters(): List<String> = listOf(activityId.toString())
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, EditActivity>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = EditActivity::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    EditActivity(
-                        activityId = componentParameters.first().toInt(),
-                        screen = reconstruct(parameters = screenParameters, context = context)
-                    )
-            }
         }
 
-        class AddActivity(screen: ConfigurationMainScreen) : ScreenButton<ConfigurationMainScreen>(
-            screen = screen
-        ) {
+        class AddActivity(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.success(CustomIdSerialization.serialize(this), "Add new activity...")
 
@@ -252,25 +150,9 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     ConfigurationActivityScreen(newActivityId, screen.context)
                 }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, AddActivity>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = AddActivity::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    AddActivity(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
 
-        class DeleteActivities(screen: ConfigurationMainScreen) :
-            ScreenButton<ConfigurationMainScreen>(screen = screen) {
+        class DeleteActivities(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.danger(CustomIdSerialization.serialize(this), "Delete activities...")
 
@@ -279,26 +161,11 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     ConfigurationDeleteActivitiesScreen(screen.context)
                 }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, DeleteActivities>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = DeleteActivities::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    DeleteActivities(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
     }
 
     class Modals {
-        class EditScheduling(screen: ConfigurationMainScreen) : ScreenModal<ConfigurationMainScreen>(screen) {
+        class EditScheduling(override val screen: ConfigurationMainScreen) : ScreenModal {
             fun render(configuration: Configuration) =
                 Modal
                     .create(CustomIdSerialization.serialize(this), "Edit scheduling")
@@ -358,26 +225,6 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                         DayOfWeek.of(event.getValue("startDayOfWeek")!!.asStringList.first().toInt())
                     }
                 }
-            }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationMainScreen, EditScheduling>(
-                    screenClass = ConfigurationMainScreen::class,
-                    componentClass = EditScheduling::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    EditScheduling(
-                        screen = reconstruct(
-                            parameters = screenParameters,
-                            context = context
-                        )
-                    )
             }
         }
     }

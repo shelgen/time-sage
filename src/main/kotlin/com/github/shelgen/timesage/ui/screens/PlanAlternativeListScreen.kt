@@ -53,21 +53,25 @@ class PlanAlternativeListScreen(
             )
         )
 
-    private fun renderAlternatives(alternativeNumberedPlans: List<Pair<Int, Planner.Plan>>, configuration: Configuration) =
+    private fun renderAlternatives(
+        alternativeNumberedPlans: List<Pair<Int, Planner.Plan>>,
+        configuration: Configuration
+    ) =
         alternativeNumberedPlans.map { (alternativeNumber, plan) ->
             renderAlternative(alternativeNumber, plan, configuration)
         }
 
-    private fun renderAlternative(alternativeNumber: Int, plan: Planner.Plan, configuration: Configuration) = Container.of(
-        Section.of(
-            Buttons.SuggestAlternative(
-                alternativeNumber = alternativeNumber,
-                alternativeHashcode = plan.hashCode(),
-                screen = this@PlanAlternativeListScreen
-            ).render(),
-            TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
+    private fun renderAlternative(alternativeNumber: Int, plan: Planner.Plan, configuration: Configuration) =
+        Container.of(
+            Section.of(
+                Buttons.SuggestAlternative(
+                    alternativeNumber = alternativeNumber,
+                    alternativeHashcode = plan.hashCode(),
+                    screen = this@PlanAlternativeListScreen
+                ).render(),
+                TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
+            )
         )
-    )
 
     private fun renderShowMoreButton(nextSize: Int): List<MessageTopLevelComponent> = if (nextSize > 0) {
         listOf(
@@ -80,26 +84,12 @@ class PlanAlternativeListScreen(
         )
     } else emptyList()
 
-    override fun parameters(): List<String> =
-        listOf(weekStartDate.toString(), startIndex.toString(), size.toString())
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeListScreen(
-            weekStartDate = LocalDate.parse(parameters[0]),
-            startIndex = parameters[1].toInt(),
-            size = parameters[2].toInt(),
-            context = context
-        )
-    }
-
     class Buttons {
         class SuggestAlternative(
             val alternativeNumber: Int,
             val alternativeHashcode: Int,
-            screen: PlanAlternativeListScreen
-        ) : ScreenButton<PlanAlternativeListScreen>(
-            screen = screen
-        ) {
+            override val screen: PlanAlternativeListScreen
+        ) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Suggest this")
 
@@ -113,32 +103,12 @@ class PlanAlternativeListScreen(
                     )
                 }
             }
-
-            override fun parameters(): List<String> =
-                listOf(alternativeNumber.toString(), alternativeHashcode.toString())
-
-            object Reconstructor :
-                ScreenComponentReconstructor<PlanAlternativeListScreen, SuggestAlternative>(
-                    screenClass = PlanAlternativeListScreen::class,
-                    componentClass = SuggestAlternative::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    SuggestAlternative(
-                        alternativeNumber = componentParameters[0].toInt(),
-                        alternativeHashcode = componentParameters[1].toInt(),
-                        screen = reconstruct(parameters = screenParameters, context = context)
-                    )
-            }
         }
 
-        class ShowMoreAlternatives(val nextSize: Int, screen: PlanAlternativeListScreen) :
-            ScreenButton<PlanAlternativeListScreen>(
-                screen = screen
-            ) {
+        class ShowMoreAlternatives(
+            val nextSize: Int,
+            override val screen: PlanAlternativeListScreen
+        ) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Show $nextSize more...")
 
@@ -151,24 +121,6 @@ class PlanAlternativeListScreen(
                         context = screen.context
                     )
                 }
-            }
-
-            override fun parameters(): List<String> = listOf(nextSize.toString())
-
-            object Reconstructor :
-                ScreenComponentReconstructor<PlanAlternativeListScreen, ShowMoreAlternatives>(
-                    screenClass = PlanAlternativeListScreen::class,
-                    componentClass = ShowMoreAlternatives::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    ShowMoreAlternatives(
-                        nextSize = componentParameters.first().toInt(),
-                        screen = reconstruct(parameters = screenParameters, context = context)
-                    )
             }
         }
     }

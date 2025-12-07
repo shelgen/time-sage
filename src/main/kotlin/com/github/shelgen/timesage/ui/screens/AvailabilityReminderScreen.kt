@@ -35,11 +35,4 @@ class AvailabilityReminderScreen(val startDate: LocalDate, context: OperationCon
             emptyList()
         }
     }
-
-    override fun parameters(): List<String> = listOf(startDate.toString())
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) =
-            AvailabilityReminderScreen(startDate = LocalDate.parse(parameters.first()), context)
-    }
 }

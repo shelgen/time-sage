@@ -51,17 +51,8 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
             )
         )
 
-    override fun parameters(): List<String> = listOf(activityId.toString())
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) =
-            ConfigurationActivityScreen(activityId = parameters.first().toInt(), context)
-    }
-
     class Buttons {
-        class EditName(screen: ConfigurationActivityScreen) : ScreenButton<ConfigurationActivityScreen>(
-            screen = screen
-        ) {
+        class EditName(override val screen: ConfigurationActivityScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Edit name...")
 
@@ -70,53 +61,20 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
                 val modal = Modals.EditName(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationActivityScreen, EditName>(
-                    screenClass = ConfigurationActivityScreen::class,
-                    componentClass = EditName::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    EditName(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
 
-        class Back(screen: ConfigurationActivityScreen) : ScreenButton<ConfigurationActivityScreen>(
-            screen = screen
-        ) {
+        class Back(override val screen: ConfigurationActivityScreen) : ScreenButton {
             fun render() =
                 Button.secondary(CustomIdSerialization.serialize(this), "Back")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { ConfigurationMainScreen(screen.context) }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationActivityScreen, Back>(
-                    screenClass = ConfigurationActivityScreen::class,
-                    componentClass = Back::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    Back(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
     }
 
     class SelectMenus {
-        class RequiredParticipants(screen: ConfigurationActivityScreen) :
-            ScreenEntitySelectMenu<ConfigurationActivityScreen>(screen) {
+        class RequiredParticipants(override val screen: ConfigurationActivityScreen) : ScreenEntitySelectMenu {
             fun render(configuration: Configuration) =
                 EntitySelectMenu
                     .create(CustomIdSerialization.serialize(this), SelectTarget.USER)
@@ -139,24 +97,9 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
                     }
                 }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor : ScreenComponentReconstructor<ConfigurationActivityScreen, RequiredParticipants>(
-                screenClass = ConfigurationActivityScreen::class,
-                componentClass = RequiredParticipants::class
-            ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    RequiredParticipants(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
 
-        class OptionalParticipants(screen: ConfigurationActivityScreen) :
-            ScreenEntitySelectMenu<ConfigurationActivityScreen>(screen) {
+        class OptionalParticipants(override val screen: ConfigurationActivityScreen) : ScreenEntitySelectMenu {
             fun render(configuration: Configuration) =
                 EntitySelectMenu
                     .create(CustomIdSerialization.serialize(this), SelectTarget.USER)
@@ -179,25 +122,10 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
                     }
                 }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationActivityScreen, OptionalParticipants>(
-                    screenClass = ConfigurationActivityScreen::class,
-                    componentClass = OptionalParticipants::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    OptionalParticipants(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
 
-        class MaxMissingOptionalParticipants(screen: ConfigurationActivityScreen) :
-            ScreenStringSelectMenu<ConfigurationActivityScreen>(screen) {
+        class MaxMissingOptionalParticipants(override val screen: ConfigurationActivityScreen) :
+            ScreenStringSelectMenu {
             fun render(configuration: Configuration) =
                 StringSelectMenu.create(CustomIdSerialization.serialize(this))
                     .setMinValues(1)
@@ -215,28 +143,11 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
                     }
                 }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationActivityScreen, MaxMissingOptionalParticipants>(
-                    screenClass = ConfigurationActivityScreen::class,
-                    componentClass = MaxMissingOptionalParticipants::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    MaxMissingOptionalParticipants(
-                        screen = reconstruct(parameters = screenParameters, context = context)
-                    )
-            }
         }
     }
 
     class Modals {
-        class EditName(screen: ConfigurationActivityScreen) : ScreenModal<ConfigurationActivityScreen>(screen) {
+        class EditName(override val screen: ConfigurationActivityScreen) : ScreenModal {
             fun render(configuration: Configuration) =
                 Modal
                     .create(CustomIdSerialization.serialize(this), "Edit name for activity")
@@ -260,22 +171,6 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
                     }
                 }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationActivityScreen, EditName>(
-                    screenClass = ConfigurationActivityScreen::class,
-                    componentClass = EditName::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    EditName(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
     }
 }
-

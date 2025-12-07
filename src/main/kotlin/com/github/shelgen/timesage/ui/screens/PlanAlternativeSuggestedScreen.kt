@@ -40,27 +40,8 @@ class PlanAlternativeSuggestedScreen(
         )
     }
 
-    override fun parameters(): List<String> =
-        listOf(
-            weekStartDate.toString(),
-            alternativeNumber.toString(),
-            suggestingUserId.toString()
-        )
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeSuggestedScreen(
-            weekStartDate = LocalDate.parse(parameters[0]),
-            alternativeNumber = parameters[1].toInt(),
-            suggestingUserId = parameters[2].toLong(),
-            context = context
-        )
-    }
-
     class Buttons {
-        class ConcludeWithThisAlternative(screen: PlanAlternativeSuggestedScreen) :
-            ScreenButton<PlanAlternativeSuggestedScreen>(
-                screen = screen
-            ) {
+        class ConcludeWithThisAlternative(override val screen: PlanAlternativeSuggestedScreen) : ScreenButton {
             fun render() =
                 Button.success(CustomIdSerialization.serialize(this), "Conclude with this alternative")
 
@@ -72,21 +53,6 @@ class PlanAlternativeSuggestedScreen(
                         context = screen.context
                     )
                 }
-            }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<PlanAlternativeSuggestedScreen, ConcludeWithThisAlternative>(
-                    screenClass = PlanAlternativeSuggestedScreen::class,
-                    componentClass = ConcludeWithThisAlternative::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    ConcludeWithThisAlternative(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
     }

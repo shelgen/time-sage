@@ -68,22 +68,11 @@ class ConfigurationTimeZoneSubScreen(
         }
     }
 
-    override fun parameters(): List<String> = listOf(prefix, startIndex.toString())
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) =
-            ConfigurationTimeZoneSubScreen(
-                prefix = parameters[0],
-                startIndex = parameters[1].toInt(),
-                context = context
-            )
-    }
-
     class Buttons {
-        class Select(private val zoneId: String, screen: ConfigurationTimeZoneSubScreen) :
-            ScreenButton<ConfigurationTimeZoneSubScreen>(
-                screen = screen
-            ) {
+        class Select(
+            private val zoneId: String,
+            override val screen: ConfigurationTimeZoneSubScreen
+        ) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Select")
 
@@ -95,30 +84,9 @@ class ConfigurationTimeZoneSubScreen(
                     ConfigurationMainScreen(screen.context)
                 }
             }
-
-            override fun parameters(): List<String> = listOf(zoneId)
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationTimeZoneSubScreen, Select>(
-                    screenClass = ConfigurationTimeZoneSubScreen::class,
-                    componentClass = Select::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    Select(
-                        zoneId = componentParameters.first(),
-                        screen = reconstruct(parameters = screenParameters, context = context)
-                    )
-            }
         }
 
-        class Previous(screen: ConfigurationTimeZoneSubScreen) :
-            ScreenButton<ConfigurationTimeZoneSubScreen>(
-                screen = screen
-            ) {
+        class Previous(override val screen: ConfigurationTimeZoneSubScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Previous")
 
@@ -131,26 +99,9 @@ class ConfigurationTimeZoneSubScreen(
                     )
                 }
             }
-
-            override fun parameters(): List<String> = listOf()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationTimeZoneSubScreen, Previous>(
-                    screenClass = ConfigurationTimeZoneSubScreen::class,
-                    componentClass = Previous::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) = Previous(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
 
-        class Next(screen: ConfigurationTimeZoneSubScreen) :
-            ScreenButton<ConfigurationTimeZoneSubScreen>(
-                screen = screen
-            ) {
+        class Next(override val screen: ConfigurationTimeZoneSubScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Next")
 
@@ -163,47 +114,15 @@ class ConfigurationTimeZoneSubScreen(
                     )
                 }
             }
-
-            override fun parameters(): List<String> = listOf()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationTimeZoneSubScreen, Next>(
-                    screenClass = ConfigurationTimeZoneSubScreen::class,
-                    componentClass = Next::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) = Next(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
 
-        class Back(screen: ConfigurationTimeZoneSubScreen) : ScreenButton<ConfigurationTimeZoneSubScreen>(
-            screen = screen
-        ) {
+        class Back(override val screen: ConfigurationTimeZoneSubScreen) : ScreenButton {
             fun render() =
                 Button.secondary(CustomIdSerialization.serialize(this), "Back")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { ConfigurationMainScreen(screen.context) }
             }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationTimeZoneSubScreen, Back>(
-                    screenClass = ConfigurationTimeZoneSubScreen::class,
-                    componentClass = Back::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    Back(screen = reconstruct(parameters = screenParameters, context = context))
-            }
         }
     }
 }
-

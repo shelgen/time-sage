@@ -17,22 +17,20 @@ import net.dv8tion.jda.api.utils.messages.MessageEditData
 import net.dv8tion.jda.api.utils.messages.MessageEditData.fromCreateData
 import org.slf4j.MDC
 
-sealed class Screen(protected val context: OperationContext) : SerializableWithParameters {
+sealed class Screen(val context: OperationContext) {
     abstract fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent>
 
-    fun render(): MessageCreateData =
-        MessageCreateBuilder()
-            .useComponentsV2()
-            .addComponents(renderComponents(ConfigurationRepository.loadOrInitialize(context)))
-            .build()
+    fun render(): MessageCreateData = MessageCreateBuilder().useComponentsV2()
+        .addComponents(renderComponents(ConfigurationRepository.loadOrInitialize(context))).build()
 
     fun renderEdit(): MessageEditData = fromCreateData(render())
 }
 
-sealed class ScreenComponent<SCREEN : Screen, EVENT : Event>(val screen: SCREEN) : SerializableWithParameters {
-    abstract fun handle(event: EVENT)
+sealed interface ScreenComponent<EVENT : Event> {
+    val screen: Screen
+    fun handle(event: EVENT)
 
-    protected fun GenericComponentInteractionCreateEvent.processAndAddEphemeralScreen(processor: (interactionHook: InteractionHook) -> Screen) {
+    fun GenericComponentInteractionCreateEvent.processAndAddEphemeralScreen(processor: (interactionHook: InteractionHook) -> Screen) {
         val outerMdc = MDC.getCopyOfContextMap()
         deferReply(true).queue { interactionHook ->
             MDC.setContextMap(outerMdc)
@@ -42,7 +40,7 @@ sealed class ScreenComponent<SCREEN : Screen, EVENT : Event>(val screen: SCREEN)
         }
     }
 
-    protected fun GenericComponentInteractionCreateEvent.processAndAddPublicScreen(processor: (interactionHook: InteractionHook) -> Screen) {
+    fun GenericComponentInteractionCreateEvent.processAndAddPublicScreen(processor: (interactionHook: InteractionHook) -> Screen) {
         val outerMdc = MDC.getCopyOfContextMap()
         deferReply().queue { interactionHook ->
             MDC.setContextMap(outerMdc)
@@ -52,7 +50,7 @@ sealed class ScreenComponent<SCREEN : Screen, EVENT : Event>(val screen: SCREEN)
         }
     }
 
-    protected fun GenericComponentInteractionCreateEvent.processAndNavigateTo(processor: (interactionHook: InteractionHook) -> Screen) {
+    fun GenericComponentInteractionCreateEvent.processAndNavigateTo(processor: (interactionHook: InteractionHook) -> Screen) {
         val outerMdc = MDC.getCopyOfContextMap()
         deferEdit().queue { interactionHook ->
             MDC.setContextMap(outerMdc)
@@ -62,7 +60,7 @@ sealed class ScreenComponent<SCREEN : Screen, EVENT : Event>(val screen: SCREEN)
         }
     }
 
-    protected fun GenericComponentInteractionCreateEvent.processAndRerender(processor: (interactionHook: InteractionHook) -> Unit) {
+    fun GenericComponentInteractionCreateEvent.processAndRerender(processor: (interactionHook: InteractionHook) -> Unit) {
         val outerMdc = MDC.getCopyOfContextMap()
         deferEdit().queue { interactionHook ->
             MDC.setContextMap(outerMdc)
@@ -73,18 +71,14 @@ sealed class ScreenComponent<SCREEN : Screen, EVENT : Event>(val screen: SCREEN)
     }
 }
 
-sealed class ScreenButton<SCREEN : Screen>(screen: SCREEN) :
-    ScreenComponent<SCREEN, ButtonInteractionEvent>(screen)
+sealed interface ScreenButton : ScreenComponent<ButtonInteractionEvent>
 
-sealed class ScreenStringSelectMenu<SCREEN : Screen>(screen: SCREEN) :
-    ScreenComponent<SCREEN, StringSelectInteractionEvent>(screen)
+sealed interface ScreenStringSelectMenu : ScreenComponent<StringSelectInteractionEvent>
 
-sealed class ScreenEntitySelectMenu<SCREEN : Screen>(screen: SCREEN) :
-    ScreenComponent<SCREEN, EntitySelectInteractionEvent>(screen)
+sealed interface ScreenEntitySelectMenu : ScreenComponent<EntitySelectInteractionEvent>
 
-sealed class ScreenModal<SCREEN : Screen>(screen: SCREEN) :
-    ScreenComponent<SCREEN, ModalInteractionEvent>(screen) {
-    protected fun ModalInteractionEvent.processAndRerender(processor: (interactionHook: InteractionHook) -> Unit) {
+sealed interface ScreenModal : ScreenComponent<ModalInteractionEvent> {
+    fun ModalInteractionEvent.processAndRerender(processor: (interactionHook: InteractionHook) -> Unit) {
         val outerMdc = MDC.getCopyOfContextMap()
         deferEdit().queue { interactionHook ->
             MDC.setContextMap(outerMdc)

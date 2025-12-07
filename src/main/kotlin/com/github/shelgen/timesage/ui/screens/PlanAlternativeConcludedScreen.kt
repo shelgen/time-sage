@@ -52,20 +52,6 @@ class PlanAlternativeConcludedScreen(
         )
     }
 
-    override fun parameters(): List<String> =
-        listOf(
-            weekStartDate.toString(),
-            alternativeNumber.toString(),
-        )
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) = PlanAlternativeConcludedScreen(
-            weekStartDate = LocalDate.parse(parameters[0]),
-            alternativeNumber = parameters[1].toInt(),
-            context = context
-        )
-    }
-
     private fun getParticipantsLeftOut(plan: Planner.Plan, configuration: Configuration) =
         configuration.activities
             .flatMap(Activity::participants)

@@ -31,16 +31,11 @@ class ConfigurationDeleteActivitiesScreen(context: OperationContext) : Screen(co
             Buttons.Back(this).render()
         )
 
-    override fun parameters(): List<String> = emptyList()
-
-    companion object {
-        fun reconstruct(parameters: List<String>, context: OperationContext) =
-            ConfigurationDeleteActivitiesScreen(context)
-    }
-
     class Buttons {
-        class DeleteActivity(private val activityId: Int, screen: ConfigurationDeleteActivitiesScreen) :
-            ScreenButton<ConfigurationDeleteActivitiesScreen>(screen = screen) {
+        class DeleteActivity(
+            private val activityId: Int,
+            override val screen: ConfigurationDeleteActivitiesScreen
+        ) : ScreenButton {
             fun render() =
                 Button.danger(CustomIdSerialization.serialize(this), "Delete")
 
@@ -51,53 +46,14 @@ class ConfigurationDeleteActivitiesScreen(context: OperationContext) : Screen(co
                     }
                 }
             }
-
-            override fun parameters(): List<String> = listOf(activityId.toString())
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationDeleteActivitiesScreen, DeleteActivity>(
-                    screenClass = ConfigurationDeleteActivitiesScreen::class,
-                    componentClass = DeleteActivity::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    DeleteActivity(
-                        activityId = componentParameters.first().toInt(),
-                        screen = reconstruct(parameters = screenParameters, context = context)
-                    )
-            }
         }
 
-        class Back(screen: ConfigurationDeleteActivitiesScreen) :
-            ScreenButton<ConfigurationDeleteActivitiesScreen>(screen = screen) {
+        class Back(override val screen: ConfigurationDeleteActivitiesScreen) : ScreenButton {
             fun render() =
                 Button.secondary(CustomIdSerialization.serialize(this), "Back")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { ConfigurationMainScreen(screen.context) }
-            }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationDeleteActivitiesScreen, Back>(
-                    screenClass = ConfigurationDeleteActivitiesScreen::class,
-                    componentClass = Back::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    Back(
-                        screen = reconstruct(
-                            parameters = screenParameters,
-                            context = context
-                        )
-                    )
             }
         }
     }
