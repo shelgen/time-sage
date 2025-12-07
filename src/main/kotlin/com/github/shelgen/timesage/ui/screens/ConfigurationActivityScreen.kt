@@ -47,9 +47,6 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
                 SelectMenus.MaxMissingOptionalParticipants(this).render(configuration)
             ),
             ActionRow.of(
-                Buttons.Delete(this).render()
-            ),
-            ActionRow.of(
                 Buttons.Back(this).render()
             )
         )
@@ -87,37 +84,6 @@ class ConfigurationActivityScreen(private val activityId: Int, context: Operatio
                     context: OperationContext
                 ) =
                     EditName(screen = reconstruct(parameters = screenParameters, context = context))
-            }
-        }
-
-        class Delete(screen: ConfigurationActivityScreen) : ScreenButton<ConfigurationActivityScreen>(
-            screen = screen
-        ) {
-            fun render() =
-                Button.danger(CustomIdSerialization.serialize(this), "Delete activity")
-
-            override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo {
-                    ConfigurationRepository.update(screen.context) { configuration ->
-                        configuration.activities.removeIf { it.id == screen.activityId }
-                    }
-                    ConfigurationMainScreen(screen.context)
-                }
-            }
-
-            override fun parameters(): List<String> = emptyList()
-
-            object Reconstructor :
-                ScreenComponentReconstructor<ConfigurationActivityScreen, Delete>(
-                    screenClass = ConfigurationActivityScreen::class,
-                    componentClass = Delete::class
-                ) {
-                override fun reconstruct(
-                    screenParameters: List<String>,
-                    componentParameters: List<String>,
-                    context: OperationContext
-                ) =
-                    Delete(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
 

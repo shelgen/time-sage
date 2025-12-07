@@ -79,7 +79,8 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             }
         } + listOf(
             ActionRow.of(
-                Buttons.AddActivity(this).render()
+                Buttons.AddActivity(this).render(),
+                Buttons.DeleteActivities(this).render()
             )
         )
 
@@ -243,7 +244,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             screen = screen
         ) {
             fun render() =
-                Button.success(CustomIdSerialization.serialize(this), "Add new activity")
+                Button.success(CustomIdSerialization.serialize(this), "Add new activity...")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo { interactionHook ->
@@ -265,6 +266,33 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     context: OperationContext
                 ) =
                     AddActivity(screen = reconstruct(parameters = screenParameters, context = context))
+            }
+        }
+
+        class DeleteActivities(screen: ConfigurationMainScreen) :
+            ScreenButton<ConfigurationMainScreen>(screen = screen) {
+            fun render() =
+                Button.danger(CustomIdSerialization.serialize(this), "Delete activities...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndNavigateTo {
+                    ConfigurationDeleteActivitiesScreen(screen.context)
+                }
+            }
+
+            override fun parameters(): List<String> = emptyList()
+
+            object Reconstructor :
+                ScreenComponentReconstructor<ConfigurationMainScreen, DeleteActivities>(
+                    screenClass = ConfigurationMainScreen::class,
+                    componentClass = DeleteActivities::class
+                ) {
+                override fun reconstruct(
+                    screenParameters: List<String>,
+                    componentParameters: List<String>,
+                    context: OperationContext
+                ) =
+                    DeleteActivities(screen = reconstruct(parameters = screenParameters, context = context))
             }
         }
     }
