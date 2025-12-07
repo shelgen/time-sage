@@ -29,6 +29,7 @@ class MutableActivity(
     )
 
     fun setRequiredParticipants(userIds: List<Long>) {
+        participants.removeIf { !it.optional }
         userIds.distinct().forEach { userId ->
             val participant = participants.firstOrNull { it.userId == userId }
             if (participant == null) {
@@ -40,6 +41,7 @@ class MutableActivity(
     }
 
     fun setOptionalParticipants(userIds: List<Long>) {
+        participants.removeIf { it.optional }
         userIds.distinct().forEach { userId ->
             val participant = participants.firstOrNull { it.userId == userId }
             if (participant == null) {
