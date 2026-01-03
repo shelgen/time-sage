@@ -6,12 +6,8 @@ import java.time.LocalDate
 import java.util.*
 import kotlin.random.Random
 import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
-import kotlin.reflect.full.isSubclassOf
-import kotlin.reflect.full.memberProperties
-import kotlin.reflect.full.primaryConstructor
-import kotlin.reflect.full.superclasses
+import kotlin.reflect.full.*
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.typeOf
@@ -26,25 +22,28 @@ object CustomIdSerialization {
         buildString {
             append(SerialIdGeneration.forScreen(screenComponent.screen::class))
             append("{")
-            append(serializeFields(screenComponent.screen, Screen::context).joinToString(separator = ","))
+            append(serializeFields(screenComponent.screen).joinToString(separator = ","))
             append("}")
             append("|")
             append(SerialIdGeneration.forComponent(screenComponent::class))
             append("{")
-            append(serializeFields(screenComponent, ScreenComponent<*>::screen).joinToString(separator = ","))
+            append(serializeFields(screenComponent).joinToString(separator = ","))
             append("}")
             append("|")
             append(Base64.getEncoder().encode(Random.Default.nextBytes(6)).decodeToString())
         }
 
-    private fun serializeFields(instance: Any, property: KProperty1<*, *>): List<String> =
-        instance::class.memberProperties
-            .filterNot { it.name == property.name }
-            .map {
-                it.isAccessible = true
-                val value = it.javaField!!.get(instance)
-                it.isAccessible = false
-                serializeField(value, it.returnType)
+    private fun serializeFields(instance: Any): List<String> =
+        instance::class.primaryConstructor!!.parameters
+            .filterNot { parameter -> parameter.type == typeOf<OperationContext>() }
+            .filterNot { parameter -> parameter.type.isSubtypeOf(typeOf<Screen>()) }
+            .mapNotNull { parameter ->
+                instance::class.memberProperties.find { it.name == parameter.name }?.let {
+                    it.isAccessible = true
+                    val value = it.javaField!!.get(instance)
+                    it.isAccessible = false
+                    serializeField(value, it.returnType)
+                }
             }
 
     fun <T : ScreenComponent<*>> deserialize(customId: String, context: OperationContext): T {
