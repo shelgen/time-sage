@@ -46,7 +46,27 @@ class PlanAlternativeSuggestedScreen(
                 Button.success(CustomIdSerialization.serialize(this), "Conclude with this alternative")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndAddPublicScreen {
+                event.processAndAddPublicScreen(
+                    onMessagePosted = { conclusionMessage ->
+                        val availabilityMessageId = AvailabilitiesWeekRepository.update(
+                            startDate = screen.weekStartDate,
+                            context = screen.context
+                        ) { week ->
+                            week.concluded = true
+                            week.conclusionMessageId = conclusionMessage.idLong
+                            week.messageId
+                        }
+                        if (availabilityMessageId != null) {
+                            rerenderOtherScreen(
+                                messageId = availabilityMessageId,
+                                screen = AvailabilityScreen(
+                                    startDate = screen.weekStartDate,
+                                    context = screen.context
+                                )
+                            )
+                        }
+                    }
+                ) {
                     PlanAlternativeConcludedScreen(
                         weekStartDate = screen.weekStartDate,
                         alternativeNumber = screen.alternativeNumber,

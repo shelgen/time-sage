@@ -18,6 +18,8 @@ class AvailabilitiesWeekFileDao {
     data class Json(
         val availabilityMessageId: Long?,
         val responses: Map<Long, Response>,
+        val concluded: Boolean = false,
+        val conclusionMessageId: Long? = null,
     ) {
         data class Response(
             val sessionLimit: Int?,

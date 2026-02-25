@@ -1,9 +1,11 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
+import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.events.Event
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -40,12 +42,19 @@ sealed interface ScreenComponent<EVENT : Event> {
         }
     }
 
-    fun GenericComponentInteractionCreateEvent.processAndAddPublicScreen(processor: (interactionHook: InteractionHook) -> Screen) {
+    fun GenericComponentInteractionCreateEvent.processAndAddPublicScreen(
+        onMessagePosted: ((Message) -> Unit)? = null,
+        processor: (interactionHook: InteractionHook) -> Screen
+    ) {
         val outerMdc = MDC.getCopyOfContextMap()
         deferReply().queue { interactionHook ->
             MDC.setContextMap(outerMdc)
             val newScreen = processor(interactionHook)
-            interactionHook.editOriginal(newScreen.renderEdit()).queue()
+            interactionHook.editOriginal(newScreen.renderEdit()).queue { message ->
+                MDC.setContextMap(outerMdc)
+                onMessagePosted?.invoke(message)
+                MDC.clear()
+            }
             MDC.clear()
         }
     }
@@ -68,6 +77,12 @@ sealed interface ScreenComponent<EVENT : Event> {
             interactionHook.editOriginal(screen.renderEdit()).queue()
             MDC.clear()
         }
+    }
+
+    fun rerenderOtherScreen(messageId: Long, screen: Screen) {
+        JDAHolder.jda.getTextChannelById(this.screen.context.channelId)
+            ?.editMessageById(messageId, screen.renderEdit())
+            ?.queue()
     }
 }
 

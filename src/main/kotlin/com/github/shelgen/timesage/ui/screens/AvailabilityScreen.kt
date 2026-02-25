@@ -22,22 +22,35 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
             val datePeriod = DatePeriod.weekFrom(startDate)
             val timeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
             listOf(
-                renderHeader(datePeriod.fromDate, datePeriod.toDate, configuration),
+                renderHeader(datePeriod.fromDate, datePeriod.toDate, week, configuration),
                 timeSlots.map { timeSlot -> renderTimeSlotContainer(timeSlot, week) },
                 renderWeekLimits(week),
                 renderMissingResponses(week, configuration)
             ).flatten()
         }
 
-    private fun renderHeader(from: LocalDate, to: LocalDate, configuration: Configuration): List<TextDisplay> {
-        return listOf(
+    private fun renderHeader(
+        from: LocalDate,
+        to: LocalDate,
+        week: AvailabilitiesWeek,
+        configuration: Configuration
+    ): List<TextDisplay> =
+        listOf(
             TextDisplay.of(
                 "## Availabilities for ${from.formatAsShortDate()} through ${to.formatAsShortDate()}\n" +
-                        "Please use the buttons below to toggle your availability" +
-                        formatActivities(configuration.activities)
+                        if (!week.concluded) {
+                            "Please use the buttons below to toggle your availability" +
+                                    formatActivities(configuration.activities)
+                        } else {
+                            DiscordFormatter.bold(
+                                "✅ Planning for this week has been concluded" +
+                                    week.conclusionMessageId?.let {
+                                        "\nSee https://discord.com/channels/${context.guildId}/${context.channelId}/$it"
+                                    }.orEmpty()
+                            )
+                        }
             )
         )
-    }
 
     private fun formatActivities(activities: List<Activity>) =
         when (activities.size) {
@@ -52,7 +65,8 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
 
     private fun renderTimeSlotContainer(timeSlot: Instant, week: AvailabilitiesWeek) = Container.of(
         Section.of(
-            Buttons.ToggleTimeSlotAvailability(timeSlot = timeSlot, screen = this@AvailabilityScreen).render(),
+            Buttons.ToggleTimeSlotAvailability(timeSlot = timeSlot, screen = this@AvailabilityScreen).render()
+                .let { if (week.concluded) it.asDisabled() else it },
             TextDisplay.of(
                 "### ${timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
                         week
@@ -88,7 +102,8 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
         listOf(
             Container.of(
                 Section.of(
-                    Buttons.ToggleWeekSessionLimit(screen = this@AvailabilityScreen).render(),
+                    Buttons.ToggleWeekSessionLimit(screen = this@AvailabilityScreen).render()
+                        .let { if (week.concluded) it.asDisabled() else it },
                     TextDisplay.of(
                         "### Limits this week\n" +
                                 listOf(

@@ -32,12 +32,10 @@ class ReminderJob : Job {
             val channel = JDAHolder.jda.getTextChannelById(context.channelId)
             val startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek)
             logger.info("Sending any reminders for the week starting $startDate")
-            val discordMessageId =
-                AvailabilitiesWeekRepository.loadOrInitialize(
-                    startDate = startDate,
-                    context = context
-                ).messageId
-            if (discordMessageId == null) {
+            val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = startDate, context = context)
+            if (week.concluded) {
+                logger.info("Planning for the week starting $startDate has been concluded, not sending a reminder.")
+            } else if (week.messageId == null) {
                 logger.warn("No message to nag about!")
             } else {
                 channel!!.sendMessage(

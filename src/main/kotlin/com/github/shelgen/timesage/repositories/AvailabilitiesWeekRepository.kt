@@ -10,7 +10,7 @@ object AvailabilitiesWeekRepository {
     fun loadOrInitialize(startDate: LocalDate, context: OperationContext): AvailabilitiesWeek =
         dao.load(startDate, context)
             ?.toDomain()
-            ?: AvailabilitiesWeek.Companion.DEFAULT
+            ?: AvailabilitiesWeek.DEFAULT
 
     fun <T> update(
         startDate: LocalDate,
@@ -27,6 +27,8 @@ object AvailabilitiesWeekRepository {
     private fun AvailabilitiesWeekFileDao.Json.toDomain() = AvailabilitiesWeek(
         messageId = availabilityMessageId,
         responses = UserResponses(responses.map { (userId, response) -> userId to response.toDomain() }.toMap()),
+        concluded = concluded,
+        conclusionMessageId = conclusionMessageId,
     )
 
     private fun AvailabilitiesWeekFileDao.Json.Response.toDomain() = UserResponse(
@@ -46,7 +48,9 @@ object AvailabilitiesWeekRepository {
 
     private fun MutableAvailabilitiesWeek.toJson() = AvailabilitiesWeekFileDao.Json(
         availabilityMessageId = messageId,
-        responses = responses.map.map { (userId, response) -> userId to response.toJson() }.toMap(TreeMap())
+        responses = responses.map.map { (userId, response) -> userId to response.toJson() }.toMap(TreeMap()),
+        concluded = concluded,
+        conclusionMessageId = conclusionMessageId,
     )
 
     private fun UserResponse.toJson() = AvailabilitiesWeekFileDao.Json.Response(
