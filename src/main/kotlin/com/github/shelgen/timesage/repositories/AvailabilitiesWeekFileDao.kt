@@ -31,6 +31,14 @@ class AvailabilitiesWeekFileDao {
         }
     }
 
+    fun loadAll(context: OperationContext): List<Json> {
+        val weeksDir = getWeeksDir(context)
+        if (!weeksDir.exists()) return emptyList()
+        return weeksDir.listFiles { f -> f.extension == "json" }
+            .orEmpty()
+            .mapNotNull { fileDao.load(it) }
+    }
+
     private fun getWeekFile(startDate: LocalDate, context: OperationContext): File =
         File(getWeeksDir(context), "$startDate.json")
 

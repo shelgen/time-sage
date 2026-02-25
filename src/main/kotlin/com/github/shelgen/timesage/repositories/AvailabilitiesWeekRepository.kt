@@ -24,6 +24,9 @@ object AvailabilitiesWeekRepository {
         return returnValue
     }
 
+    fun loadAll(context: OperationContext): List<AvailabilitiesWeek> =
+        dao.loadAll(context).map { it.toDomain() }
+
     private fun AvailabilitiesWeekFileDao.Json.toDomain() = AvailabilitiesWeek(
         messageId = availabilityMessageId,
         responses = UserResponses(responses.map { (userId, response) -> userId to response.toDomain() }.toMap()),
