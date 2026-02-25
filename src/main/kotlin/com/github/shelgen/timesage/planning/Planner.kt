@@ -97,7 +97,7 @@ class Planner(
                     if (planThusFar.size < 2 && requiredAttendees.size == activity.participants.count { !it.optional }) {
                         potentialAttendees
                             .minus(requiredAttendees)
-                            .permutations()
+                            .combinations()
                             .filter { activity.participants.count { it.optional } - it.size <= activity.maxMissingOptionalParticipants }
                             .asSequence()
                             .flatMap { attendees ->
@@ -167,9 +167,9 @@ class Planner(
     }
 
     companion object {
-        fun <T> Set<T>.permutations(currentProgress: Set<T> = emptySet()): Set<Set<T>> = flatMap {
+        fun <T> Set<T>.combinations(currentProgress: Set<T> = emptySet()): Set<Set<T>> = flatMap {
             val newSet = currentProgress + it
-            setOf(newSet) + minus(it).permutations(newSet)
-        }.toSet()
+            setOf(newSet) + minus(it).combinations(newSet)
+        }.plus(setOf(emptySet())).toSet()
     }
 }
