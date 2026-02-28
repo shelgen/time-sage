@@ -30,7 +30,8 @@ class ConfigurationFileDao {
         val enabled: Boolean,
         val timeZone: TimeZone?,
         val scheduling: Scheduling,
-        val activities: List<Activity>
+        val activities: List<Activity>,
+        val voiceChannelId: Long? = null
     ) {
         data class Activity(
             val id: Int,

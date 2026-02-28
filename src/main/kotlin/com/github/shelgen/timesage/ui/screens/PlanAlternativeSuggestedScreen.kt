@@ -3,8 +3,11 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.planning.Planner
+import com.github.shelgen.timesage.JDAHolder
+import com.github.shelgen.timesage.createScheduledEventsForPlan
 import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
+import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -77,6 +80,16 @@ class PlanAlternativeSuggestedScreen(
                             )
                         }
                         replaceBotPinsWith(conclusionMessage)
+                        if (screen.alternativeNumber != 0) {
+                            JDAHolder.jda.getGuildById(screen.context.guildId)?.let { guild ->
+                                val config = ConfigurationRepository.loadOrInitialize(screen.context)
+                                val week = AvailabilitiesWeekRepository.loadOrInitialize(
+                                    startDate = screen.weekStartDate, context = screen.context
+                                )
+                                val plans = Planner(config, screen.weekStartDate, week).generatePossiblePlans()
+                                createScheduledEventsForPlan(guild, plans[screen.alternativeNumber - 1], config)
+                            }
+                        }
                     }
                 ) {
                     PlanAlternativeConcludedScreen(

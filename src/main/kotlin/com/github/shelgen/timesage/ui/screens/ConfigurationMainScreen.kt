@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.components.label.Label
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.components.selections.EntitySelectMenu.SelectTarget
+import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.components.selections.SelectOption
 import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
@@ -45,6 +46,17 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             Section.of(
                 Buttons.ChangeTimeZone(this).render(),
                 TextDisplay.of("${DiscordFormatter.bold("Time zone")}: ${configuration.timeZone.toZoneId()}")
+            ),
+            Section.of(
+                Buttons.SetVoiceChannel(this).render(),
+                TextDisplay.of(
+                    "${DiscordFormatter.bold("Voice channel for scheduled events")}: " +
+                            (configuration.voiceChannelId?.let { id ->
+                                JDAHolder.jda.getGuildById(context.guildId)
+                                    ?.voiceChannelCache?.getElementById(id)?.name
+                                    ?.let { "#$it" } ?: "Unknown channel"
+                            } ?: "Not set")
+                )
             ),
             TextDisplay.of("${DiscordFormatter.bold("Schedule interval")}: ${configuration.scheduling.type.humanReadableName}\n"),
             Section.of(
@@ -107,6 +119,17 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             }
         }
 
+        class SetVoiceChannel(override val screen: ConfigurationMainScreen) : ScreenButton {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Set voice channel...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val modal = Modals.SetVoiceChannel(screen).render(configuration)
+                event.replyModal(modal).queue()
+            }
+        }
+
         class ChangeTimeZone(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Change time zone...")
@@ -165,6 +188,37 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
     }
 
     class Modals {
+        class SetVoiceChannel(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Set voice channel for scheduled events")
+                    .addComponents(
+                        Label.of(
+                            "Voice channel",
+                            EntitySelectMenu.create("voiceChannel", SelectTarget.CHANNEL)
+                                .setChannelTypes(ChannelType.VOICE)
+                                .setRequired(false)
+                                .setMinValues(0)
+                                .setMaxValues(1)
+                                .also { builder ->
+                                    configuration.voiceChannelId?.let {
+                                        builder.setDefaultValues(EntitySelectMenu.DefaultValue.channel(it))
+                                    }
+                                }
+                                .build()
+                        )
+                    )
+                    .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                        configuration.voiceChannelId = event.getValue("voiceChannel")!!.asLongList.firstOrNull()
+                    }
+                }
+            }
+        }
+
         class EditScheduling(override val screen: ConfigurationMainScreen) : ScreenModal {
             fun render(configuration: Configuration) =
                 Modal

@@ -29,6 +29,7 @@ object ConfigurationRepository {
         timeZone = timeZone ?: TimeZone.getTimeZone("UTC"),
         scheduling = scheduling.toDomain(),
         activities = activities.map { it.toDomain() },
+        voiceChannelId = voiceChannelId
     )
 
     private fun ConfigurationFileDao.Json.Scheduling.toDomain() = Scheduling(
@@ -77,6 +78,7 @@ object ConfigurationRepository {
         timeZone = timeZone,
         scheduling = scheduling.toJson(),
         activities = activities.sortedBy { it.id }.map { it.toJson() },
+        voiceChannelId = voiceChannelId
     )
 
     private fun Scheduling.toJson() = ConfigurationFileDao.Json.Scheduling(
