@@ -3,6 +3,7 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.planning.Planner
+import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -65,6 +66,7 @@ class PlanAlternativeSuggestedScreen(
                                 )
                             )
                         }
+                        replaceBotPinsWith(conclusionMessage)
                     }
                 ) {
                     PlanAlternativeConcludedScreen(

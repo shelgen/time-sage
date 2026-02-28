@@ -4,6 +4,7 @@ import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.nextWeekStartDate
+import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityScreen
@@ -33,6 +34,7 @@ object AvailabilityMessageSender {
                     AvailabilitiesWeekRepository.update(startDate = startDate, context = context) {
                         it.messageId = messageId
                     }
+                    replaceBotPinsWith(message)
                 }
             } else {
                 logger.info("Availability messsage for the week starting $startDate has already been sent")
