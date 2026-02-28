@@ -311,6 +311,7 @@ class PlannerTest {
             timeSlotRules = rules,
         ),
         activities = activities.toList(),
+        voiceChannelId = null,
     )
 
     private fun activity(id: Int, vararg participants: Pair<Long, Boolean>, maxMissing: Int = 0) =

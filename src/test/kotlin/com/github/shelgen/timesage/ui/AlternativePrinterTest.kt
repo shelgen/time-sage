@@ -1,12 +1,6 @@
 package com.github.shelgen.timesage.ui
 
-import com.github.shelgen.timesage.domain.Activity
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DayType
-import com.github.shelgen.timesage.domain.Participant
-import com.github.shelgen.timesage.domain.Scheduling
-import com.github.shelgen.timesage.domain.SchedulingType
-import com.github.shelgen.timesage.domain.TimeSlotRule
+import com.github.shelgen.timesage.domain.*
 import com.github.shelgen.timesage.planning.Plan
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -55,6 +49,7 @@ class AlternativePrinterTest {
                     maxMissingOptionalParticipants = 0,
                 ),
             ),
+            voiceChannelId = null,
         )
     )
 
