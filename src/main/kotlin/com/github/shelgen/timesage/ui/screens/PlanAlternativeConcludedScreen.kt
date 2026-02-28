@@ -21,19 +21,40 @@ class PlanAlternativeConcludedScreen(
     context: OperationContext
 ) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
+        val dates = weekDatesStartingWith(weekStartDate)
+        val weekHeader = TextDisplay.of(
+            "## Plan for the week of " +
+                    dates.first().formatAsShortDate() +
+                    " through " +
+                    dates.last().formatAsShortDate() +
+                    ":"
+        )
+
+        if (alternativeNumber == 0) {
+            val allParticipants = configuration.activities
+                .flatMap(Activity::participants)
+                .map(Participant::userId)
+                .sorted()
+                .distinct()
+            return listOf(weekHeader, TextDisplay.of("No sessions this week.")) +
+                    listOfNotNull(
+                        allParticipants.takeUnless(List<Long>::isEmpty)?.let { participants ->
+                            TextDisplay.of(
+                                participants.joinToString(
+                                    prefix = DiscordFormatter.bold("Not participating this week") + "\n",
+                                    separator = "\n"
+                                ) { DiscordFormatter.mentionUser(it) }
+                            )
+                        }
+                    )
+        }
+
         val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = weekStartDate, context = context)
         val planner = Planner(configuration = configuration, weekStartDate = weekStartDate, week = week)
         val plans = planner.generatePossiblePlans()
         val plan = plans[alternativeNumber - 1]
-        val dates = weekDatesStartingWith(weekStartDate)
         return listOf(
-            TextDisplay.of(
-                "## Plan for the week of " +
-                        dates.first().formatAsShortDate() +
-                        " through " +
-                        dates.last().formatAsShortDate() +
-                        ":"
-            ),
+            weekHeader,
             Container.of(
                 TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
             )

@@ -31,14 +31,17 @@ class PlanAlternativeListScreen(
         val totalNumAlternatives = plans.size
 
         return if (alternativeNumberedPlans.isEmpty()) {
-            listOf(TextDisplay.of("There are no possible alternatives given the current availabilities."))
+            listOf(
+                TextDisplay.of("There are no possible alternatives given the current availabilities."),
+                ActionRow.of(Buttons.SuggestNoSession(screen = this@PlanAlternativeListScreen).render())
+            )
         } else {
             val nextStartIndex = startIndex + size
             val nextSize = size.coerceAtMost(totalNumAlternatives - nextStartIndex)
             listOf(
                 renderHeader(alternativeNumberedPlans, totalNumAlternatives),
                 renderAlternatives(alternativeNumberedPlans, configuration),
-                renderShowMoreButton(nextSize)
+                renderBottomActionRow(nextSize)
             ).flatten()
         }
     }
@@ -74,16 +77,13 @@ class PlanAlternativeListScreen(
             )
         )
 
-    private fun renderShowMoreButton(nextSize: Int): List<MessageTopLevelComponent> = if (nextSize > 0) {
-        listOf(
-            ActionRow.of(
-                Buttons.ShowMoreAlternatives(
-                    nextSize = nextSize,
-                    screen = this@PlanAlternativeListScreen
-                ).render()
-            )
-        )
-    } else emptyList()
+    private fun renderBottomActionRow(nextSize: Int): List<MessageTopLevelComponent> {
+        val buttons = buildList {
+            if (nextSize > 0) add(Buttons.ShowMoreAlternatives(nextSize = nextSize, screen = this@PlanAlternativeListScreen).render())
+            if (startIndex == 0) add(Buttons.SuggestNoSession(screen = this@PlanAlternativeListScreen).render())
+        }
+        return if (buttons.isEmpty()) emptyList() else listOf(ActionRow.of(buttons))
+    }
 
     class Buttons {
         class SuggestAlternative(
@@ -119,6 +119,22 @@ class PlanAlternativeListScreen(
                         weekStartDate = screen.weekStartDate,
                         startIndex = screen.startIndex + screen.size,
                         size = nextSize,
+                        context = screen.context
+                    )
+                }
+            }
+        }
+
+        class SuggestNoSession(override val screen: PlanAlternativeListScreen) : ScreenButton {
+            fun render() =
+                Button.danger(CustomIdSerialization.serialize(this), "No session")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndAddPublicScreen {
+                    PlanAlternativeSuggestedScreen(
+                        weekStartDate = screen.weekStartDate,
+                        alternativeNumber = 0,
+                        suggestingUserId = event.user.idLong,
                         context = screen.context
                     )
                 }

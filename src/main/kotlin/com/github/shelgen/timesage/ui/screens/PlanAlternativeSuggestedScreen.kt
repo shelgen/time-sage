@@ -22,6 +22,16 @@ class PlanAlternativeSuggestedScreen(
     context: OperationContext
 ) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
+        if (alternativeNumber == 0) {
+            return listOf(
+                TextDisplay.of(
+                    "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests no session this week."
+                ),
+                ActionRow.of(
+                    Buttons.ConcludeWithThisAlternative(screen = this@PlanAlternativeSuggestedScreen).render()
+                )
+            )
+        }
         val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = weekStartDate, context = context)
         val planner = Planner(configuration = configuration, weekStartDate = weekStartDate, week = week)
         val plans = planner.generatePossiblePlans()
