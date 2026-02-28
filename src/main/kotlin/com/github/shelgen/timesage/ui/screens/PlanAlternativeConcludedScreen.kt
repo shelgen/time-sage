@@ -4,6 +4,7 @@ import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.Participant
+import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
@@ -52,14 +53,14 @@ class PlanAlternativeConcludedScreen(
         )
     }
 
-    private fun getParticipantsLeftOut(plan: Planner.Plan, configuration: Configuration) =
+    private fun getParticipantsLeftOut(plan: Plan, configuration: Configuration) =
         configuration.activities
             .flatMap(Activity::participants)
             .map(Participant::userId)
             .minus(
                 plan.sessions
-                    .flatMap(Planner.Plan.Session::attendees)
-                    .map(Planner.Plan.Session.Attendee::userId)
+                    .flatMap(Plan.Session::attendees)
+                    .map(Plan.Session.Attendee::userId)
                     .toSet()
             )
             .sorted()

@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
@@ -42,7 +43,7 @@ class PlanAlternativeListScreen(
         }
     }
 
-    private fun renderHeader(alternativeNumberedPlans: List<Pair<Int, Planner.Plan>>, totalNumAlternatives: Int) =
+    private fun renderHeader(alternativeNumberedPlans: List<Pair<Int, Plan>>, totalNumAlternatives: Int) =
         listOf(
             TextDisplay.of(
                 "Alternatives " +
@@ -54,14 +55,14 @@ class PlanAlternativeListScreen(
         )
 
     private fun renderAlternatives(
-        alternativeNumberedPlans: List<Pair<Int, Planner.Plan>>,
+        alternativeNumberedPlans: List<Pair<Int, Plan>>,
         configuration: Configuration
     ) =
         alternativeNumberedPlans.map { (alternativeNumber, plan) ->
             renderAlternative(alternativeNumber, plan, configuration)
         }
 
-    private fun renderAlternative(alternativeNumber: Int, plan: Planner.Plan, configuration: Configuration) =
+    private fun renderAlternative(alternativeNumber: Int, plan: Plan, configuration: Configuration) =
         Container.of(
             Section.of(
                 Buttons.SuggestAlternative(
