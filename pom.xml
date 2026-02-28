@@ -5,9 +5,11 @@
 
     <groupId>com.github.shelgen</groupId>
     <artifactId>time-sage</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>${revision}${sha1}</version>
 
     <properties>
+        <revision>dev</revision>
+        <sha1>-local</sha1>
         <kotlin.code.style>official</kotlin.code.style>
         <kotlin.version>2.3.10</kotlin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
