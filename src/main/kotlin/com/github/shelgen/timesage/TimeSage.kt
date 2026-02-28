@@ -45,11 +45,16 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val id = event.componentId
             logger.info("Received ButtonInteractionEvent (custom id $id)")
-            val button = CustomIdSerialization.deserialize<ScreenButton>(
-                customId = id,
-                context = context
-            )
-            button.handle(event)
+            try {
+                val button = CustomIdSerialization.deserialize<ScreenButton>(
+                    customId = id,
+                    context = context
+                )
+                button.handle(event)
+            } catch (e: Exception) {
+                logger.error("Failed to handle ButtonInteractionEvent (custom id $id)", e)
+                runCatching { event.reply("Something went wrong. Please try again.").setEphemeral(true).queue() }
+            }
         }
     }
 
@@ -57,11 +62,16 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val id = event.componentId
             logger.info("Received EntitySelectInteractionEvent (custom id $id)")
-            val selectMenu = CustomIdSerialization.deserialize<ScreenEntitySelectMenu>(
-                customId = id,
-                context = context
-            )
-            selectMenu.handle(event)
+            try {
+                val selectMenu = CustomIdSerialization.deserialize<ScreenEntitySelectMenu>(
+                    customId = id,
+                    context = context
+                )
+                selectMenu.handle(event)
+            } catch (e: Exception) {
+                logger.error("Failed to handle EntitySelectInteractionEvent (custom id $id)", e)
+                runCatching { event.reply("Something went wrong. Please try again.").setEphemeral(true).queue() }
+            }
         }
     }
 
@@ -69,11 +79,16 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val id = event.componentId
             logger.info("Received StringSelectInteractionEvent (custom id $id)")
-            val selectMenu = CustomIdSerialization.deserialize<ScreenStringSelectMenu>(
-                customId = id,
-                context = context
-            )
-            selectMenu.handle(event)
+            try {
+                val selectMenu = CustomIdSerialization.deserialize<ScreenStringSelectMenu>(
+                    customId = id,
+                    context = context
+                )
+                selectMenu.handle(event)
+            } catch (e: Exception) {
+                logger.error("Failed to handle StringSelectInteractionEvent (custom id $id)", e)
+                runCatching { event.reply("Something went wrong. Please try again.").setEphemeral(true).queue() }
+            }
         }
     }
 
@@ -81,11 +96,16 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val id = event.modalId
             logger.info("Received ModalInteractionEvent (custom id $id)")
-            val modal = CustomIdSerialization.deserialize<ScreenModal>(
-                customId = id,
-                context = context
-            )
-            modal.handle(event)
+            try {
+                val modal = CustomIdSerialization.deserialize<ScreenModal>(
+                    customId = id,
+                    context = context
+                )
+                modal.handle(event)
+            } catch (e: Exception) {
+                logger.error("Failed to handle ModalInteractionEvent (custom id $id)", e)
+                runCatching { event.reply("Something went wrong. Please try again.").setEphemeral(true).queue() }
+            }
         }
     }
 
@@ -93,15 +113,20 @@ class TimeSage : ListenerAdapter() {
         withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
             val name = event.name
             logger.info("Received SlashCommandInteractionEvent (name $name)")
-            val command = slashCommands.find { command -> command.name == name }
-            if (command == null) {
-                event.reply("Sorry, I don't recognize the command you just used. Maybe it's an outdated one?")
-                    .queue()
-            } else {
-                command.handle(
-                    event = event,
-                    context = context
-                )
+            try {
+                val command = slashCommands.find { command -> command.name == name }
+                if (command == null) {
+                    event.reply("Sorry, I don't recognize the command you just used. Maybe it's an outdated one?")
+                        .queue()
+                } else {
+                    command.handle(
+                        event = event,
+                        context = context
+                    )
+                }
+            } catch (e: Exception) {
+                logger.error("Failed to handle SlashCommandInteractionEvent (name $name)", e)
+                runCatching { event.reply("Something went wrong. Please try again.").setEphemeral(true).queue() }
             }
         }
     }

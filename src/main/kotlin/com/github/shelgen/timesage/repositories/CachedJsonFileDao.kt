@@ -22,6 +22,7 @@ class CachedJsonFileDao<T>(private val jsonClass: Class<T>) {
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
+    @Synchronized
     fun save(file: File, json: T) {
         saveFile(file, json)
         cache.invalidate(file.absolutePath)

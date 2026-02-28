@@ -12,6 +12,7 @@ object AvailabilitiesWeekRepository {
             ?.toDomain()
             ?: AvailabilitiesWeek.DEFAULT
 
+    @Synchronized
     fun <T> update(
         startDate: LocalDate,
         context: OperationContext,

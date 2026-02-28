@@ -11,6 +11,7 @@ object ConfigurationRepository {
             ?.toDomain()
             ?: Configuration.DEFAULT
 
+    @Synchronized
     fun <T> update(
         context: OperationContext,
         modification: (configuration: MutableConfiguration) -> T

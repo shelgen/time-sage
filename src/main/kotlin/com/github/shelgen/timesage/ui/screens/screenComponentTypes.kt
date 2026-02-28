@@ -17,7 +17,10 @@ import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
 import net.dv8tion.jda.api.utils.messages.MessageCreateData
 import net.dv8tion.jda.api.utils.messages.MessageEditData
 import net.dv8tion.jda.api.utils.messages.MessageEditData.fromCreateData
+import org.slf4j.LoggerFactory
 import org.slf4j.MDC
+
+private val logger = LoggerFactory.getLogger("ScreenComponentInteraction")
 
 sealed class Screen(val context: OperationContext) {
     abstract fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent>
@@ -36,9 +39,15 @@ sealed interface ScreenComponent<EVENT : Event> {
         val outerMdc = MDC.getCopyOfContextMap()
         deferReply(true).queue { interactionHook ->
             MDC.setContextMap(outerMdc)
-            val newScreen = processor(interactionHook)
-            interactionHook.editOriginal(newScreen.renderEdit()).queue()
-            MDC.clear()
+            try {
+                val newScreen = processor(interactionHook)
+                interactionHook.editOriginal(newScreen.renderEdit()).queue()
+            } catch (e: Exception) {
+                logger.error("Error in processAndAddEphemeralScreen (screen=${screen::class.simpleName})", e)
+                interactionHook.editOriginal("An error occurred.").queue()
+            } finally {
+                MDC.clear()
+            }
         }
     }
 
@@ -49,13 +58,19 @@ sealed interface ScreenComponent<EVENT : Event> {
         val outerMdc = MDC.getCopyOfContextMap()
         deferReply().queue { interactionHook ->
             MDC.setContextMap(outerMdc)
-            val newScreen = processor(interactionHook)
-            interactionHook.editOriginal(newScreen.renderEdit()).queue { message ->
-                MDC.setContextMap(outerMdc)
-                onMessagePosted?.invoke(message)
+            try {
+                val newScreen = processor(interactionHook)
+                interactionHook.editOriginal(newScreen.renderEdit()).queue { message ->
+                    MDC.setContextMap(outerMdc)
+                    onMessagePosted?.invoke(message)
+                    MDC.clear()
+                }
+            } catch (e: Exception) {
+                logger.error("Error in processAndAddPublicScreen (screen=${screen::class.simpleName})", e)
+                interactionHook.editOriginal("An error occurred.").queue()
+            } finally {
                 MDC.clear()
             }
-            MDC.clear()
         }
     }
 
@@ -63,9 +78,14 @@ sealed interface ScreenComponent<EVENT : Event> {
         val outerMdc = MDC.getCopyOfContextMap()
         deferEdit().queue { interactionHook ->
             MDC.setContextMap(outerMdc)
-            val newScreen = processor(interactionHook)
-            interactionHook.editOriginal(newScreen.renderEdit()).queue()
-            MDC.clear()
+            try {
+                val newScreen = processor(interactionHook)
+                interactionHook.editOriginal(newScreen.renderEdit()).queue()
+            } catch (e: Exception) {
+                logger.error("Error in processAndNavigateTo (screen=${screen::class.simpleName})", e)
+            } finally {
+                MDC.clear()
+            }
         }
     }
 
@@ -73,9 +93,14 @@ sealed interface ScreenComponent<EVENT : Event> {
         val outerMdc = MDC.getCopyOfContextMap()
         deferEdit().queue { interactionHook ->
             MDC.setContextMap(outerMdc)
-            processor(interactionHook)
-            interactionHook.editOriginal(screen.renderEdit()).queue()
-            MDC.clear()
+            try {
+                processor(interactionHook)
+                interactionHook.editOriginal(screen.renderEdit()).queue()
+            } catch (e: Exception) {
+                logger.error("Error in processAndRerender (screen=${screen::class.simpleName})", e)
+            } finally {
+                MDC.clear()
+            }
         }
     }
 
@@ -97,9 +122,14 @@ sealed interface ScreenModal : ScreenComponent<ModalInteractionEvent> {
         val outerMdc = MDC.getCopyOfContextMap()
         deferEdit().queue { interactionHook ->
             MDC.setContextMap(outerMdc)
-            processor(interactionHook)
-            interactionHook.editOriginal(screen.renderEdit()).queue()
-            MDC.clear()
+            try {
+                processor(interactionHook)
+                interactionHook.editOriginal(screen.renderEdit()).queue()
+            } catch (e: Exception) {
+                logger.error("Error in modal processAndRerender (screen=${screen::class.simpleName})", e)
+            } finally {
+                MDC.clear()
+            }
         }
     }
 }
