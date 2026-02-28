@@ -6,38 +6,55 @@ import java.time.ZoneOffset
 
 data class Plan(val sessions: List<Session>) {
     val score: Score = Score(
-        numberOfAttendees = sessions.asSequence().flatMap(Session::attendees).count { !it.ifNeedBe },
-        numberOfIfNeedBeAttendees = sessions.asSequence().flatMap(Session::attendees).count { it.ifNeedBe },
-        noTwoDaysInSequence = if (sessions.asSequence().drop(1)
-                .mapIndexed { i, session ->
-                    numDaysBetween(
-                        latestDate = session.timeSlot.atOffset(ZoneOffset.UTC).toLocalDate(),
-                        earliestDate = sessions[i].timeSlot.atOffset(ZoneOffset.UTC).toLocalDate()
-                    )
-                }.all { it >= 2 }
-        ) 1 else 0
+        missingOptionalAttendees = sessions.sumOf { it.missingOptionalCount },
+        ifNeedBeAttendees = sessions.sumOf { session -> session.attendees.count { it.ifNeedBe } },
+        numberOfSessions = sessions.size,
+        participantSessions = sessions.sumOf { it.attendees.size },
+        directlyFollowingDays = sessions.zipWithNext().count { (a, b) ->
+            numDaysBetween(
+                latestDate = b.timeSlot.atOffset(ZoneOffset.UTC).toLocalDate(),
+                earliestDate = a.timeSlot.atOffset(ZoneOffset.UTC).toLocalDate()
+            ) == 1L
+        }
     )
 
     data class Score(
-        val numberOfAttendees: Int,
-        val numberOfIfNeedBeAttendees: Int,
-        val noTwoDaysInSequence: Int
+        val missingOptionalAttendees: Int,
+        val ifNeedBeAttendees: Int,
+        val numberOfSessions: Int,
+        val participantSessions: Int,
+        val directlyFollowingDays: Int
     ) : Comparable<Score> {
-        private val comparator: Comparator<Score> =
-            Comparator.comparingInt(Score::numberOfAttendees)
-                .thenComparingInt(Score::numberOfIfNeedBeAttendees)
-                .thenComparingInt(Score::noTwoDaysInSequence)
-                .reversed()
+        private val comparator: Comparator<Score> = compareBy(
+            { it.missingOptionalAttendees },
+            { it.ifNeedBeAttendees },
+            { -it.numberOfSessions },
+            { -it.participantSessions },
+            { it.directlyFollowingDays }
+        )
 
         override fun compareTo(other: Score) = comparator.compare(this, other)
 
-        fun toShortString() = "$numberOfAttendees.$numberOfIfNeedBeAttendees.$noTwoDaysInSequence"
+        fun toDisplayString(): String {
+            val parts = buildList {
+                if (missingOptionalAttendees > 0)
+                    add("$missingOptionalAttendees missing")
+                if (ifNeedBeAttendees > 0)
+                    add("$ifNeedBeAttendees if-need-be")
+                add(if (numberOfSessions == 1) "1 session" else "$numberOfSessions sessions")
+                add(if (participantSessions == 1) "1 participant" else "$participantSessions participants")
+                if (directlyFollowingDays > 0)
+                    add(if (directlyFollowingDays == 1) "1 directly following day" else "$directlyFollowingDays directly following days")
+            }
+            return parts.joinToString(", ")
+        }
     }
 
     data class Session(
         val timeSlot: Instant,
         val activityId: Int,
-        val attendees: Set<Attendee>
+        val attendees: Set<Attendee>,
+        val missingOptionalCount: Int
     ) {
         data class Attendee(val userId: Long, val ifNeedBe: Boolean)
 

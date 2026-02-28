@@ -185,9 +185,9 @@ class PlannerTest {
 
     @Test
     fun `score - more regular attendees always outrank fewer`() {
-        // Monday: both Alice and Bob available (2 regular attendees)
-        // Wednesday: only Alice available (1 regular attendee)
-        // Session limit=1 so each slot produces its own plan; Bob unavailable Wednesday
+        // Monday: Alice (required) + Bob (optional, available) → 0 missing optional
+        // Wednesday: Alice only, Bob unavailable → 1 missing optional
+        // Session limit=1 so each slot produces its own plan
         val conf = config(
             activity(1, alice to false, bob to true, maxMissing = 1),
             rules = listOf(
@@ -203,16 +203,15 @@ class PlannerTest {
         val plans = planner(conf, week).generatePossiblePlans()
 
         assertEquals(2, plans.size)
-        assertEquals(monday,    plans[0].sessions.single().timeSlot) // 2 attendees → first
-        assertEquals(wednesday, plans[1].sessions.single().timeSlot) // 1 attendee  → second
+        assertEquals(monday,    plans[0].sessions.single().timeSlot) // 0 missing → first
+        assertEquals(wednesday, plans[1].sessions.single().timeSlot) // 1 missing → second
     }
 
     @Test
-    fun `score - among equal regular attendees, more if-need-be attendees rank higher`() {
-        // Monday: Alice + Bob both available → Score(2 regular, 0 if-need-be)
-        // Wednesday: Alice available + Bob if-need-be → Score(1 regular, 1 if-need-be)
-        // Monday has more regular attendees and ranks first;
-        // Wednesday's Bob contributes 1 if-need-be which ranks above a plan with 1 regular and 0 if-need-be
+    fun `score - among equal missing attendees, fewer if-need-be ranks higher`() {
+        // Activity: Alice (required), Bob (required), Carol (optional, maxMissing=1)
+        // Wednesday: Alice+Bob available, Carol if-need-be → 0 missing, 1 if-need-be
+        // Thursday:  Alice+Bob available, Carol unavailable → 1 missing, 0 if-need-be
         val conf = config(
             activity(1, alice to false, bob to false, carol to true, maxMissing = 1),
             rules = listOf(
@@ -232,8 +231,8 @@ class PlannerTest {
         val plans = planner(conf, week).generatePossiblePlans()
 
         assertEquals(2, plans.size)
-        assertEquals(wednesday, plans[0].sessions.single().timeSlot) // 2 regular + 1 if-need-be → first
-        assertEquals(thursday,  plans[1].sessions.single().timeSlot) // 2 regular + 0 if-need-be → second
+        assertEquals(wednesday, plans[0].sessions.single().timeSlot) // 0 missing + 1 if-need-be → first
+        assertEquals(thursday,  plans[1].sessions.single().timeSlot) // 1 missing → second
     }
 
     @Test
@@ -264,9 +263,9 @@ class PlannerTest {
         val tueThuPlan = plans.first { planSlots(it) == setOf(tuesday, thursday) }
 
         // Verify scores
-        assertEquals(0, monTuePlan.score.noTwoDaysInSequence)
-        assertEquals(1, monThuPlan.score.noTwoDaysInSequence)
-        assertEquals(1, tueThuPlan.score.noTwoDaysInSequence)
+        assertEquals(1, monTuePlan.score.directlyFollowingDays)
+        assertEquals(0, monThuPlan.score.directlyFollowingDays)
+        assertEquals(0, tueThuPlan.score.directlyFollowingDays)
 
         // Non-consecutive 2-session plans must rank above the consecutive one
         assertTrue(plans.indexOf(monThuPlan) < plans.indexOf(monTuePlan), "Mon+Thu should outrank Mon+Tue")
@@ -276,14 +275,21 @@ class PlannerTest {
     // ─── Score unit tests ─────────────────────────────────────────────────────
 
     @Test
-    fun `Score ordering - more attendees, then more if-need-be, then non-consecutive`() {
-        val s1 = Plan.Score(numberOfAttendees = 4, numberOfIfNeedBeAttendees = 2, noTwoDaysInSequence = 1)
-        val s2 = Plan.Score(numberOfAttendees = 4, numberOfIfNeedBeAttendees = 1, noTwoDaysInSequence = 1)
-        val s3 = Plan.Score(numberOfAttendees = 4, numberOfIfNeedBeAttendees = 0, noTwoDaysInSequence = 1)
-        val s4 = Plan.Score(numberOfAttendees = 4, numberOfIfNeedBeAttendees = 0, noTwoDaysInSequence = 0)
-        val s5 = Plan.Score(numberOfAttendees = 3, numberOfIfNeedBeAttendees = 9, noTwoDaysInSequence = 1)
+    fun `Score ordering - missing first, then if-need-be, then more sessions, then more participants, then fewer consecutive days`() {
+        // s1: 0 missing, 0 if-need-be, 2 sessions, 6 participants, 0 following → best
+        val s1 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
+        // s2: 0 missing, 0 if-need-be, 2 sessions, 6 participants, 1 following → worse than s1
+        val s2 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 1)
+        // s3: 0 missing, 0 if-need-be, 2 sessions, 4 participants, 0 following → fewer participants than s1
+        val s3 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 0, numberOfSessions = 2, participantSessions = 4, directlyFollowingDays = 0)
+        // s4: 0 missing, 0 if-need-be, 1 session, 3 participants, 0 following → fewer sessions
+        val s4 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 0, numberOfSessions = 1, participantSessions = 3, directlyFollowingDays = 0)
+        // s5: 0 missing, 1 if-need-be, 2 sessions, 6 participants, 0 following → has if-need-be
+        val s5 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 1, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
+        // s6: 1 missing, 0 if-need-be, 2 sessions, 6 participants, 0 following → has missing → worst
+        val s6 = Plan.Score(missingOptionalAttendees = 1, ifNeedBeAttendees = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
 
-        assertEquals(listOf(s1, s2, s3, s4, s5), listOf(s4, s5, s2, s3, s1).sorted())
+        assertEquals(listOf(s1, s2, s3, s4, s5, s6), listOf(s6, s4, s2, s5, s3, s1).sorted())
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

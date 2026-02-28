@@ -104,7 +104,8 @@ class Planner(
                                     planThusFar = planThusFar + Plan.Session(
                                         timeSlot = currentTimeSlot,
                                         activityId = activity.id,
-                                        attendees = attendees + requiredAttendees
+                                        attendees = attendees + requiredAttendees,
+                                        missingOptionalCount = activity.participants.count { it.optional } - attendees.size
                                     ),
                                     remainingTimeSlots = remainingTimeSlots.drop(1)
                                 )

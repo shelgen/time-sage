@@ -6,7 +6,7 @@ import com.github.shelgen.timesage.planning.Plan
 
 class AlternativePrinter(private val configuration: Configuration) {
     fun printAlternative(alternativeNumber: Int, plan: Plan) =
-        "-# Alternative $alternativeNumber (Score ${plan.score.toShortString()})\n" +
+        "-# Alternative $alternativeNumber (${plan.score.toDisplayString()})\n" +
                 plan.print()
 
     private fun Plan.print() =
