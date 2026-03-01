@@ -11,19 +11,21 @@ import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-/** Max number of time slots shown per thread message to stay within Discord's 40-component limit. */
-private const val SLOTS_PER_PAGE = 12
-
 /**
- * One page of monthly availability shown in the thread. Fields [yearMonth], [pageIndex], and
+ * One message in the monthly availability thread. Fields [yearMonth], [pageIndex], and
  * [mainChannelId] are serialized into button custom IDs. The screen overrides [context] to always
  * use [mainChannelId] so data lookups target the parent channel even when the interaction arrives
  * from inside the thread.
+ *
+ * [pageIndex] == 0 → intro message: concluded banner (if applicable), missing responses, session limits.
+ * [pageIndex] >= 1 → week message for week chunk at [pageIndex] - 1, ordered by [Configuration.scheduling]'s start day of week.
  */
 class AvailabilityMonthPageScreen(
     val yearMonth: YearMonth,
@@ -34,50 +36,48 @@ class AvailabilityMonthPageScreen(
 
     override fun renderComponents(configuration: Configuration) =
         AvailabilitiesMonthRepository.loadOrInitialize(yearMonth = yearMonth, context = this.context).let { month ->
-            val datePeriod = DatePeriod.monthFrom(yearMonth)
-            val allTimeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
-            val pageTimeSlots = allTimeSlots.drop(pageIndex * SLOTS_PER_PAGE).take(SLOTS_PER_PAGE)
-            val isFirstPage = pageIndex == 0
-            val isLastPage = (pageIndex + 1) * SLOTS_PER_PAGE >= allTimeSlots.size
-
-            listOf(
-                if (isFirstPage) renderHeader(month, configuration) else emptyList(),
-                pageTimeSlots.map { timeSlot -> renderTimeSlotContainer(timeSlot, month) },
-                if (isFirstPage) renderMonthLimits(month) else emptyList(),
-                if (isLastPage) renderMissingResponses(month, configuration) else emptyList()
-            ).flatten()
+            if (pageIndex == 0) {
+                renderIntro(month, configuration)
+            } else {
+                val chunks = weekChunks(yearMonth, configuration.scheduling.startDayOfWeek)
+                val chunk = chunks.getOrElse(pageIndex - 1) { emptyList() }
+                val allTimeSlots = configuration.scheduling.getTimeSlots(
+                    DatePeriod.monthFrom(yearMonth), configuration.timeZone
+                )
+                renderWeek(chunk, allTimeSlots, month, configuration)
+            }
         }
 
-    private fun renderHeader(
+    private fun renderIntro(month: AvailabilitiesMonth, configuration: Configuration) =
+        listOfNotNull(
+            if (month.concluded) Container.of(
+                TextDisplay.of(
+                    DiscordFormatter.bold(
+                        "✅ Planning for this month has been concluded" +
+                                month.conclusionMessageId?.let {
+                                    "\nSee https://discord.com/channels/${this.context.guildId}/${this.context.channelId}/$it"
+                                }.orEmpty()
+                    )
+                )
+            ) else null
+        ) +
+        renderMissingResponses(month, configuration) +
+        renderMonthLimits(month)
+
+    private fun renderWeek(
+        chunk: List<LocalDate>,
+        allTimeSlots: List<Instant>,
         month: AvailabilitiesMonth,
-        configuration: Configuration
-    ) = listOf(
-        TextDisplay.of(
-            "## Availabilities for ${yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US))}\n" +
-                    if (!month.concluded) {
-                        "Please use the buttons below to toggle your availability" +
-                                formatActivities(configuration.activities)
-                    } else {
-                        DiscordFormatter.bold(
-                            "✅ Planning for this month has been concluded" +
-                                    month.conclusionMessageId?.let {
-                                        "\nSee https://discord.com/channels/${this.context.guildId}/${this.context.channelId}/$it"
-                                    }.orEmpty()
-                        )
-                    }
-        )
-    )
-
-    private fun formatActivities(activities: List<Activity>) =
-        when (activities.size) {
-            0 -> ""
-            1 -> " for\n${DiscordFormatter.bold(activities.first().name)}"
-            else -> " for one or more of\n" +
-                    activities.map(Activity::name)
-                        .sorted()
-                        .map(DiscordFormatter::bold)
-                        .joinToString("\n") { "- $it" }
+        configuration: Configuration,
+    ): List<net.dv8tion.jda.api.components.MessageTopLevelComponent> {
+        val weekTimeSlots = allTimeSlots.filter { slot ->
+            slot.atZone(configuration.timeZone.toZoneId()).toLocalDate() in chunk
         }
+        val monthName = yearMonth.format(DateTimeFormatter.ofPattern("MMMM", Locale.US))
+        val label = "$monthName ${chunk.first().dayOfMonth}–${chunk.last().dayOfMonth}"
+        return listOf(TextDisplay.of("### $label")) +
+                weekTimeSlots.map { timeSlot -> renderTimeSlotContainer(timeSlot, month) }
+    }
 
     private fun renderTimeSlotContainer(timeSlot: Instant, month: AvailabilitiesMonth) = Container.of(
         Section.of(
@@ -234,6 +234,24 @@ class AvailabilityMonthPageScreen(
     }
 
     companion object {
-        fun slotsPerPage() = SLOTS_PER_PAGE
+        /**
+         * Splits the dates of [yearMonth] into week chunks, each starting on [startDayOfWeek].
+         * The first chunk may be a partial week (from the 1st to the day before the first occurrence
+         * of [startDayOfWeek]), and the last chunk may also be partial.
+         */
+        fun weekChunks(yearMonth: YearMonth, startDayOfWeek: DayOfWeek): List<List<LocalDate>> {
+            val result = mutableListOf<MutableList<LocalDate>>()
+            var current = mutableListOf<LocalDate>()
+            for (date in DatePeriod.monthFrom(yearMonth).dates()) {
+                if (date.dayOfWeek == startDayOfWeek && current.isNotEmpty()) {
+                    result.add(current)
+                    current = mutableListOf()
+                }
+                current.add(date)
+            }
+            if (current.isNotEmpty()) result.add(current)
+            return result
+        }
     }
 }
+

@@ -1,7 +1,6 @@
 package com.github.shelgen.timesage.cronjobs
 
 import com.github.shelgen.timesage.JDAHolder
-import com.github.shelgen.timesage.domain.DatePeriod
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.SchedulingType
 import com.github.shelgen.timesage.logger
@@ -41,14 +40,11 @@ object MonthlyAvailabilityMessageSender {
 
         logger.info("Sending monthly availability message for $yearMonth")
 
-        val datePeriod = DatePeriod.monthFrom(yearMonth)
-        val allTimeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
-        val slotsPerPage = AvailabilityMonthPageScreen.slotsPerPage()
-        val pageCount = maxOf(1, (allTimeSlots.size + slotsPerPage - 1) / slotsPerPage)
+        val chunks = AvailabilityMonthPageScreen.weekChunks(yearMonth, configuration.scheduling.startDayOfWeek)
+        val messageCount = 1 + chunks.size  // intro + one per week chunk
 
         val headerText = "## Monthly availability for ${yearMonth.format(monthFormatter)}\n" +
-                "Please fill in your availability in the thread below. " +
-                "There ${if (pageCount == 1) "is **1 page**" else "are **$pageCount pages**"} of time slots."
+                "Please fill in your availability in the thread below."
 
         channel.sendMessage(
             MessageCreateBuilder()
@@ -65,7 +61,7 @@ object MonthlyAvailabilityMessageSender {
                         it.threadId = thread.idLong
                     }
 
-                    for (pageIndex in 0 until pageCount) {
+                    for (pageIndex in 0 until messageCount) {
                         thread.sendMessage(
                             AvailabilityMonthPageScreen(
                                 yearMonth = yearMonth,
