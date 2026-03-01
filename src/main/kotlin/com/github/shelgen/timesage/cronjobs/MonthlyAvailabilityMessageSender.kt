@@ -75,6 +75,7 @@ object MonthlyAvailabilityMessageSender {
                             ).render()
                         ).queue()
                     }
+                    thread.manager.setLocked(true).queue()
                 }
         }
     }

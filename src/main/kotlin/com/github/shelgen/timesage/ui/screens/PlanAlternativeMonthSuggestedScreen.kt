@@ -66,12 +66,16 @@ class PlanAlternativeMonthSuggestedScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen(
                     onMessagePosted = { conclusionMessage ->
-                        AvailabilitiesMonthRepository.update(
+                        val threadId = AvailabilitiesMonthRepository.update(
                             yearMonth = screen.yearMonth,
                             context = screen.context
                         ) { month ->
                             month.concluded = true
                             month.conclusionMessageId = conclusionMessage.idLong
+                            month.threadId
+                        }
+                        threadId?.let { id ->
+                            JDAHolder.jda.getThreadChannelById(id)?.manager?.setArchived(true)?.queue()
                         }
                         if (screen.alternativeNumber != 0) {
                             JDAHolder.jda.getGuildById(screen.context.guildId)?.let { guild ->
