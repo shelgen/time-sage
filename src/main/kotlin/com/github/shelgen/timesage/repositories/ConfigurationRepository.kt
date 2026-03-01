@@ -41,6 +41,7 @@ object ConfigurationRepository {
 
     private fun ConfigurationFileDao.Json.SchedulingType.toDomain() = when (this) {
         ConfigurationFileDao.Json.SchedulingType.WEEKLY -> SchedulingType.WEEKLY
+        ConfigurationFileDao.Json.SchedulingType.MONTHLY -> SchedulingType.MONTHLY
     }
 
     private fun ConfigurationFileDao.Json.SlotRule.toDomain() = TimeSlotRule(
@@ -90,6 +91,7 @@ object ConfigurationRepository {
 
     private fun SchedulingType.toJson() = when (this) {
         SchedulingType.WEEKLY -> ConfigurationFileDao.Json.SchedulingType.WEEKLY
+        SchedulingType.MONTHLY -> ConfigurationFileDao.Json.SchedulingType.MONTHLY
     }
 
     private fun TimeSlotRule.toJson() = ConfigurationFileDao.Json.SlotRule(

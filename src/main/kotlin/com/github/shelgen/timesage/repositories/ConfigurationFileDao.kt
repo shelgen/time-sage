@@ -51,7 +51,7 @@ class ConfigurationFileDao {
             val timeSlotRules: List<SlotRule>?
         )
 
-        enum class SchedulingType { WEEKLY }
+        enum class SchedulingType { WEEKLY, MONTHLY }
 
         data class SlotRule(
             val dayType: DayType,

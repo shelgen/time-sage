@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.cronjobs
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.SchedulingType
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.nextWeekStartDate
 import com.github.shelgen.timesage.replaceBotPinsWith
@@ -14,6 +15,8 @@ object AvailabilityMessageSender {
         val configuration = ConfigurationRepository.loadOrInitialize(context)
         if (!configuration.enabled) {
             logger.info("Disabled, not sending a message.")
+        } else if (configuration.scheduling.type == SchedulingType.MONTHLY) {
+            logger.info("Monthly scheduling configured — weekly sender skipping this channel.")
         } else {
             val channel = JDAHolder.jda.getTextChannelById(context.channelId)
             val startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek)

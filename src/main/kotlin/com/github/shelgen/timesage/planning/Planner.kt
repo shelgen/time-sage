@@ -4,18 +4,24 @@ import com.github.shelgen.timesage.domain.AvailabilitiesWeek
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.DatePeriod
+import com.github.shelgen.timesage.domain.UserResponses
 import com.github.shelgen.timesage.logger
 import java.time.Instant
 import java.time.LocalDate
 
 class Planner(
     private val configuration: Configuration,
-    private val weekStartDate: LocalDate,
-    private val week: AvailabilitiesWeek
+    private val datePeriod: DatePeriod,
+    private val responses: UserResponses
 ) {
+    constructor(
+        configuration: Configuration,
+        weekStartDate: LocalDate,
+        week: AvailabilitiesWeek
+    ) : this(configuration, DatePeriod.weekFrom(weekStartDate), week.responses)
+
     fun generatePossiblePlans(): List<Plan> {
-        logger.info("Generating suggestions for week starting ${weekStartDate}")
-        val datePeriod = DatePeriod.weekFrom(weekStartDate)
+        logger.info("Generating suggestions for period $datePeriod")
         val timeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
         return findAllWeekPlansSortedByScore(timeSlots).toList()
     }
@@ -50,11 +56,11 @@ class Planner(
             }
 
     private fun getAvailability(userId: Long, timeSlot: Instant) =
-        week.responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot)
+        responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot)
             ?: AvailabilityStatus.UNAVAILABLE
 
     private fun getSessionLimit(userId: Long) =
-        week.responses.forUserId(userId)?.sessionLimit ?: 2
+        responses.forUserId(userId)?.sessionLimit ?: 2
 
     private fun recursivelyFindPossiblePlans(
         planThusFar: List<Plan.Session> = emptyList(),
@@ -68,7 +74,7 @@ class Planner(
                 .asSequence()
                 .flatMap { activity ->
                     val potentialAttendees =
-                        week.responses.map
+                        responses.map
                             .asSequence()
                             .map { (userId, response) ->
                                 userId to (response.availabilities.forTimeSlot(currentTimeSlot)

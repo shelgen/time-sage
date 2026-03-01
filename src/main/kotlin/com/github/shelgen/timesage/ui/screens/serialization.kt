@@ -3,6 +3,7 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.domain.OperationContext
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.util.*
 import kotlin.random.Random
 import kotlin.reflect.KClass
@@ -30,7 +31,7 @@ object CustomIdSerialization {
             append(serializeFields(screenComponent).joinToString(separator = ","))
             append("}")
             append("|")
-            append(Base64.getEncoder().encode(Random.Default.nextBytes(6)).decodeToString())
+            append(Base64.getEncoder().encode(Random.nextBytes(6)).decodeToString())
         }
 
     private fun serializeFields(instance: Any): List<String> =
@@ -91,6 +92,7 @@ object CustomIdSerialization {
         when (fieldType) {
             typeOf<String>(),
             typeOf<LocalDate>(),
+            typeOf<YearMonth>(),
             typeOf<Instant>(),
             typeOf<Int>(),
             typeOf<Long>()
@@ -103,6 +105,7 @@ object CustomIdSerialization {
         when (fieldType) {
             typeOf<String>() -> serializedValue
             typeOf<LocalDate>() -> LocalDate.parse(serializedValue)
+            typeOf<YearMonth>() -> YearMonth.parse(serializedValue)
             typeOf<Instant>() -> Instant.parse(serializedValue)
             typeOf<Int>() -> serializedValue.toInt()
             typeOf<Long>() -> serializedValue.toLong()

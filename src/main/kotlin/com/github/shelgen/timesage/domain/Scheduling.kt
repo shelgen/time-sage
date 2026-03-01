@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.domain
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 import java.util.TimeZone
 
 data class DatePeriod(
@@ -13,6 +14,9 @@ data class DatePeriod(
     companion object {
         fun weekFrom(startDate: LocalDate) =
             DatePeriod(startDate, startDate.plusDays(6))
+
+        fun monthFrom(yearMonth: YearMonth) =
+            DatePeriod(yearMonth.atDay(1), yearMonth.atEndOfMonth())
     }
 }
 

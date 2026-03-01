@@ -58,7 +58,10 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                             } ?: "Not set")
                 )
             ),
-            TextDisplay.of("${DiscordFormatter.bold("Schedule interval")}: ${configuration.scheduling.type.humanReadableName}\n"),
+            Section.of(
+                Buttons.ChangeScheduleInterval(this).render(),
+                TextDisplay.of("${DiscordFormatter.bold("Schedule interval")}: ${configuration.scheduling.type.humanReadableName}")
+            ),
             Section.of(
                 Buttons.EditScheduling(this).render(),
                 TextDisplay.of("### Scheduling")
@@ -139,6 +142,17 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             }
         }
 
+        class ChangeScheduleInterval(override val screen: ConfigurationMainScreen) : ScreenButton {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Change schedule interval...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val modal = Modals.ChangeScheduleInterval(screen).render(configuration)
+                event.replyModal(modal).queue()
+            }
+        }
+
         class EditScheduling(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Edit scheduling...")
@@ -188,6 +202,35 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
     }
 
     class Modals {
+        class ChangeScheduleInterval(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Change schedule interval")
+                    .addComponents(
+                        Label.of(
+                            "Schedule interval",
+                            StringSelectMenu.create("scheduleInterval")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions(SchedulingType.entries.map {
+                                    SelectOption.of(it.humanReadableName, it.name)
+                                })
+                                .setDefaultValues(configuration.scheduling.type.name)
+                                .build()
+                        )
+                    )
+                    .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                        configuration.scheduling.type =
+                            enumValueOf(event.getValue("scheduleInterval")!!.asStringList.first())
+                    }
+                }
+            }
+        }
+
         class SetVoiceChannel(override val screen: ConfigurationMainScreen) : ScreenModal {
             fun render(configuration: Configuration) =
                 Modal

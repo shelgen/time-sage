@@ -9,4 +9,4 @@ fun LocalDate.getStartDateOfSameWeek(startDayOfWeek: DayOfWeek): LocalDate {
     val daysToSubtract = (DayOfWeek.entries.size + this.dayOfWeek.value - startDayOfWeek.value) % DayOfWeek.entries.size
     return minusDays(daysToSubtract.toLong())
 }
-fun LocalDate.atNormalStartTime(): OffsetDateTime = atTime(LocalTime.of(18, 30)).atOffset(ZoneOffset.UTC)
+fun nextMonthYearMonth(): YearMonth = YearMonth.now(ZoneOffset.UTC).plusMonths(1)

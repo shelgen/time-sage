@@ -18,6 +18,14 @@ object CronJobScheduling {
         )
 
         scheduler.scheduleJob(
+            JobBuilder.newJob(SendNextMonthAvailabilityMessageJob::class.java).build(),
+            TriggerBuilder.newTrigger()
+                .startNow()
+                .withSchedule(SendNextMonthAvailabilityMessageJob.cronSchedule)
+                .build()
+        )
+
+        scheduler.scheduleJob(
             JobBuilder.newJob(ReminderJob::class.java).build(),
             TriggerBuilder.newTrigger()
                 .startNow()
