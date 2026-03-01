@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.cronjobs.AvailabilityMessageSender
+import com.github.shelgen.timesage.cronjobs.MonthlyAvailabilityMessageSender
 import com.github.shelgen.timesage.domain.*
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -131,6 +132,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 event.processAndRerender {
                     ConfigurationRepository.update(screen.context) { it.enabled = true }
                     AvailabilityMessageSender.postAvailabilityMessage(screen.context)
+                    MonthlyAvailabilityMessageSender.postAvailabilityMessage(screen.context)
                 }
             }
         }
