@@ -23,13 +23,19 @@ data class DatePeriod(
 open class Scheduling(
     open val type: SchedulingType,
     open val startDayOfWeek: DayOfWeek,
-    open val timeSlotRules: List<TimeSlotRule>
+    open val timeSlotRules: List<TimeSlotRule>,
+    open val daysBeforePeriod: Int,
+    open val planningStartHour: Int,
+    open val reminderIntervalDays: Int,
 ) {
     companion object {
         val DEFAULT = Scheduling(
             type = SchedulingType.WEEKLY,
             startDayOfWeek = DayOfWeek.MONDAY,
-            timeSlotRules = listOf(TimeSlotRule.DEFAULT)
+            timeSlotRules = listOf(TimeSlotRule.DEFAULT),
+            daysBeforePeriod = 5,
+            planningStartHour = 17,
+            reminderIntervalDays = 1,
         )
     }
 
@@ -40,15 +46,24 @@ open class Scheduling(
 class MutableScheduling(
     override var type: SchedulingType,
     override var startDayOfWeek: DayOfWeek,
-    override var timeSlotRules: MutableList<TimeSlotRule>
+    override var timeSlotRules: MutableList<TimeSlotRule>,
+    override var daysBeforePeriod: Int,
+    override var planningStartHour: Int,
+    override var reminderIntervalDays: Int,
 ) : Scheduling(
     type = type,
     startDayOfWeek = startDayOfWeek,
-    timeSlotRules = timeSlotRules
+    timeSlotRules = timeSlotRules,
+    daysBeforePeriod = daysBeforePeriod,
+    planningStartHour = planningStartHour,
+    reminderIntervalDays = reminderIntervalDays,
 ) {
     constructor(scheduling: Scheduling) : this(
         type = scheduling.type,
         startDayOfWeek = scheduling.startDayOfWeek,
-        timeSlotRules = scheduling.timeSlotRules.toMutableList()
+        timeSlotRules = scheduling.timeSlotRules.toMutableList(),
+        daysBeforePeriod = scheduling.daysBeforePeriod,
+        planningStartHour = scheduling.planningStartHour,
+        reminderIntervalDays = scheduling.reminderIntervalDays,
     )
 }

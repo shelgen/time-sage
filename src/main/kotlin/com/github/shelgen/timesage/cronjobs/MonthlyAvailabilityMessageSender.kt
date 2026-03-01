@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.domain.DatePeriod
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.SchedulingType
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.nextMonthYearMonth
+import com.github.shelgen.timesage.plannedYearMonth
 import com.github.shelgen.timesage.repositories.AvailabilitiesMonthRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityMonthPageScreen
@@ -27,7 +27,7 @@ object MonthlyAvailabilityMessageSender {
             return
         }
 
-        val yearMonth = nextMonthYearMonth()
+        val yearMonth = plannedYearMonth(configuration.timeZone, configuration.scheduling.daysBeforePeriod)
         val existing = AvailabilitiesMonthRepository.loadOrInitialize(yearMonth = yearMonth, context = context)
         if (existing.headerMessageId != null) {
             logger.info("Monthly availability message for $yearMonth has already been sent.")

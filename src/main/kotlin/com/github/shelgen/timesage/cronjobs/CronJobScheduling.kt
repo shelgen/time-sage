@@ -10,26 +10,10 @@ object CronJobScheduling {
         val scheduler: Scheduler = StdSchedulerFactory.getDefaultScheduler().also(Scheduler::start)
 
         scheduler.scheduleJob(
-            JobBuilder.newJob(SendNextWeeksAvailabilityMessageJob::class.java).build(),
+            JobBuilder.newJob(HourlyPlanningJob::class.java).build(),
             TriggerBuilder.newTrigger()
                 .startNow()
-                .withSchedule(SendNextWeeksAvailabilityMessageJob.cronSchedule)
-                .build()
-        )
-
-        scheduler.scheduleJob(
-            JobBuilder.newJob(SendNextMonthAvailabilityMessageJob::class.java).build(),
-            TriggerBuilder.newTrigger()
-                .startNow()
-                .withSchedule(SendNextMonthAvailabilityMessageJob.cronSchedule)
-                .build()
-        )
-
-        scheduler.scheduleJob(
-            JobBuilder.newJob(ReminderJob::class.java).build(),
-            TriggerBuilder.newTrigger()
-                .startNow()
-                .withSchedule(ReminderJob.cronSchedule)
+                .withSchedule(HourlyPlanningJob.cronSchedule)
                 .build()
         )
     }

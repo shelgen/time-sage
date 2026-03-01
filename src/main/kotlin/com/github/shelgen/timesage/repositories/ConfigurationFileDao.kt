@@ -48,7 +48,10 @@ class ConfigurationFileDao {
         data class Scheduling(
             val type: SchedulingType,
             val startDayOfWeek: DayOfWeek,
-            val timeSlotRules: List<SlotRule>?
+            val timeSlotRules: List<SlotRule>?,
+            val daysBeforePeriod: Int? = null,
+            val planningStartHour: Int? = null,
+            val reminderIntervalDays: Int? = null,
         )
 
         enum class SchedulingType { WEEKLY, MONTHLY }

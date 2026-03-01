@@ -20,6 +20,7 @@ class AvailabilitiesWeekFileDao {
         val responses: Map<Long, Response>,
         val concluded: Boolean = false,
         val conclusionMessageId: Long? = null,
+        val lastReminderDate: LocalDate? = null,
     ) {
         data class Response(
             val sessionLimit: Int?,

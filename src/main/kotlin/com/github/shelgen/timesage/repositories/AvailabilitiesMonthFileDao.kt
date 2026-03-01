@@ -3,6 +3,7 @@ package com.github.shelgen.timesage.repositories
 import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
 import java.time.Instant
+import java.time.LocalDate
 import java.time.YearMonth
 
 class AvailabilitiesMonthFileDao {
@@ -21,6 +22,7 @@ class AvailabilitiesMonthFileDao {
         val responses: Map<Long, Response>,
         val concluded: Boolean = false,
         val conclusionMessageId: Long? = null,
+        val lastReminderDate: LocalDate? = null,
     ) {
         data class Response(
             val sessionLimit: Int?,

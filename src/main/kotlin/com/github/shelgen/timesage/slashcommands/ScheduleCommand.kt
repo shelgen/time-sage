@@ -2,8 +2,8 @@ package com.github.shelgen.timesage.slashcommands
 
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.SchedulingType
-import com.github.shelgen.timesage.nextMonthYearMonth
-import com.github.shelgen.timesage.nextWeekStartDate
+import com.github.shelgen.timesage.plannedWeekStartDate
+import com.github.shelgen.timesage.plannedYearMonth
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.screens.PlanAlternativeListScreen
 import com.github.shelgen.timesage.ui.screens.PlanAlternativeMonthListScreen
@@ -21,13 +21,17 @@ object ScheduleCommand : AbstractSlashCommand(
             val configuration = ConfigurationRepository.loadOrInitialize(context)
             val screen = when (configuration.scheduling.type) {
                 SchedulingType.MONTHLY -> PlanAlternativeMonthListScreen(
-                    yearMonth = nextMonthYearMonth(),
+                    yearMonth = plannedYearMonth(configuration.timeZone, configuration.scheduling.daysBeforePeriod),
                     startIndex = 0,
                     size = 3,
                     context = context
                 )
                 SchedulingType.WEEKLY -> PlanAlternativeListScreen(
-                    weekStartDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek),
+                    weekStartDate = plannedWeekStartDate(
+                        configuration.scheduling.startDayOfWeek,
+                        configuration.timeZone,
+                        configuration.scheduling.daysBeforePeriod,
+                    ),
                     startIndex = 0,
                     size = 3,
                     context = context

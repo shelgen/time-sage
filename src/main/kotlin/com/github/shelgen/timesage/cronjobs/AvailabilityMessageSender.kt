@@ -4,7 +4,7 @@ import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.SchedulingType
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.nextWeekStartDate
+import com.github.shelgen.timesage.plannedWeekStartDate
 import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
@@ -19,17 +19,21 @@ object AvailabilityMessageSender {
             logger.info("Monthly scheduling configured — weekly sender skipping this channel.")
         } else {
             val channel = JDAHolder.jda.getTextChannelById(context.channelId)
-            val startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek)
+            val startDate = plannedWeekStartDate(
+                configuration.scheduling.startDayOfWeek,
+                configuration.timeZone,
+                configuration.scheduling.daysBeforePeriod,
+            )
             val existingMessageId =
                 AvailabilitiesWeekRepository.loadOrInitialize(
                     startDate = startDate,
                     context = context
                 ).messageId
             if (existingMessageId == null) {
-                logger.info("Sending availability messsage for the week starting $startDate")
+                logger.info("Sending availability message for the week starting $startDate")
                 channel!!.sendMessage(
                     AvailabilityScreen(
-                        startDate = nextWeekStartDate(configuration.scheduling.startDayOfWeek),
+                        startDate = startDate,
                         context = context
                     ).render()
                 ).queue { message ->
@@ -40,7 +44,7 @@ object AvailabilityMessageSender {
                     replaceBotPinsWith(message)
                 }
             } else {
-                logger.info("Availability messsage for the week starting $startDate has already been sent")
+                logger.info("Availability message for the week starting $startDate has already been sent")
             }
         }
     }

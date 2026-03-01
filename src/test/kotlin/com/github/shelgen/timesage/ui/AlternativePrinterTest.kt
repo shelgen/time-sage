@@ -27,6 +27,9 @@ class AlternativePrinterTest {
                 type = SchedulingType.WEEKLY,
                 startDayOfWeek = DayOfWeek.MONDAY,
                 timeSlotRules = listOf(TimeSlotRule(DayType.MONDAYS, of(18, 0))),
+                daysBeforePeriod = 5,
+                planningStartHour = 17,
+                reminderIntervalDays = 1,
             ),
             activities = listOf(
                 Activity(

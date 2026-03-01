@@ -81,6 +81,20 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                                     " at ${DiscordFormatter.bold(timeSlotRule.timeOfDay.toString())}"
                         }
             ),
+            Section.of(
+                Buttons.EditPlanningTiming(this).render(),
+                TextDisplay.of("### Planning timing")
+            ),
+            TextDisplay.of(
+                "Planning starts ${DiscordFormatter.bold("${configuration.scheduling.daysBeforePeriod} days")} before the period at " +
+                        DiscordFormatter.bold("%02d:00".format(configuration.scheduling.planningStartHour)) + " (${configuration.timeZone.toZoneId()}).\n" +
+                        "Reminders: " + when (configuration.scheduling.reminderIntervalDays) {
+                    0 -> DiscordFormatter.bold("Never")
+                    1 -> DiscordFormatter.bold("Every day")
+                    7 -> DiscordFormatter.bold("Every week")
+                    else -> DiscordFormatter.bold("Every ${configuration.scheduling.reminderIntervalDays} days")
+                }
+            ),
             TextDisplay.of(DiscordFormatter.bold("Activities") + ":"),
         ) + if (configuration.activities.isEmpty()) {
             listOf(TextDisplay.of(DiscordFormatter.italics("There are currently no activities.")))
@@ -197,6 +211,17 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 event.processAndNavigateTo {
                     ConfigurationDeleteActivitiesScreen(screen.context)
                 }
+            }
+        }
+
+        class EditPlanningTiming(override val screen: ConfigurationMainScreen) : ScreenButton {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Edit planning timing...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val modal = Modals.EditPlanningTiming(screen).render(configuration)
+                event.replyModal(modal).queue()
             }
         }
     }
@@ -437,6 +462,66 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                         activity.setRequiredParticipants(event.getValue("requiredParticipants")!!.asLongList)
                         activity.maxMissingOptionalParticipants =
                             event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
+                    }
+                }
+            }
+        }
+
+        class EditPlanningTiming(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit planning timing")
+                    .addComponents(
+                        Label.of(
+                            "Days before period",
+                            StringSelectMenu.create("daysBeforePeriod")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions((1..14).map {
+                                    SelectOption.of(if (it == 1) "1 day before" else "$it days before", it.toString())
+                                })
+                                .setDefaultValues(configuration.scheduling.daysBeforePeriod.coerceIn(1, 14).toString())
+                                .build()
+                        ),
+                        Label.of(
+                            "Planning start hour (${configuration.timeZone.toZoneId()})",
+                            StringSelectMenu.create("planningStartHour")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions((0..23).map { SelectOption.of("%02d:00".format(it), it.toString()) })
+                                .setDefaultValues(configuration.scheduling.planningStartHour.toString())
+                                .build()
+                        ),
+                        Label.of(
+                            "Reminder interval",
+                            StringSelectMenu.create("reminderIntervalDays")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions(listOf(
+                                    SelectOption.of("Never", "0"),
+                                    SelectOption.of("Every day", "1"),
+                                    SelectOption.of("Every other day", "2"),
+                                    SelectOption.of("Every 3 days", "3"),
+                                    SelectOption.of("Every 4 days", "4"),
+                                    SelectOption.of("Every 5 days", "5"),
+                                    SelectOption.of("Every 6 days", "6"),
+                                    SelectOption.of("Every week", "7"),
+                                ))
+                                .setDefaultValues(configuration.scheduling.reminderIntervalDays.coerceIn(0, 7).toString())
+                                .build()
+                        ),
+                    )
+                    .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                        configuration.scheduling.daysBeforePeriod =
+                            event.getValue("daysBeforePeriod")!!.asStringList.first().toInt()
+                        configuration.scheduling.planningStartHour =
+                            event.getValue("planningStartHour")!!.asStringList.first().toInt()
+                        configuration.scheduling.reminderIntervalDays =
+                            event.getValue("reminderIntervalDays")!!.asStringList.first().toInt()
                     }
                 }
             }

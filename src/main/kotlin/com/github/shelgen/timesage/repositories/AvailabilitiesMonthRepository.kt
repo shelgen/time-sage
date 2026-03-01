@@ -31,6 +31,7 @@ object AvailabilitiesMonthRepository {
         responses = UserResponses(responses.map { (userId, response) -> userId to response.toDomain() }.toMap()),
         concluded = concluded,
         conclusionMessageId = conclusionMessageId,
+        lastReminderDate = lastReminderDate,
     )
 
     private fun AvailabilitiesMonthFileDao.Json.Response.toDomain() = UserResponse(
@@ -54,6 +55,7 @@ object AvailabilitiesMonthRepository {
         responses = responses.map.map { (userId, response) -> userId to response.toJson() }.toMap(TreeMap()),
         concluded = concluded,
         conclusionMessageId = conclusionMessageId,
+        lastReminderDate = lastReminderDate,
     )
 
     private fun UserResponse.toJson() = AvailabilitiesMonthFileDao.Json.Response(

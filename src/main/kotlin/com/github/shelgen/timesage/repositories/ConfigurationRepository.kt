@@ -36,7 +36,10 @@ object ConfigurationRepository {
     private fun ConfigurationFileDao.Json.Scheduling.toDomain() = Scheduling(
         type = type.toDomain(),
         startDayOfWeek = startDayOfWeek,
-        timeSlotRules = timeSlotRules?.map { it.toDomain() } ?: listOf(TimeSlotRule.DEFAULT)
+        timeSlotRules = timeSlotRules?.map { it.toDomain() } ?: listOf(TimeSlotRule.DEFAULT),
+        daysBeforePeriod = daysBeforePeriod ?: 5,
+        planningStartHour = planningStartHour ?: 17,
+        reminderIntervalDays = reminderIntervalDays ?: 1,
     )
 
     private fun ConfigurationFileDao.Json.SchedulingType.toDomain() = when (this) {
@@ -86,7 +89,10 @@ object ConfigurationRepository {
     private fun Scheduling.toJson() = ConfigurationFileDao.Json.Scheduling(
         type = type.toJson(),
         startDayOfWeek = startDayOfWeek,
-        timeSlotRules = timeSlotRules.map { it.toJson() }
+        timeSlotRules = timeSlotRules.map { it.toJson() },
+        daysBeforePeriod = daysBeforePeriod,
+        planningStartHour = planningStartHour,
+        reminderIntervalDays = reminderIntervalDays,
     )
 
     private fun SchedulingType.toJson() = when (this) {

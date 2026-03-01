@@ -309,6 +309,9 @@ class PlannerTest {
             type = SchedulingType.WEEKLY,
             startDayOfWeek = DayOfWeek.MONDAY,
             timeSlotRules = rules,
+            daysBeforePeriod = 5,
+            planningStartHour = 17,
+            reminderIntervalDays = 1,
         ),
         activities = activities.toList(),
         voiceChannelId = null,
@@ -327,6 +330,7 @@ class PlannerTest {
         responses = UserResponses(responses.toMap()),
         concluded = false,
         conclusionMessageId = null,
+        lastReminderDate = null,
     )
 
     private fun response(vararg availabilities: Pair<Instant, AvailabilityStatus>) =
