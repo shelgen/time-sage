@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.domain
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
-import java.util.TimeZone
+import java.util.*
 
 data class DatePeriod(
     val fromDate: LocalDate,
@@ -23,7 +23,7 @@ data class DatePeriod(
 open class Scheduling(
     open val type: SchedulingType,
     open val startDayOfWeek: DayOfWeek,
-    open val timeSlotRules: List<TimeSlotRule>,
+    open val timeSlotRules: TimeSlotRules,
     open val daysBeforePeriod: Int,
     open val planningStartHour: Int,
     open val reminderIntervalDays: Int,
@@ -32,7 +32,7 @@ open class Scheduling(
         val DEFAULT = Scheduling(
             type = SchedulingType.WEEKLY,
             startDayOfWeek = DayOfWeek.MONDAY,
-            timeSlotRules = listOf(TimeSlotRule.DEFAULT),
+            timeSlotRules = TimeSlotRules.DEFAULT,
             daysBeforePeriod = 5,
             planningStartHour = 17,
             reminderIntervalDays = 1,
@@ -40,13 +40,13 @@ open class Scheduling(
     }
 
     fun getTimeSlots(datePeriod: DatePeriod, timeZone: TimeZone) =
-        timeSlotRules.flatMap { it.getTimeSlots(datePeriod, timeZone) }.distinct().sorted()
+        timeSlotRules.getTimeSlots(datePeriod, timeZone)
 }
 
 class MutableScheduling(
     override var type: SchedulingType,
     override var startDayOfWeek: DayOfWeek,
-    override var timeSlotRules: MutableList<TimeSlotRule>,
+    override var timeSlotRules: TimeSlotRules,
     override var daysBeforePeriod: Int,
     override var planningStartHour: Int,
     override var reminderIntervalDays: Int,
@@ -61,7 +61,7 @@ class MutableScheduling(
     constructor(scheduling: Scheduling) : this(
         type = scheduling.type,
         startDayOfWeek = scheduling.startDayOfWeek,
-        timeSlotRules = scheduling.timeSlotRules.toMutableList(),
+        timeSlotRules = scheduling.timeSlotRules,
         daysBeforePeriod = scheduling.daysBeforePeriod,
         planningStartHour = scheduling.planningStartHour,
         reminderIntervalDays = scheduling.reminderIntervalDays,

@@ -12,12 +12,12 @@ import net.dv8tion.jda.api.components.label.Label
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.selections.EntitySelectMenu
 import net.dv8tion.jda.api.components.selections.EntitySelectMenu.SelectTarget
-import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.components.selections.SelectOption
 import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.components.textinput.TextInput
 import net.dv8tion.jda.api.components.textinput.TextInputStyle
+import net.dv8tion.jda.api.entities.channel.ChannelType
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import net.dv8tion.jda.api.modals.Modal
@@ -76,10 +76,13 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     )
                 }.\n" +
                         "Eligible times are " +
-                        configuration.scheduling.timeSlotRules.first().let { timeSlotRule ->
-                            DiscordFormatter.bold(timeSlotRule.dayType.humanReadableName) +
-                                    " at ${DiscordFormatter.bold(timeSlotRule.timeOfDay.toString())}"
-                        }
+                        DayOfWeek.entries.mapNotNull { day ->
+                            val time = configuration.scheduling.timeSlotRules[day]
+                            time?.let {
+                                DiscordFormatter.bold(day.getDisplayName(TextStyle.FULL, Locale.US) + "s") +
+                                        " at ${DiscordFormatter.bold(time.toString())}"
+                            }
+                        }.joinToString(", ")
             ),
             Section.of(
                 Buttons.EditPlanningTiming(this).render(),
@@ -306,26 +309,18 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                                 .setDefaultValues(configuration.scheduling.startDayOfWeek.value.toString())
                                 .build()
                         ),
-                        Label.of(
-                            "Eligible days",
-                            StringSelectMenu.create("dayType")
-                                .setMinValues(1)
-                                .setMaxValues(1)
-                                .addOptions(DayType.entries.map {
-                                    SelectOption.of(
-                                        it.humanReadableName,
-                                        it.name
-                                    )
-                                })
-                                .setDefaultValues(configuration.scheduling.timeSlotRules.first().dayType.name)
-                                .build()
-                        ),
-                        Label.of(
-                            "Start time on eligible days",
-                            TextInput.create("timeOfDay", TextInputStyle.SHORT)
-                                .setValue(configuration.scheduling.timeSlotRules.first().timeOfDay.toString())
-                                .build()
-                        ),
+                        *DayOfWeek.entries.map { day ->
+                            Label.of(
+                                "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to skip)",
+                                TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
+                                    .setRequired(false)
+                                    .also { builder ->
+                                        configuration.scheduling.timeSlotRules[day]
+                                            ?.let { builder.setValue(it.toString()) }
+                                    }
+                                    .build()
+                            )
+                        }.toTypedArray()
                     )
                     .build()
 
@@ -334,17 +329,13 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     ConfigurationRepository.update(context = screen.context) { configuration ->
                         configuration.scheduling.startDayOfWeek =
                             DayOfWeek.of(event.getValue("startDayOfWeek")!!.asStringList.first().toInt())
-                        val oldTimeOfDay = configuration.scheduling.timeSlotRules.first().timeOfDay
-                        configuration.scheduling.timeSlotRules.clear()
-                        configuration.scheduling.timeSlotRules.add(
-                            TimeSlotRule(
-                                dayType = enumValueOf(event.getValue("dayType")!!.asStringList.first()),
-                                timeOfDay = runCatching {
-                                    LocalTime.parse(event.getValue("timeOfDay")!!.asString)
-                                }.getOrNull() ?: oldTimeOfDay
-                            )
-                        )
-                        DayOfWeek.of(event.getValue("startDayOfWeek")!!.asStringList.first().toInt())
+                        configuration.scheduling.timeSlotRules =
+                            TimeSlotRules.of(*DayOfWeek.entries.mapNotNull { day ->
+                                val raw = event.getValue(day.name.lowercase())?.asString?.trim()
+                                if (!raw.isNullOrBlank()) {
+                                    runCatching { LocalTime.parse(raw) }.getOrNull()?.let { day to it }
+                                } else null
+                            }.toTypedArray())
                     }
                 }
             }

@@ -36,7 +36,7 @@ object ConfigurationRepository {
     private fun ConfigurationFileDao.Json.Scheduling.toDomain() = Scheduling(
         type = type.toDomain(),
         startDayOfWeek = startDayOfWeek,
-        timeSlotRules = timeSlotRules?.map { it.toDomain() } ?: listOf(TimeSlotRule.DEFAULT),
+        timeSlotRules = (timeSlotRulesPerDay ?: ConfigurationFileDao.Json.TimeSlotRulesJson.EVERY_DAY_DEFAULT).toDomain(),
         daysBeforePeriod = daysBeforePeriod ?: 5,
         planningStartHour = planningStartHour ?: 17,
         reminderIntervalDays = reminderIntervalDays ?: 1,
@@ -47,23 +47,15 @@ object ConfigurationRepository {
         ConfigurationFileDao.Json.SchedulingType.MONTHLY -> SchedulingType.MONTHLY
     }
 
-    private fun ConfigurationFileDao.Json.SlotRule.toDomain() = TimeSlotRule(
-        dayType = dayType.toDomain(),
-        timeOfDay = timeOfDayUtc ?: timeOfDay!!,
+    private fun ConfigurationFileDao.Json.TimeSlotRulesJson.toDomain() = TimeSlotRules(
+        mondays = mondays,
+        tuesdays = tuesdays,
+        wednesdays = wednesdays,
+        thursdays = thursdays,
+        fridays = fridays,
+        saturdays = saturdays,
+        sundays = sundays,
     )
-
-    private fun ConfigurationFileDao.Json.DayType.toDomain(): DayType = when (this) {
-        ConfigurationFileDao.Json.DayType.MONDAYS -> DayType.MONDAYS
-        ConfigurationFileDao.Json.DayType.TUESDAYS -> DayType.TUESDAYS
-        ConfigurationFileDao.Json.DayType.WEDNESDAYS -> DayType.WEDNESDAYS
-        ConfigurationFileDao.Json.DayType.THURSDAYS -> DayType.THURSDAYS
-        ConfigurationFileDao.Json.DayType.FRIDAYS -> DayType.FRIDAYS
-        ConfigurationFileDao.Json.DayType.SATURDAYS -> DayType.SATURDAYS
-        ConfigurationFileDao.Json.DayType.SUNDAYS -> DayType.SUNDAYS
-        ConfigurationFileDao.Json.DayType.WEEKDAYS -> DayType.WEEKDAYS
-        ConfigurationFileDao.Json.DayType.WEEKENDS -> DayType.WEEKENDS
-        ConfigurationFileDao.Json.DayType.EVERY_DAY -> DayType.EVERY_DAY
-    }
 
     private fun ConfigurationFileDao.Json.Activity.toDomain(): Activity {
         return Activity(
@@ -89,7 +81,7 @@ object ConfigurationRepository {
     private fun Scheduling.toJson() = ConfigurationFileDao.Json.Scheduling(
         type = type.toJson(),
         startDayOfWeek = startDayOfWeek,
-        timeSlotRules = timeSlotRules.map { it.toJson() },
+        timeSlotRulesPerDay = timeSlotRules.toJson(),
         daysBeforePeriod = daysBeforePeriod,
         planningStartHour = planningStartHour,
         reminderIntervalDays = reminderIntervalDays,
@@ -100,24 +92,15 @@ object ConfigurationRepository {
         SchedulingType.MONTHLY -> ConfigurationFileDao.Json.SchedulingType.MONTHLY
     }
 
-    private fun TimeSlotRule.toJson() = ConfigurationFileDao.Json.SlotRule(
-        dayType = dayType.toJson(),
-        timeOfDayUtc = null,
-        timeOfDay = timeOfDay,
+    private fun TimeSlotRules.toJson() = ConfigurationFileDao.Json.TimeSlotRulesJson(
+        mondays = mondays,
+        tuesdays = tuesdays,
+        wednesdays = wednesdays,
+        thursdays = thursdays,
+        fridays = fridays,
+        saturdays = saturdays,
+        sundays = sundays,
     )
-
-    private fun DayType.toJson(): ConfigurationFileDao.Json.DayType = when (this) {
-        DayType.MONDAYS -> ConfigurationFileDao.Json.DayType.MONDAYS
-        DayType.TUESDAYS -> ConfigurationFileDao.Json.DayType.TUESDAYS
-        DayType.WEDNESDAYS -> ConfigurationFileDao.Json.DayType.WEDNESDAYS
-        DayType.THURSDAYS -> ConfigurationFileDao.Json.DayType.THURSDAYS
-        DayType.FRIDAYS -> ConfigurationFileDao.Json.DayType.FRIDAYS
-        DayType.SATURDAYS -> ConfigurationFileDao.Json.DayType.SATURDAYS
-        DayType.SUNDAYS -> ConfigurationFileDao.Json.DayType.SUNDAYS
-        DayType.WEEKDAYS -> ConfigurationFileDao.Json.DayType.WEEKDAYS
-        DayType.WEEKENDS -> ConfigurationFileDao.Json.DayType.WEEKENDS
-        DayType.EVERY_DAY -> ConfigurationFileDao.Json.DayType.EVERY_DAY
-    }
 
     private fun Activity.toJson() = ConfigurationFileDao.Json.Activity(
         id = id,

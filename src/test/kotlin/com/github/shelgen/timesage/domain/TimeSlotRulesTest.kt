@@ -3,69 +3,78 @@ package com.github.shelgen.timesage.domain
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.FieldSource
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.TimeZone
+import java.util.*
 
-class TimeSlotRuleTest {
+class TimeSlotRulesTest {
     companion object {
+        private val time = LocalTime.parse("12:34")
+
         @Suppress("unused")
         val parameters = listOf(
             Parameters(
+                description = "only mondays",
+                rules = TimeSlotRules.of(DayOfWeek.MONDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.MONDAYS,
-                timeUtc = "12:34",
                 expectedInstants = listOf("2025-08-04T12:34:00Z", "2025-08-11T12:34:00Z")
             ),
             Parameters(
+                description = "only tuesdays",
+                rules = TimeSlotRules.of(DayOfWeek.TUESDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.TUESDAYS,
-                timeUtc = "12:34",
                 expectedInstants = listOf("2025-08-05T12:34:00Z", "2025-08-12T12:34:00Z")
             ),
             Parameters(
+                description = "only wednesdays",
+                rules = TimeSlotRules.of(DayOfWeek.WEDNESDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.WEDNESDAYS,
-                timeUtc = "12:34",
                 expectedInstants = listOf("2025-08-06T12:34:00Z", "2025-08-13T12:34:00Z")
             ),
             Parameters(
+                description = "only thursdays",
+                rules = TimeSlotRules.of(DayOfWeek.THURSDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.THURSDAYS,
-                timeUtc = "12:34",
                 expectedInstants = listOf("2025-08-07T12:34:00Z", "2025-08-14T12:34:00Z")
             ),
             Parameters(
+                description = "only fridays",
+                rules = TimeSlotRules.of(DayOfWeek.FRIDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.FRIDAYS,
-                timeUtc = "12:34",
                 expectedInstants = listOf("2025-08-08T12:34:00Z", "2025-08-15T12:34:00Z")
             ),
             Parameters(
+                description = "only saturdays",
+                rules = TimeSlotRules.of(DayOfWeek.SATURDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.SATURDAYS,
-                timeUtc = "12:34",
                 expectedInstants = listOf("2025-08-09T12:34:00Z", "2025-08-16T12:34:00Z")
             ),
             Parameters(
+                description = "only sundays",
+                rules = TimeSlotRules.of(DayOfWeek.SUNDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.SUNDAYS,
-                timeUtc = "12:34",
                 expectedInstants = listOf("2025-08-10T12:34:00Z", "2025-08-17T12:34:00Z")
             ),
             Parameters(
+                description = "weekdays only",
+                rules = TimeSlotRules.of(
+                    DayOfWeek.MONDAY to time,
+                    DayOfWeek.TUESDAY to time,
+                    DayOfWeek.WEDNESDAY to time,
+                    DayOfWeek.THURSDAY to time,
+                    DayOfWeek.FRIDAY to time,
+                ),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.WEEKDAYS,
-                timeUtc = "12:34",
                 expectedInstants = listOf(
                     "2025-08-04T12:34:00Z",
                     "2025-08-05T12:34:00Z",
@@ -80,10 +89,13 @@ class TimeSlotRuleTest {
                 )
             ),
             Parameters(
+                description = "weekends only",
+                rules = TimeSlotRules.of(
+                    DayOfWeek.SATURDAY to time,
+                    DayOfWeek.SUNDAY to time,
+                ),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.WEEKENDS,
-                timeUtc = "12:34",
                 expectedInstants = listOf(
                     "2025-08-09T12:34:00Z",
                     "2025-08-10T12:34:00Z",
@@ -92,10 +104,10 @@ class TimeSlotRuleTest {
                 )
             ),
             Parameters(
+                description = "every day",
+                rules = TimeSlotRules.fromEveryDay(time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
-                dayType = DayType.EVERY_DAY,
-                timeUtc = "12:34",
                 expectedInstants = listOf(
                     "2025-08-04T12:34:00Z",
                     "2025-08-05T12:34:00Z",
@@ -113,28 +125,44 @@ class TimeSlotRuleTest {
                     "2025-08-17T12:34:00Z"
                 )
             ),
+            Parameters(
+                description = "mixed times per day",
+                rules = TimeSlotRules(
+                    mondays = LocalTime.parse("18:00"),
+                    tuesdays = null,
+                    wednesdays = LocalTime.parse("20:00"),
+                    thursdays = null,
+                    fridays = null,
+                    saturdays = null,
+                    sundays = null,
+                ),
+                fromDate = "2025-08-04",
+                toDate = "2025-08-10",
+                expectedInstants = listOf("2025-08-04T18:00:00Z", "2025-08-06T20:00:00Z")
+            ),
         )
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @FieldSource("parameters")
     fun `returns correct time slots`(parameters: Parameters) {
         // Given:
         val datePeriod = DatePeriod(LocalDate.parse(parameters.fromDate), LocalDate.parse(parameters.toDate))
-        val rule = TimeSlotRule(parameters.dayType, LocalTime.parse(parameters.timeUtc))
 
         // When:
-        val timeSlots = rule.getTimeSlots(datePeriod, TimeZone.getTimeZone("UTC"))
+        val timeSlots = parameters.rules.getTimeSlots(datePeriod, TimeZone.getTimeZone("UTC"))
 
         // Then:
         assertEquals(parameters.expectedInstants.map(Instant::parse), timeSlots)
     }
 
     data class Parameters(
+        val description: String,
+        val rules: TimeSlotRules,
         val fromDate: String,
         val toDate: String,
-        val dayType: DayType,
-        val timeUtc: String,
         val expectedInstants: List<String>
-    )
+    ) {
+        override fun toString() = description
+    }
 }

@@ -7,7 +7,7 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.TimeZone
+import java.util.*
 
 class PlannerTest {
 
@@ -137,9 +137,9 @@ class PlannerTest {
     fun `session limit of 1 produces one plan per available time slot`() {
         val conf = config(
             activity(1, alice to false, bob to false),
-            rules = listOf(
-                TimeSlotRule(DayType.MONDAYS,    LocalTime.of(18, 0)),
-                TimeSlotRule(DayType.WEDNESDAYS, LocalTime.of(18, 0)),
+            rules = TimeSlotRules.of(
+                DayOfWeek.MONDAY    to LocalTime.of(18, 0),
+                DayOfWeek.WEDNESDAY to LocalTime.of(18, 0),
             ),
         )
         val week = week(
@@ -160,9 +160,9 @@ class PlannerTest {
         val conf = config(
             activity(1, alice to false, bob to false),
             activity(2, carol to false),
-            rules = listOf(
-                TimeSlotRule(DayType.MONDAYS,    LocalTime.of(18, 0)),
-                TimeSlotRule(DayType.WEDNESDAYS, LocalTime.of(18, 0)),
+            rules = TimeSlotRules.of(
+                DayOfWeek.MONDAY    to LocalTime.of(18, 0),
+                DayOfWeek.WEDNESDAY to LocalTime.of(18, 0),
             ),
         )
         // Alice and Bob only available Monday; Carol only available Wednesday
@@ -190,9 +190,9 @@ class PlannerTest {
         // Session limit=1 so each slot produces its own plan
         val conf = config(
             activity(1, alice to false, bob to true, maxMissing = 1),
-            rules = listOf(
-                TimeSlotRule(DayType.MONDAYS,    LocalTime.of(18, 0)),
-                TimeSlotRule(DayType.WEDNESDAYS, LocalTime.of(18, 0)),
+            rules = TimeSlotRules.of(
+                DayOfWeek.MONDAY    to LocalTime.of(18, 0),
+                DayOfWeek.WEDNESDAY to LocalTime.of(18, 0),
             ),
         )
         val week = week(
@@ -214,10 +214,10 @@ class PlannerTest {
         // Thursday:  Alice+Bob available, Carol unavailable → 1 missing, 0 if-need-be
         val conf = config(
             activity(1, alice to false, bob to false, carol to true, maxMissing = 1),
-            rules = listOf(
-                TimeSlotRule(DayType.MONDAYS,    LocalTime.of(18, 0)),
-                TimeSlotRule(DayType.WEDNESDAYS, LocalTime.of(18, 0)),
-                TimeSlotRule(DayType.THURSDAYS,  LocalTime.of(18, 0)),
+            rules = TimeSlotRules.of(
+                DayOfWeek.MONDAY    to LocalTime.of(18, 0),
+                DayOfWeek.WEDNESDAY to LocalTime.of(18, 0),
+                DayOfWeek.THURSDAY  to LocalTime.of(18, 0),
             ),
         )
         // Wednesday: Alice+Bob available, Carol if-need-be → Score(2 regular, 1 if-need-be)
@@ -244,10 +244,10 @@ class PlannerTest {
         //   Tue+Thu = 2 days apart → non-consecutive → noTwoDaysInSequence = 1
         val conf = config(
             activity(1, alice to false, bob to false),
-            rules = listOf(
-                TimeSlotRule(DayType.MONDAYS,   LocalTime.of(18, 0)),
-                TimeSlotRule(DayType.TUESDAYS,  LocalTime.of(18, 0)),
-                TimeSlotRule(DayType.THURSDAYS, LocalTime.of(18, 0)),
+            rules = TimeSlotRules.of(
+                DayOfWeek.MONDAY   to LocalTime.of(18, 0),
+                DayOfWeek.TUESDAY  to LocalTime.of(18, 0),
+                DayOfWeek.THURSDAY to LocalTime.of(18, 0),
             ),
         )
         val week = week(
@@ -301,7 +301,7 @@ class PlannerTest {
 
     private fun config(
         vararg activities: Activity,
-        rules: List<TimeSlotRule> = listOf(TimeSlotRule(DayType.MONDAYS, LocalTime.of(18, 0))),
+        rules: TimeSlotRules = TimeSlotRules.of(DayOfWeek.MONDAY to LocalTime.of(18, 0)),
     ) = Configuration(
         enabled = true,
         timeZone = UTC,

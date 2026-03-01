@@ -4,7 +4,7 @@ import com.github.shelgen.timesage.domain.OperationContext
 import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalTime
-import java.util.TimeZone
+import java.util.*
 
 class ConfigurationFileDao {
     private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
@@ -48,23 +48,35 @@ class ConfigurationFileDao {
         data class Scheduling(
             val type: SchedulingType,
             val startDayOfWeek: DayOfWeek,
-            val timeSlotRules: List<SlotRule>?,
+            val timeSlotRulesPerDay: TimeSlotRulesJson? = null,
             val daysBeforePeriod: Int? = null,
             val planningStartHour: Int? = null,
             val reminderIntervalDays: Int? = null,
         )
 
-        enum class SchedulingType { WEEKLY, MONTHLY }
-
-        data class SlotRule(
-            val dayType: DayType,
-            val timeOfDayUtc: LocalTime?,
-            val timeOfDay: LocalTime?,
-        )
-
-        enum class DayType {
-            MONDAYS, TUESDAYS, WEDNESDAYS, THURSDAYS, FRIDAYS, SATURDAYS, SUNDAYS, WEEKDAYS, WEEKENDS, EVERY_DAY
+        data class TimeSlotRulesJson(
+            val mondays: LocalTime? = null,
+            val tuesdays: LocalTime? = null,
+            val wednesdays: LocalTime? = null,
+            val thursdays: LocalTime? = null,
+            val fridays: LocalTime? = null,
+            val saturdays: LocalTime? = null,
+            val sundays: LocalTime? = null,
+        ) {
+            companion object {
+                val EVERY_DAY_DEFAULT = TimeSlotRulesJson(
+                    mondays = LocalTime.of(20, 30),
+                    tuesdays = LocalTime.of(20, 30),
+                    wednesdays = LocalTime.of(20, 30),
+                    thursdays = LocalTime.of(20, 30),
+                    fridays = LocalTime.of(20, 30),
+                    saturdays = LocalTime.of(20, 30),
+                    sundays = LocalTime.of(20, 30),
+                )
+            }
         }
+
+        enum class SchedulingType { WEEKLY, MONTHLY }
     }
 
     companion object {
