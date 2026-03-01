@@ -27,8 +27,11 @@ import java.time.format.TextStyle
 import java.util.*
 
 class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
-    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
-        listOf(
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
+        val orderedDays = (0..6).map {
+            DayOfWeek.of((configuration.scheduling.startDayOfWeek.value - 1 + it) % 7 + 1)
+        }
+        return listOf(
             TextDisplay.of("# Time Sage configuration"),
             TextDisplay.of(
                 "${DiscordFormatter.mentionChannel(context.channelId)} in " +
@@ -44,10 +47,6 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 TextDisplay.of(DiscordFormatter.bold("Enabled") + ": " + (if (configuration.enabled) "Yes" else "No"))
             ),
             Section.of(
-                Buttons.ChangeTimeZone(this).render(),
-                TextDisplay.of("${DiscordFormatter.bold("Time zone")}: ${configuration.timeZone.toZoneId()}")
-            ),
-            Section.of(
                 Buttons.SetVoiceChannel(this).render(),
                 TextDisplay.of(
                     "${DiscordFormatter.bold("Voice channel for scheduled events")}: " +
@@ -56,6 +55,21 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                                     ?.voiceChannelCache?.getElementById(id)?.name
                                     ?.let { "#$it" } ?: "Unknown channel"
                             } ?: "Not set")
+                )
+            ),
+            TextDisplay.of("### Localization"),
+            Section.of(
+                Buttons.ChangeTimeZone(this).render(),
+                TextDisplay.of("${DiscordFormatter.bold("Time zone")}: ${configuration.timeZone.toZoneId()}")
+            ),
+            Section.of(
+                Buttons.EditStartDay(this).render(),
+                TextDisplay.of(
+                    "Weeks start on a ${
+                        DiscordFormatter.bold(
+                            configuration.scheduling.startDayOfWeek.getDisplayName(TextStyle.FULL, Locale.US).lowercase()
+                        )
+                    }."
                 )
             ),
             Section.of(
@@ -67,18 +81,9 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 TextDisplay.of("### Scheduling")
             ),
             TextDisplay.of(
-                "Weeks start on a ${
-                    DiscordFormatter.bold(
-                        configuration.scheduling.startDayOfWeek.getDisplayName(
-                            TextStyle.FULL,
-                            Locale.US
-                        ).lowercase()
-                    )
-                }.\n" +
-                        "Eligible times are " +
-                        DayOfWeek.entries.mapNotNull { day ->
-                            val time = configuration.scheduling.timeSlotRules[day]
-                            time?.let {
+                "Eligible times are " +
+                        orderedDays.mapNotNull { day ->
+                            configuration.scheduling.timeSlotRules[day]?.let { time ->
                                 DiscordFormatter.bold(day.getDisplayName(TextStyle.FULL, Locale.US) + "s") +
                                         " at ${DiscordFormatter.bold(time.toString())}"
                             }
@@ -114,6 +119,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 if (configuration.activities.isEmpty()) null else Buttons.DeleteActivities(this).render()
             ).let { ActionRow.of(it) }
         )
+    }
 
     class Buttons {
         class Enable(override val screen: ConfigurationMainScreen) : ScreenButton {
@@ -177,6 +183,17 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
                 val modal = Modals.EditScheduling(screen).render(configuration)
+                event.replyModal(modal).queue()
+            }
+        }
+
+        class EditStartDay(override val screen: ConfigurationMainScreen) : ScreenButton {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Change start day...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val modal = Modals.EditStartDay(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
         }
@@ -291,9 +308,48 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
         }
 
         class EditScheduling(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration): Modal {
+                val orderedDays = (0..6).map {
+                    DayOfWeek.of((configuration.scheduling.startDayOfWeek.value - 1 + it) % 7 + 1)
+                }
+                return Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit scheduling")
+                    .addComponents(
+                        *orderedDays.map { day ->
+                            Label.of(
+                                "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to skip)",
+                                TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
+                                    .setRequired(false)
+                                    .also { builder ->
+                                        configuration.scheduling.timeSlotRules[day]
+                                            ?.let { builder.setValue(it.toString()) }
+                                    }
+                                    .build()
+                            )
+                        }.toTypedArray()
+                    )
+                    .build()
+            }
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                        configuration.scheduling.timeSlotRules =
+                            TimeSlotRules.of(*DayOfWeek.entries.mapNotNull { day ->
+                                val raw = event.getValue(day.name.lowercase())?.asString?.trim()
+                                if (!raw.isNullOrBlank()) {
+                                    runCatching { LocalTime.parse(raw) }.getOrNull()?.let { day to it }
+                                } else null
+                            }.toTypedArray())
+                    }
+                }
+            }
+        }
+
+        class EditStartDay(override val screen: ConfigurationMainScreen) : ScreenModal {
             fun render(configuration: Configuration) =
                 Modal
-                    .create(CustomIdSerialization.serialize(this), "Edit scheduling")
+                    .create(CustomIdSerialization.serialize(this), "Change start day of week")
                     .addComponents(
                         Label.of(
                             "Start day of week",
@@ -308,19 +364,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                                 })
                                 .setDefaultValues(configuration.scheduling.startDayOfWeek.value.toString())
                                 .build()
-                        ),
-                        *DayOfWeek.entries.map { day ->
-                            Label.of(
-                                "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to skip)",
-                                TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
-                                    .setRequired(false)
-                                    .also { builder ->
-                                        configuration.scheduling.timeSlotRules[day]
-                                            ?.let { builder.setValue(it.toString()) }
-                                    }
-                                    .build()
-                            )
-                        }.toTypedArray()
+                        )
                     )
                     .build()
 
@@ -329,13 +373,6 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                     ConfigurationRepository.update(context = screen.context) { configuration ->
                         configuration.scheduling.startDayOfWeek =
                             DayOfWeek.of(event.getValue("startDayOfWeek")!!.asStringList.first().toInt())
-                        configuration.scheduling.timeSlotRules =
-                            TimeSlotRules.of(*DayOfWeek.entries.mapNotNull { day ->
-                                val raw = event.getValue(day.name.lowercase())?.asString?.trim()
-                                if (!raw.isNullOrBlank()) {
-                                    runCatching { LocalTime.parse(raw) }.getOrNull()?.let { day to it }
-                                } else null
-                            }.toTypedArray())
                     }
                 }
             }
