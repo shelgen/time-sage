@@ -76,9 +76,10 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Buttons.ChangeScheduleInterval(this).render(),
                 TextDisplay.of("${DiscordFormatter.bold("Schedule interval")}: ${configuration.scheduling.type.humanReadableName}")
             ),
-            Section.of(
-                Buttons.EditScheduling(this).render(),
-                TextDisplay.of("### Scheduling")
+            TextDisplay.of("### Scheduling"),
+            ActionRow.of(
+                Buttons.EditWeekdays(this).render(),
+                Buttons.EditWeekend(this).render()
             ),
             TextDisplay.of(
                 "Eligible times are " +
@@ -176,13 +177,24 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             }
         }
 
-        class EditScheduling(override val screen: ConfigurationMainScreen) : ScreenButton {
+        class EditWeekdays(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
-                Button.primary(CustomIdSerialization.serialize(this), "Edit scheduling...")
+                Button.primary(CustomIdSerialization.serialize(this), "Edit weekdays...")
 
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
-                val modal = Modals.EditScheduling(screen).render(configuration)
+                val modal = Modals.EditWeekdays(screen).render(configuration)
+                event.replyModal(modal).queue()
+            }
+        }
+
+        class EditWeekend(override val screen: ConfigurationMainScreen) : ScreenButton {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Edit weekend...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val modal = Modals.EditWeekend(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
         }
@@ -307,15 +319,16 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             }
         }
 
-        class EditScheduling(override val screen: ConfigurationMainScreen) : ScreenModal {
+        class EditWeekdays(override val screen: ConfigurationMainScreen) : ScreenModal {
             fun render(configuration: Configuration): Modal {
-                val orderedDays = (0..6).map {
-                    DayOfWeek.of((configuration.scheduling.startDayOfWeek.value - 1 + it) % 7 + 1)
-                }
+                val weekdays = listOf(
+                    DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                    DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
+                )
                 return Modal
-                    .create(CustomIdSerialization.serialize(this), "Edit scheduling")
+                    .create(CustomIdSerialization.serialize(this), "Edit weekday scheduling")
                     .addComponents(
-                        *orderedDays.map { day ->
+                        *weekdays.map { day ->
                             Label.of(
                                 "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to skip)",
                                 TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
@@ -334,13 +347,64 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
                     ConfigurationRepository.update(context = screen.context) { configuration ->
+                        val weekdays = listOf(
+                            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
+                        )
+                        val updatedPairs = weekdays.mapNotNull { day ->
+                            val raw = event.getValue(day.name.lowercase())?.asString?.trim()
+                            if (!raw.isNullOrBlank()) runCatching { LocalTime.parse(raw) }.getOrNull()?.let { day to it }
+                            else null
+                        }
+                        val preserved = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY).mapNotNull { day ->
+                            configuration.scheduling.timeSlotRules[day]?.let { day to it }
+                        }
                         configuration.scheduling.timeSlotRules =
-                            TimeSlotRules.of(*DayOfWeek.entries.mapNotNull { day ->
-                                val raw = event.getValue(day.name.lowercase())?.asString?.trim()
-                                if (!raw.isNullOrBlank()) {
-                                    runCatching { LocalTime.parse(raw) }.getOrNull()?.let { day to it }
-                                } else null
-                            }.toTypedArray())
+                            TimeSlotRules.of(*(updatedPairs + preserved).toTypedArray())
+                    }
+                }
+            }
+        }
+
+        class EditWeekend(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration): Modal {
+                val weekend = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+                return Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit weekend scheduling")
+                    .addComponents(
+                        *weekend.map { day ->
+                            Label.of(
+                                "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to skip)",
+                                TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
+                                    .setRequired(false)
+                                    .also { builder ->
+                                        configuration.scheduling.timeSlotRules[day]
+                                            ?.let { builder.setValue(it.toString()) }
+                                    }
+                                    .build()
+                            )
+                        }.toTypedArray()
+                    )
+                    .build()
+            }
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                        val weekend = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+                        val updatedPairs = weekend.mapNotNull { day ->
+                            val raw = event.getValue(day.name.lowercase())?.asString?.trim()
+                            if (!raw.isNullOrBlank()) runCatching { LocalTime.parse(raw) }.getOrNull()?.let { day to it }
+                            else null
+                        }
+                        val preserved = listOf(
+                            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
+                        ).mapNotNull { day ->
+                            configuration.scheduling.timeSlotRules[day]?.let { day to it }
+                        }
+                        configuration.scheduling.timeSlotRules =
+                            TimeSlotRules.of(*(updatedPairs + preserved).toTypedArray())
                     }
                 }
             }
