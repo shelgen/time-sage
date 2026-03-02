@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.domain.*
+import java.time.LocalDate
 import java.util.*
 
 object AvailabilitiesPeriodRepository {
@@ -26,13 +27,27 @@ object AvailabilitiesPeriodRepository {
         dao.loadAll(context).map { it.toDomain() }
 
     private fun AvailabilitiesPeriodFileDao.Json.toDomain() = AvailabilitiesPeriod(
-        messageId = messageId,
-        threadId = threadId,
+        availabilityMessageOrThread = toAvailabilityMessageOrThread(),
         responses = UserResponses(responses.map { (userId, r) -> userId to r.toDomain() }.toMap()),
         concluded = concluded,
         conclusionMessageId = conclusionMessageId,
         lastReminderDate = lastReminderDate,
     )
+
+    private fun AvailabilitiesPeriodFileDao.Json.toAvailabilityMessageOrThread(): AvailabilityMessageOrThread? =
+        when {
+            threadId != null && headerMessageId != null -> AvailabilityMessageOrThread.AvailabilityThread(
+                headerMessageId = headerMessageId,
+                threadId = threadId,
+                sessionLimitAndUnavailableMessageId = sessionLimitAndUnavailableMessageId,
+                availabilityMessageIds = availabilityMessageIds.mapKeys { (key, _) ->
+                    val (from, to) = key.split("_")
+                    DatePeriod(LocalDate.parse(from), LocalDate.parse(to))
+                },
+            )
+            messageId != null -> AvailabilityMessageOrThread.AvailabilityMessage(messageId)
+            else -> null
+        }
 
     private fun AvailabilitiesPeriodFileDao.Json.Response.toDomain() = UserResponse(
         sessionLimit = sessionLimit,
@@ -45,14 +60,23 @@ object AvailabilitiesPeriodRepository {
         AvailabilitiesPeriodFileDao.Json.AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.UNAVAILABLE
     }
 
-    private fun MutableAvailabilitiesPeriod.toJson() = AvailabilitiesPeriodFileDao.Json(
-        messageId = messageId,
-        threadId = threadId,
-        responses = responses.map.map { (userId, r) -> userId to r.toJson() }.toMap(TreeMap()),
-        concluded = concluded,
-        conclusionMessageId = conclusionMessageId,
-        lastReminderDate = lastReminderDate,
-    )
+    private fun MutableAvailabilitiesPeriod.toJson(): AvailabilitiesPeriodFileDao.Json {
+        val thread = availabilityMessageOrThread as? AvailabilityMessageOrThread.AvailabilityThread
+        val message = availabilityMessageOrThread as? AvailabilityMessageOrThread.AvailabilityMessage
+        return AvailabilitiesPeriodFileDao.Json(
+            messageId = message?.messageId,
+            threadId = thread?.threadId,
+            headerMessageId = thread?.headerMessageId,
+            sessionLimitAndUnavailableMessageId = thread?.sessionLimitAndUnavailableMessageId,
+            availabilityMessageIds = thread?.availabilityMessageIds
+                ?.mapKeys { (period, _) -> "${period.fromDate}_${period.toDate}" }
+                ?: emptyMap(),
+            responses = responses.map.map { (userId, r) -> userId to r.toJson() }.toMap(TreeMap()),
+            concluded = concluded,
+            conclusionMessageId = conclusionMessageId,
+            lastReminderDate = lastReminderDate,
+        )
+    }
 
     private fun UserResponse.toJson() = AvailabilitiesPeriodFileDao.Json.Response(
         sessionLimit = sessionLimit,

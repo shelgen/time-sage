@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.cronjobs
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.domain.Participant
 import com.github.shelgen.timesage.logger
@@ -41,7 +42,7 @@ class HourlyPlanningJob : Job {
 
         val data = AvailabilitiesPeriodRepository.loadOrInitialize(period, context)
 
-        if (data.messageId == null) {
+        if (data.availabilityMessageOrThread == null) {
             AvailabilityMessageSender.postAvailabilityMessage(context)
             return
         }
@@ -69,9 +70,13 @@ class HourlyPlanningJob : Job {
         if (unansweredParticipants.isEmpty()) return
 
         logger.info("Sending reminder for period $period")
-        val messageUrl = data.threadId
-            ?.let { "https://discord.com/channels/${context.guildId}/$it" }
-            ?: "https://discord.com/channels/${context.guildId}/${context.channelId}/${data.messageId}"
+        val messageUrl = when (val ref = data.availabilityMessageOrThread) {
+            is AvailabilityMessageOrThread.AvailabilityThread ->
+                "https://discord.com/channels/${context.guildId}/${ref.threadId}"
+            is AvailabilityMessageOrThread.AvailabilityMessage ->
+                "https://discord.com/channels/${context.guildId}/${context.channelId}/${ref.messageId}"
+            null -> return
+        }
 
         JDAHolder.jda.getTextChannelById(context.channelId)!!.sendMessage(
             MessageCreateBuilder().setContent(

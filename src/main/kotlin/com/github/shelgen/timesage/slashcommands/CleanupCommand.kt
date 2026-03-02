@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.slashcommands
 
+import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import net.dv8tion.jda.api.entities.Message
@@ -25,7 +26,20 @@ object CleanupCommand : AbstractSlashCommand(
             MDC.setContextMap(outerMdc)
             val channel = event.channel.asTextChannel()
             val keepMessageIds = AvailabilitiesPeriodRepository.loadAll(context)
-                .flatMap { listOfNotNull(it.messageId, it.conclusionMessageId) }
+                .flatMap { period ->
+                    buildList {
+                        when (val ref = period.availabilityMessageOrThread) {
+                            is AvailabilityMessageOrThread.AvailabilityThread -> {
+                                add(ref.headerMessageId)
+                                ref.sessionLimitAndUnavailableMessageId?.let { add(it) }
+                                addAll(ref.availabilityMessageIds.values)
+                            }
+                            is AvailabilityMessageOrThread.AvailabilityMessage -> add(ref.messageId)
+                            null -> {}
+                        }
+                        period.conclusionMessageId?.let { add(it) }
+                    }
+                }
                 .toSet()
             hook.editOriginal("Cleanup started, this may take a while…").queue()
             processPage(

@@ -27,6 +27,9 @@ class AvailabilitiesPeriodFileDao {
     data class Json(
         val messageId: Long?,
         val threadId: Long?,
+        val headerMessageId: Long?,
+        val sessionLimitAndUnavailableMessageId: Long?,
+        val availabilityMessageIds: Map<String, Long> = emptyMap(),
         val responses: Map<Long, Response>,
         val concluded: Boolean = false,
         val conclusionMessageId: Long? = null,

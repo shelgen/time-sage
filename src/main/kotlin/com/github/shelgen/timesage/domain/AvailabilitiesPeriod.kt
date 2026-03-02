@@ -4,8 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 open class AvailabilitiesPeriod(
-    open val messageId: Long?,
-    open val threadId: Long?,
+    open val availabilityMessageOrThread: AvailabilityMessageOrThread?,
     open val responses: UserResponses,
     open val concluded: Boolean,
     open val conclusionMessageId: Long?,
@@ -13,8 +12,7 @@ open class AvailabilitiesPeriod(
 ) {
     companion object {
         val DEFAULT = AvailabilitiesPeriod(
-            messageId = null,
-            threadId = null,
+            availabilityMessageOrThread = null,
             responses = UserResponses.NONE,
             concluded = false,
             conclusionMessageId = null,
@@ -24,16 +22,14 @@ open class AvailabilitiesPeriod(
 }
 
 class MutableAvailabilitiesPeriod(
-    override var messageId: Long?,
-    override var threadId: Long?,
+    override var availabilityMessageOrThread: AvailabilityMessageOrThread?,
     override val responses: MutableUserResponses,
     override var concluded: Boolean,
     override var conclusionMessageId: Long?,
     override var lastReminderDate: LocalDate?,
-) : AvailabilitiesPeriod(messageId, threadId, responses, concluded, conclusionMessageId, lastReminderDate) {
+) : AvailabilitiesPeriod(availabilityMessageOrThread, responses, concluded, conclusionMessageId, lastReminderDate) {
     constructor(period: AvailabilitiesPeriod) : this(
-        messageId = period.messageId,
-        threadId = period.threadId,
+        availabilityMessageOrThread = period.availabilityMessageOrThread,
         responses = MutableUserResponses(userResponses = period.responses),
         concluded = period.concluded,
         conclusionMessageId = period.conclusionMessageId,

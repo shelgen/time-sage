@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.createScheduledEventsForPlan
+import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.DatePeriod
 import com.github.shelgen.timesage.domain.OperationContext
@@ -77,27 +78,29 @@ class PlanAlternativeSuggestedScreen(
                 event.processAndAddPublicScreen(
                     onMessagePosted = { conclusionMessage ->
                         val period = DatePeriod(screen.periodStart, screen.periodEnd)
-                        val (messageId, threadId) = AvailabilitiesPeriodRepository.update(
+                        val ref = AvailabilitiesPeriodRepository.update(
                             period = period,
                             context = screen.context
                         ) { p ->
                             p.concluded = true
                             p.conclusionMessageId = conclusionMessage.idLong
-                            p.messageId to p.threadId
+                            p.availabilityMessageOrThread
                         }
-                        if (threadId != null) {
-                            JDAHolder.jda.getThreadChannelById(threadId)?.manager?.setArchived(true)?.queue()
-                        } else if (messageId != null) {
-                            rerenderOtherScreen(
-                                messageId = messageId,
-                                screen = AvailabilityScreen(
-                                    periodStart = screen.periodStart,
-                                    periodEnd = screen.periodEnd,
-                                    pageIndex = AvailabilityScreen.SINGLE_PAGE,
-                                    mainChannelId = screen.context.channelId,
-                                    context = screen.context
+                        when (ref) {
+                            is AvailabilityMessageOrThread.AvailabilityThread ->
+                                JDAHolder.jda.getThreadChannelById(ref.threadId)?.manager?.setArchived(true)?.queue()
+                            is AvailabilityMessageOrThread.AvailabilityMessage ->
+                                rerenderOtherScreen(
+                                    messageId = ref.messageId,
+                                    screen = AvailabilityScreen(
+                                        periodStart = screen.periodStart,
+                                        periodEnd = screen.periodEnd,
+                                        pageIndex = AvailabilityScreen.SINGLE_PAGE,
+                                        mainChannelId = screen.context.channelId,
+                                        context = screen.context
+                                    )
                                 )
-                            )
+                            null -> {}
                         }
                         replaceBotPinsWith(conclusionMessage)
                         if (screen.alternativeNumber != 0) {
