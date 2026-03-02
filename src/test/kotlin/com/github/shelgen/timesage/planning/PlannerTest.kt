@@ -39,30 +39,30 @@ class PlannerTest {
     @Test
     fun `all participants unavailable produces no plans`() {
         val conf = config(activity(1, alice to false, bob to false))
-        val week = week(
+        val responses = responses(
             alice to response(monday to AvailabilityStatus.UNAVAILABLE),
             bob   to response(monday to AvailabilityStatus.UNAVAILABLE),
         )
-        assertTrue(planner(conf, week).generatePossiblePlans().isEmpty())
+        assertTrue(planner(conf, responses).generatePossiblePlans().isEmpty())
     }
 
     @Test
     fun `required participant with no response produces no plans`() {
         // Bob has no response entry at all, which is treated as UNAVAILABLE for every slot
         val conf = config(activity(1, alice to false, bob to false))
-        val week = week(alice to response(monday to AvailabilityStatus.AVAILABLE))
-        assertTrue(planner(conf, week).generatePossiblePlans().isEmpty())
+        val responses = responses(alice to response(monday to AvailabilityStatus.AVAILABLE))
+        assertTrue(planner(conf, responses).generatePossiblePlans().isEmpty())
     }
 
     @Test
     fun `both required participants available generates exactly one single-session plan`() {
         val conf = config(activity(1, alice to false, bob to false))
-        val week = week(
+        val responses = responses(
             alice to response(monday to AvailabilityStatus.AVAILABLE),
             bob   to response(monday to AvailabilityStatus.AVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         assertEquals(1, plans.size)
         val session = plans.single().sessions.single()
@@ -75,12 +75,12 @@ class PlannerTest {
     @Test
     fun `if-need-be availability is reflected in attendee flag`() {
         val conf = config(activity(1, alice to false, bob to false))
-        val week = week(
+        val responses = responses(
             alice to response(monday to AvailabilityStatus.AVAILABLE),
             bob   to response(monday to AvailabilityStatus.IF_NEED_BE),
         )
 
-        val session = planner(conf, week).generatePossiblePlans().single().sessions.single()
+        val session = planner(conf, responses).generatePossiblePlans().single().sessions.single()
 
         assertFalse(session.attendees.first { it.userId == alice }.ifNeedBe)
         assertTrue(session.attendees.first { it.userId == bob }.ifNeedBe)
@@ -89,12 +89,12 @@ class PlannerTest {
     @Test
     fun `optional participant is absent when unavailable and maxMissingOptionalParticipants allows it`() {
         val conf = config(activity(1, alice to false, bob to true, maxMissing = 1))
-        val week = week(
+        val responses = responses(
             alice to response(monday to AvailabilityStatus.AVAILABLE),
             bob   to response(monday to AvailabilityStatus.UNAVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         assertEquals(1, plans.size)
         val session = plans.single().sessions.single()
@@ -106,12 +106,12 @@ class PlannerTest {
     fun `optional participant must attend when maxMissingOptionalParticipants is 0`() {
         // maxMissing=0 means no optional can be absent; only the plan including Bob is generated
         val conf = config(activity(1, alice to false, bob to true, maxMissing = 0))
-        val week = week(
+        val responses = responses(
             alice to response(monday to AvailabilityStatus.AVAILABLE),
             bob   to response(monday to AvailabilityStatus.AVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         assertEquals(1, plans.size)
         assertTrue(plans.single().sessions.single().hasAttendee(bob))
@@ -122,12 +122,12 @@ class PlannerTest {
         // maxMissing=1 allows Bob to be absent from generation, but since he is available
         // any plan that excludes him would be suboptimal and must be filtered out
         val conf = config(activity(1, alice to false, bob to true, maxMissing = 1))
-        val week = week(
+        val responses = responses(
             alice to response(monday to AvailabilityStatus.AVAILABLE),
             bob   to response(monday to AvailabilityStatus.AVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         assertEquals(1, plans.size)
         assertTrue(plans.single().sessions.single().hasAttendee(bob))
@@ -142,12 +142,12 @@ class PlannerTest {
                 DayOfWeek.WEDNESDAY to LocalTime.of(18, 0),
             ),
         )
-        val week = week(
+        val responses = responses(
             alice to response(sessionLimit = 1, monday to AvailabilityStatus.AVAILABLE, wednesday to AvailabilityStatus.AVAILABLE),
             bob   to response(sessionLimit = 1, monday to AvailabilityStatus.AVAILABLE, wednesday to AvailabilityStatus.AVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         // Session limit prevents combining the two slots into one plan
         assertEquals(2, plans.size)
@@ -166,13 +166,13 @@ class PlannerTest {
             ),
         )
         // Alice and Bob only available Monday; Carol only available Wednesday
-        val week = week(
+        val responses = responses(
             alice to response(monday to AvailabilityStatus.AVAILABLE),
             bob   to response(monday to AvailabilityStatus.AVAILABLE),
             carol to response(wednesday to AvailabilityStatus.AVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         val twoSessionPlan = plans.first { it.sessions.size == 2 }
         assertTrue(twoSessionPlan.sessions.any { it.activityId == 1 && it.timeSlot == monday })
@@ -195,12 +195,12 @@ class PlannerTest {
                 DayOfWeek.WEDNESDAY to LocalTime.of(18, 0),
             ),
         )
-        val week = week(
+        val responses = responses(
             alice to response(sessionLimit = 1, monday to AvailabilityStatus.AVAILABLE, wednesday to AvailabilityStatus.AVAILABLE),
             bob   to response(sessionLimit = 1, monday to AvailabilityStatus.AVAILABLE, wednesday to AvailabilityStatus.UNAVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         assertEquals(2, plans.size)
         assertEquals(monday,    plans[0].sessions.single().timeSlot) // 0 missing → first
@@ -222,13 +222,13 @@ class PlannerTest {
         )
         // Wednesday: Alice+Bob available, Carol if-need-be → Score(2 regular, 1 if-need-be)
         // Thursday:  Alice+Bob available, Carol unavailable → Score(2 regular, 0 if-need-be)
-        val week = week(
+        val responses = responses(
             alice to response(sessionLimit = 1, wednesday to AvailabilityStatus.AVAILABLE, thursday to AvailabilityStatus.AVAILABLE),
             bob   to response(sessionLimit = 1, wednesday to AvailabilityStatus.AVAILABLE, thursday to AvailabilityStatus.AVAILABLE),
             carol to response(sessionLimit = 1, wednesday to AvailabilityStatus.IF_NEED_BE, thursday to AvailabilityStatus.UNAVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         assertEquals(2, plans.size)
         assertEquals(wednesday, plans[0].sessions.single().timeSlot) // 0 missing + 1 if-need-be → first
@@ -250,12 +250,12 @@ class PlannerTest {
                 DayOfWeek.THURSDAY to LocalTime.of(18, 0),
             ),
         )
-        val week = week(
+        val responses = responses(
             alice to response(monday to AvailabilityStatus.AVAILABLE, tuesday to AvailabilityStatus.AVAILABLE, thursday to AvailabilityStatus.AVAILABLE),
             bob   to response(monday to AvailabilityStatus.AVAILABLE, tuesday to AvailabilityStatus.AVAILABLE, thursday to AvailabilityStatus.AVAILABLE),
         )
 
-        val plans = planner(conf, week).generatePossiblePlans()
+        val plans = planner(conf, responses).generatePossiblePlans()
 
         fun planSlots(p: Plan) = p.sessions.map { it.timeSlot }.toSet()
         val monTuePlan = plans.first { planSlots(it) == setOf(monday, tuesday) }
@@ -296,8 +296,8 @@ class PlannerTest {
 
     private fun planner(
         configuration: Configuration,
-        week: AvailabilitiesWeek = AvailabilitiesWeek.DEFAULT,
-    ) = Planner(configuration = configuration, weekStartDate = weekStart, week = week)
+        responses: UserResponses = UserResponses.NONE,
+    ) = Planner(configuration = configuration, datePeriod = DatePeriod.weekFrom(weekStart), responses = responses)
 
     private fun config(
         vararg activities: Activity,
@@ -325,13 +325,7 @@ class PlannerTest {
             maxMissingOptionalParticipants = maxMissing,
         )
 
-    private fun week(vararg responses: Pair<Long, UserResponse>) = AvailabilitiesWeek(
-        messageId = null,
-        responses = UserResponses(responses.toMap()),
-        concluded = false,
-        conclusionMessageId = null,
-        lastReminderDate = null,
-    )
+    private fun responses(vararg pairs: Pair<Long, UserResponse>) = UserResponses(pairs.toMap())
 
     private fun response(vararg availabilities: Pair<Instant, AvailabilityStatus>) =
         UserResponse(

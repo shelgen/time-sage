@@ -1,24 +1,17 @@
 package com.github.shelgen.timesage.planning
 
-import com.github.shelgen.timesage.domain.AvailabilitiesWeek
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.DatePeriod
 import com.github.shelgen.timesage.domain.UserResponses
 import com.github.shelgen.timesage.logger
 import java.time.Instant
-import java.time.LocalDate
 
 class Planner(
     private val configuration: Configuration,
     private val datePeriod: DatePeriod,
     private val responses: UserResponses
 ) {
-    constructor(
-        configuration: Configuration,
-        weekStartDate: LocalDate,
-        week: AvailabilitiesWeek
-    ) : this(configuration, DatePeriod.weekFrom(weekStartDate), week.responses)
 
     fun generatePossiblePlans(): List<Plan> {
         logger.info("Generating suggestions for period $datePeriod")

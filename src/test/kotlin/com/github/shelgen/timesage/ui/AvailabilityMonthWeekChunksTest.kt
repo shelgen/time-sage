@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.ui
 
-import com.github.shelgen.timesage.ui.screens.AvailabilityMonthPageScreen
+import com.github.shelgen.timesage.domain.DatePeriod
+import com.github.shelgen.timesage.ui.screens.AvailabilityScreen
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
@@ -11,7 +12,7 @@ class AvailabilityMonthWeekChunksTest {
 
     @Test
     fun `march 2026 with thursday start - example from spec`() {
-        val chunks = AvailabilityMonthPageScreen.weekChunks(YearMonth.of(2026, 3), DayOfWeek.THURSDAY)
+        val chunks = AvailabilityScreen.weekChunks(DatePeriod.monthFrom(YearMonth.of(2026, 3)), DayOfWeek.THURSDAY)
 
         assertEquals(5, chunks.size)
         assertEquals(listOf(1, 2, 3, 4).map { LocalDate.of(2026, 3, it) }, chunks[0])
@@ -24,7 +25,7 @@ class AvailabilityMonthWeekChunksTest {
     @Test
     fun `month starting exactly on start day produces no partial first week`() {
         // March 2021 starts on a Monday
-        val chunks = AvailabilityMonthPageScreen.weekChunks(YearMonth.of(2021, 3), DayOfWeek.MONDAY)
+        val chunks = AvailabilityScreen.weekChunks(DatePeriod.monthFrom(YearMonth.of(2021, 3)), DayOfWeek.MONDAY)
 
         assertEquals(5, chunks.size)
         assertEquals((1..7).map { LocalDate.of(2021, 3, it) }, chunks[0])
@@ -34,7 +35,7 @@ class AvailabilityMonthWeekChunksTest {
     @Test
     fun `february 2026 with monday start`() {
         // Feb 2026: starts on Sunday, 28 days
-        val chunks = AvailabilityMonthPageScreen.weekChunks(YearMonth.of(2026, 2), DayOfWeek.MONDAY)
+        val chunks = AvailabilityScreen.weekChunks(DatePeriod.monthFrom(YearMonth.of(2026, 2)), DayOfWeek.MONDAY)
 
         // First chunk: Feb 1 (Sunday only, before the first Monday Feb 2)
         assertEquals(listOf(LocalDate.of(2026, 2, 1)), chunks[0])

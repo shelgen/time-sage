@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.slashcommands
 
 import com.github.shelgen.timesage.domain.OperationContext
-import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageHistory
 import net.dv8tion.jda.api.interactions.InteractionHook
@@ -24,7 +24,7 @@ object CleanupCommand : AbstractSlashCommand(
         event.deferReply(true).queue { hook ->
             MDC.setContextMap(outerMdc)
             val channel = event.channel.asTextChannel()
-            val keepMessageIds = AvailabilitiesWeekRepository.loadAll(context)
+            val keepMessageIds = AvailabilitiesPeriodRepository.loadAll(context)
                 .flatMap { listOfNotNull(it.messageId, it.conclusionMessageId) }
                 .toSet()
             hook.editOriginal("Cleanup started, this may take a while…").queue()

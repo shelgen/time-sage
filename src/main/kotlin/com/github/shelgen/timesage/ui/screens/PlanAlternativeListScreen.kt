@@ -1,10 +1,11 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.DatePeriod
 import com.github.shelgen.timesage.domain.OperationContext
 import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -16,18 +17,20 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.time.LocalDate
 
 class PlanAlternativeListScreen(
-    val weekStartDate: LocalDate,
+    val periodStart: LocalDate,
+    val periodEnd: LocalDate,
     val startIndex: Int,
     val size: Int,
     context: OperationContext
 ) : Screen(context) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = weekStartDate, context = context)
-        val planner = Planner(configuration = configuration, weekStartDate = weekStartDate, week = week)
+        val period = DatePeriod(periodStart, periodEnd)
+        val data = AvailabilitiesPeriodRepository.loadOrInitialize(period, context)
+        val planner = Planner(configuration = configuration, datePeriod = period, responses = data.responses)
         val plans = planner.generatePossiblePlans()
         val alternativeNumberedPlans =
             plans.drop(startIndex).take(size)
-                .mapIndexed { index, weekPlan -> startIndex + index + 1 to weekPlan }
+                .mapIndexed { index, plan -> startIndex + index + 1 to plan }
         val totalNumAlternatives = plans.size
 
         return if (alternativeNumberedPlans.isEmpty()) {
@@ -97,7 +100,8 @@ class PlanAlternativeListScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanAlternativeSuggestedScreen(
-                        weekStartDate = screen.weekStartDate,
+                        periodStart = screen.periodStart,
+                        periodEnd = screen.periodEnd,
                         alternativeNumber = alternativeNumber,
                         suggestingUserId = event.user.idLong,
                         context = screen.context
@@ -116,7 +120,8 @@ class PlanAlternativeListScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddEphemeralScreen {
                     PlanAlternativeListScreen(
-                        weekStartDate = screen.weekStartDate,
+                        periodStart = screen.periodStart,
+                        periodEnd = screen.periodEnd,
                         startIndex = screen.startIndex + screen.size,
                         size = nextSize,
                         context = screen.context
@@ -132,7 +137,8 @@ class PlanAlternativeListScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanAlternativeSuggestedScreen(
-                        weekStartDate = screen.weekStartDate,
+                        periodStart = screen.periodStart,
+                        periodEnd = screen.periodEnd,
                         alternativeNumber = 0,
                         suggestingUserId = event.user.idLong,
                         context = screen.context

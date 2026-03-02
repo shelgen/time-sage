@@ -1,12 +1,13 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.OperationContext
-import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.createScheduledEventsForPlan
+import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.DatePeriod
+import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.replaceBotPinsWith
-import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -17,26 +18,39 @@ import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.time.LocalDate
+import java.time.YearMonth
 
 class PlanAlternativeSuggestedScreen(
-    val weekStartDate: LocalDate,
+    val periodStart: LocalDate,
+    val periodEnd: LocalDate,
     val alternativeNumber: Int,
     val suggestingUserId: Long,
     context: OperationContext
 ) : Screen(context) {
+
+    private fun periodWord(): String {
+        val ym = YearMonth.from(periodStart)
+        return when {
+            ym.atDay(1) == periodStart && ym.atEndOfMonth() == periodEnd -> "month"
+            periodEnd == periodStart.plusDays(6) -> "week"
+            else -> "period"
+        }
+    }
+
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         if (alternativeNumber == 0) {
             return listOf(
                 TextDisplay.of(
-                    "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests no session this week."
+                    "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests no session this ${periodWord()}."
                 ),
                 ActionRow.of(
                     Buttons.ConcludeWithThisAlternative(screen = this@PlanAlternativeSuggestedScreen).render()
                 )
             )
         }
-        val week = AvailabilitiesWeekRepository.loadOrInitialize(startDate = weekStartDate, context = context)
-        val planner = Planner(configuration = configuration, weekStartDate = weekStartDate, week = week)
+        val period = DatePeriod(periodStart, periodEnd)
+        val data = AvailabilitiesPeriodRepository.loadOrInitialize(period, context)
+        val planner = Planner(configuration = configuration, datePeriod = period, responses = data.responses)
         val plans = planner.generatePossiblePlans()
         val plan = plans[alternativeNumber - 1]
         return listOf(
@@ -62,19 +76,25 @@ class PlanAlternativeSuggestedScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen(
                     onMessagePosted = { conclusionMessage ->
-                        val availabilityMessageId = AvailabilitiesWeekRepository.update(
-                            startDate = screen.weekStartDate,
+                        val period = DatePeriod(screen.periodStart, screen.periodEnd)
+                        val (messageId, threadId) = AvailabilitiesPeriodRepository.update(
+                            period = period,
                             context = screen.context
-                        ) { week ->
-                            week.concluded = true
-                            week.conclusionMessageId = conclusionMessage.idLong
-                            week.messageId
+                        ) { p ->
+                            p.concluded = true
+                            p.conclusionMessageId = conclusionMessage.idLong
+                            p.messageId to p.threadId
                         }
-                        if (availabilityMessageId != null) {
+                        if (threadId != null) {
+                            JDAHolder.jda.getThreadChannelById(threadId)?.manager?.setArchived(true)?.queue()
+                        } else if (messageId != null) {
                             rerenderOtherScreen(
-                                messageId = availabilityMessageId,
+                                messageId = messageId,
                                 screen = AvailabilityScreen(
-                                    startDate = screen.weekStartDate,
+                                    periodStart = screen.periodStart,
+                                    periodEnd = screen.periodEnd,
+                                    pageIndex = AvailabilityScreen.SINGLE_PAGE,
+                                    mainChannelId = screen.context.channelId,
                                     context = screen.context
                                 )
                             )
@@ -83,17 +103,20 @@ class PlanAlternativeSuggestedScreen(
                         if (screen.alternativeNumber != 0) {
                             JDAHolder.jda.getGuildById(screen.context.guildId)?.let { guild ->
                                 val config = ConfigurationRepository.loadOrInitialize(screen.context)
-                                val week = AvailabilitiesWeekRepository.loadOrInitialize(
-                                    startDate = screen.weekStartDate, context = screen.context
-                                )
-                                val plans = Planner(config, screen.weekStartDate, week).generatePossiblePlans()
+                                val data = AvailabilitiesPeriodRepository.loadOrInitialize(period, screen.context)
+                                val plans = Planner(
+                                    configuration = config,
+                                    datePeriod = period,
+                                    responses = data.responses
+                                ).generatePossiblePlans()
                                 createScheduledEventsForPlan(guild, plans[screen.alternativeNumber - 1], config)
                             }
                         }
                     }
                 ) {
                     PlanAlternativeConcludedScreen(
-                        weekStartDate = screen.weekStartDate,
+                        periodStart = screen.periodStart,
+                        periodEnd = screen.periodEnd,
                         alternativeNumber = screen.alternativeNumber,
                         context = screen.context
                     )

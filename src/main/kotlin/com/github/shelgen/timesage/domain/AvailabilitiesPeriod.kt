@@ -3,8 +3,8 @@ package com.github.shelgen.timesage.domain
 import java.time.Instant
 import java.time.LocalDate
 
-open class AvailabilitiesMonth(
-    open val headerMessageId: Long?,
+open class AvailabilitiesPeriod(
+    open val messageId: Long?,
     open val threadId: Long?,
     open val responses: UserResponses,
     open val concluded: Boolean,
@@ -12,8 +12,8 @@ open class AvailabilitiesMonth(
     open val lastReminderDate: LocalDate?,
 ) {
     companion object {
-        val DEFAULT = AvailabilitiesMonth(
-            headerMessageId = null,
+        val DEFAULT = AvailabilitiesPeriod(
+            messageId = null,
             threadId = null,
             responses = UserResponses.NONE,
             concluded = false,
@@ -23,21 +23,21 @@ open class AvailabilitiesMonth(
     }
 }
 
-class MutableAvailabilitiesMonth(
-    override var headerMessageId: Long?,
+class MutableAvailabilitiesPeriod(
+    override var messageId: Long?,
     override var threadId: Long?,
     override val responses: MutableUserResponses,
     override var concluded: Boolean,
     override var conclusionMessageId: Long?,
     override var lastReminderDate: LocalDate?,
-) : AvailabilitiesMonth(headerMessageId, threadId, responses, concluded, conclusionMessageId, lastReminderDate) {
-    constructor(month: AvailabilitiesMonth) : this(
-        headerMessageId = month.headerMessageId,
-        threadId = month.threadId,
-        responses = MutableUserResponses(userResponses = month.responses),
-        concluded = month.concluded,
-        conclusionMessageId = month.conclusionMessageId,
-        lastReminderDate = month.lastReminderDate,
+) : AvailabilitiesPeriod(messageId, threadId, responses, concluded, conclusionMessageId, lastReminderDate) {
+    constructor(period: AvailabilitiesPeriod) : this(
+        messageId = period.messageId,
+        threadId = period.threadId,
+        responses = MutableUserResponses(userResponses = period.responses),
+        concluded = period.concluded,
+        conclusionMessageId = period.conclusionMessageId,
+        lastReminderDate = period.lastReminderDate,
     )
 
     fun setUserTimeSlotAvailability(userId: Long, timeSlot: Instant, availabilityStatus: AvailabilityStatus) {

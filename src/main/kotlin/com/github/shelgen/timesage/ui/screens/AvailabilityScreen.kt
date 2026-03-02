@@ -1,77 +1,161 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.*
+import com.github.shelgen.timesage.formatAsShortDate
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.repositories.AvailabilitiesWeekRepository
+import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import com.github.shelgen.timesage.ui.DiscordFormatter.timestamp
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : Screen(context) {
-    override fun renderComponents(configuration: Configuration) =
-        AvailabilitiesWeekRepository.loadOrInitialize(startDate = startDate, context = context).let { week ->
-            val datePeriod = DatePeriod.weekFrom(startDate)
-            val timeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
+/**
+ * Unified availability screen for all target periods (weekly, monthly, or custom).
+ *
+ * [periodStart] and [periodEnd] define the target period being planned.
+ * [pageIndex] controls the layout:
+ *   - [SINGLE_PAGE]: single-page message showing all sections.
+ *   - 0: thread intro page (concluded banner, missing responses, session limits).
+ *   - ≥ 1: thread week page for the week chunk at [pageIndex] - 1.
+ * [mainChannelId] — the channel where availability data is stored; for thread pages
+ *                   this is the parent channel rather than the thread channel.
+ */
+class AvailabilityScreen(
+    val periodStart: LocalDate,
+    val periodEnd: LocalDate,
+    val pageIndex: Int,
+    val mainChannelId: Long,
+    context: OperationContext
+) : Screen(OperationContext(guildId = context.guildId, channelId = mainChannelId)) {
+
+    private fun correspondingYearMonth(): YearMonth? {
+        val ym = YearMonth.from(periodStart)
+        return if (ym.atDay(1) == periodStart && ym.atEndOfMonth() == periodEnd) ym else null
+    }
+
+    private fun periodWord() = when {
+        correspondingYearMonth() != null -> "month"
+        periodEnd == periodStart.plusDays(6) -> "week"
+        else -> "period"
+    }
+
+    private fun periodLabel() = correspondingYearMonth()
+        ?.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US))
+        ?: "${periodStart.formatAsShortDate()} through ${periodEnd.formatAsShortDate()}"
+
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
+        val data = loadData()
+        return when {
+            pageIndex == SINGLE_PAGE -> renderSinglePage(data, configuration)
+            pageIndex == 0 -> renderIntro(data, configuration)
+            else -> renderWeekPage(data, configuration)
+        }
+    }
+
+    private data class AvailabilityData(
+        val responses: UserResponses,
+        val concluded: Boolean,
+        val conclusionMessageId: Long?,
+    )
+
+    private fun loadData(): AvailabilityData =
+        AvailabilitiesPeriodRepository.loadOrInitialize(DatePeriod(periodStart, periodEnd), context)
+            .let { AvailabilityData(it.responses, it.concluded, it.conclusionMessageId) }
+
+    /**
+     * Single-page layout showing all sections in one message.
+     * Sections are ordered the same way as in a thread: missing responses and session limits
+     * appear before the time slots (mirroring the intro page preceding the week pages).
+     */
+    private fun renderSinglePage(
+        data: AvailabilityData,
+        configuration: Configuration,
+    ): List<MessageTopLevelComponent> {
+        val timeSlots = configuration.scheduling.getTimeSlots(DatePeriod(periodStart, periodEnd), configuration.timeZone)
+        return listOf(
             listOf(
-                renderHeader(datePeriod.fromDate, datePeriod.toDate, week, configuration),
-                timeSlots.map { timeSlot -> renderTimeSlotContainer(timeSlot, week) },
-                renderWeekLimits(week),
-                renderMissingResponses(week, configuration)
-            ).flatten()
+                TextDisplay.of(
+                    "## Availabilities for ${periodLabel()}\n" +
+                            if (!data.concluded) {
+                                "Please use the buttons below to toggle your availability" +
+                                        formatActivities(configuration.activities)
+                            } else {
+                                DiscordFormatter.bold(
+                                    "✅ Planning for this ${periodWord()} has been concluded" +
+                                            data.conclusionMessageId?.let {
+                                                "\nSee https://discord.com/channels/${context.guildId}/${context.channelId}/$it"
+                                            }.orEmpty()
+                                )
+                            }
+                )
+            ),
+            renderMissingResponses(data, configuration),
+            renderLimits("Limits this ${periodWord()}", data),
+            timeSlots.map { renderTimeSlotContainer(it, data) },
+        ).flatten()
+    }
+
+    /** Thread intro page: concluded banner, missing responses, session limits. */
+    private fun renderIntro(
+        data: AvailabilityData,
+        configuration: Configuration,
+    ): List<MessageTopLevelComponent> =
+        listOfNotNull(
+            if (data.concluded) Container.of(
+                TextDisplay.of(
+                    DiscordFormatter.bold(
+                        "✅ Planning for this ${periodWord()} has been concluded" +
+                                data.conclusionMessageId?.let {
+                                    "\nSee https://discord.com/channels/${context.guildId}/${context.channelId}/$it"
+                                }.orEmpty()
+                    )
+                )
+            ) else null
+        ) +
+                renderMissingResponses(data, configuration) +
+                renderLimits("Limits this ${periodWord()}", data)
+
+    /** Thread week page: week label followed by its time slot containers. */
+    private fun renderWeekPage(
+        data: AvailabilityData,
+        configuration: Configuration,
+    ): List<MessageTopLevelComponent> {
+        val period = DatePeriod(periodStart, periodEnd)
+        val chunks = weekChunks(period, configuration.scheduling.startDayOfWeek)
+        val chunk = chunks.getOrElse(pageIndex - 1) { emptyList() }
+        val allTimeSlots = configuration.scheduling.getTimeSlots(period, configuration.timeZone)
+        val weekTimeSlots = allTimeSlots.filter { slot ->
+            slot.atZone(configuration.timeZone.toZoneId()).toLocalDate() in chunk
         }
-
-    private fun renderHeader(
-        from: LocalDate,
-        to: LocalDate,
-        week: AvailabilitiesWeek,
-        configuration: Configuration
-    ): List<TextDisplay> =
-        listOf(
-            TextDisplay.of(
-                "## Availabilities for ${from.formatAsShortDate()} through ${to.formatAsShortDate()}\n" +
-                        if (!week.concluded) {
-                            "Please use the buttons below to toggle your availability" +
-                                    formatActivities(configuration.activities)
-                        } else {
-                            DiscordFormatter.bold(
-                                "✅ Planning for this week has been concluded" +
-                                    week.conclusionMessageId?.let {
-                                        "\nSee https://discord.com/channels/${context.guildId}/${context.channelId}/$it"
-                                    }.orEmpty()
-                            )
-                        }
-            )
-        )
-
-    private fun formatActivities(activities: List<Activity>) =
-        when (activities.size) {
-            0 -> ""
-            1 -> " for\n${DiscordFormatter.bold(activities.first().name)}"
-            else -> " for one or more of\n" +
-                    activities.map(Activity::name)
-                        .sorted()
-                        .map(DiscordFormatter::bold)
-                        .joinToString("\n") { "- $it" }
+        val ym = correspondingYearMonth()
+        val label = if (ym != null) {
+            val monthName = ym.format(DateTimeFormatter.ofPattern("MMMM", Locale.US))
+            "$monthName ${chunk.first().dayOfMonth}–${chunk.last().dayOfMonth}"
+        } else {
+            "${chunk.first().formatAsShortDate()}–${chunk.last().formatAsShortDate()}"
         }
+        return listOf(TextDisplay.of("### $label")) +
+                weekTimeSlots.map { renderTimeSlotContainer(it, data) }
+    }
 
-    private fun renderTimeSlotContainer(timeSlot: Instant, week: AvailabilitiesWeek) = Container.of(
+    private fun renderTimeSlotContainer(timeSlot: Instant, data: AvailabilityData) = Container.of(
         Section.of(
             Buttons.ToggleTimeSlotAvailability(timeSlot = timeSlot, screen = this@AvailabilityScreen).render()
-                .let { if (week.concluded) it.asDisabled() else it },
+                .let { if (data.concluded) it.asDisabled() else it },
             TextDisplay.of(
                 "### ${timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
-                        week
-                            .responses
-                            .map
+                        data.responses.map
                             .asSequence()
                             .filter { (_, response) -> response.sessionLimit != 0 }
                             .mapNotNull { (userId, response) ->
@@ -98,32 +182,29 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
         )
     )
 
-    private fun renderWeekLimits(week: AvailabilitiesWeek) =
+    private fun renderLimits(title: String, data: AvailabilityData) =
         listOf(
             Container.of(
                 Section.of(
-                    Buttons.ToggleWeekSessionLimit(screen = this@AvailabilityScreen).render()
-                        .let { if (week.concluded) it.asDisabled() else it },
+                    Buttons.ToggleSessionLimit(screen = this@AvailabilityScreen).render()
+                        .let { if (data.concluded) it.asDisabled() else it },
                     TextDisplay.of(
-                        "### Limits this week\n" +
+                        "### $title\n" +
                                 listOf(
-                                    week
-                                        .responses
-                                        .map
+                                    data.responses.map
                                         .asSequence()
                                         .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
                                         .filter { (_, sessionLimit) -> sessionLimit == 1 }
                                         .map { (userId, _) -> userId }
                                         .sorted()
                                         .toList()
-                                        .takeUnless { it.isEmpty() }?.joinToString(
+                                        .takeUnless { it.isEmpty() }
+                                        ?.joinToString(
                                             prefix = DiscordFormatter.bold("Only one session") + "\n",
                                             transform = DiscordFormatter::mentionUser,
                                             separator = "\n"
                                         ).orEmpty(),
-                                    week
-                                        .responses
-                                        .map
+                                    data.responses.map
                                         .asSequence()
                                         .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
                                         .filter { (_, sessionLimit) -> sessionLimit == 0 }
@@ -142,12 +223,12 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
             )
         )
 
-    private fun renderMissingResponses(week: AvailabilitiesWeek, configuration: Configuration) =
+    private fun renderMissingResponses(data: AvailabilityData, configuration: Configuration) =
         listOfNotNull(
             configuration.activities
                 .flatMap(Activity::participants)
                 .map(Participant::userId)
-                .filter { week.responses.forUserId(it) == null }
+                .filter { data.responses.forUserId(it) == null }
                 .distinct()
                 .sorted()
                 .takeUnless(List<Long>::isEmpty)
@@ -158,6 +239,17 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
                 ?.let(TextDisplay::of)
                 ?.let { Container.of(it).withAccentColor(0xFFB6C1) }
         )
+
+    private fun formatActivities(activities: List<Activity>) =
+        when (activities.size) {
+            0 -> ""
+            1 -> " for\n${DiscordFormatter.bold(activities.first().name)}"
+            else -> " for one or more of\n" +
+                    activities.map(Activity::name)
+                        .sorted()
+                        .map(DiscordFormatter::bold)
+                        .joinToString("\n") { "- $it" }
+        }
 
     class Buttons {
         class ToggleTimeSlotAvailability(
@@ -170,52 +262,72 @@ class AvailabilityScreen(val startDate: LocalDate, context: OperationContext) : 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    AvailabilitiesWeekRepository.update(
-                        startDate = screen.startDate,
+                    AvailabilitiesPeriodRepository.update(
+                        period = DatePeriod(screen.periodStart, screen.periodEnd),
                         context = screen.context
-                    ) { week ->
-                        val oldAvailability = week.responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot)
-                        val newAvailability = when (oldAvailability) {
-                            null -> AvailabilityStatus.AVAILABLE
-                            AvailabilityStatus.AVAILABLE -> AvailabilityStatus.IF_NEED_BE
-                            AvailabilityStatus.IF_NEED_BE -> AvailabilityStatus.UNAVAILABLE
-                            AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.AVAILABLE
-                        }
-                        logger.info("Updating availability at $timeSlot from $oldAvailability to $newAvailability")
-                        week.setUserTimeSlotAvailability(
-                            userId = userId,
-                            timeSlot = timeSlot,
-                            availabilityStatus = newAvailability
-                        )
+                    ) { period ->
+                        val old = period.responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot)
+                        val new = cycleAvailability(old)
+                        logger.info("Updating availability at $timeSlot from $old to $new")
+                        period.setUserTimeSlotAvailability(userId, timeSlot, new)
                     }
                 }
             }
         }
 
-        class ToggleWeekSessionLimit(override val screen: AvailabilityScreen) : ScreenButton {
+        class ToggleSessionLimit(override val screen: AvailabilityScreen) : ScreenButton {
             fun render() =
                 Button.secondary(CustomIdSerialization.serialize(this), Emoji.fromUnicode("U+1F6AB"))
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     val userId = event.user.idLong
-                    AvailabilitiesWeekRepository.update(
-                        startDate = screen.startDate,
+                    AvailabilitiesPeriodRepository.update(
+                        period = DatePeriod(screen.periodStart, screen.periodEnd),
                         context = screen.context
-                    ) { week ->
-                        val oldLimit = week.responses.forUserId(userId)?.sessionLimit
-                        val newLimit = when (oldLimit) {
-                            0 -> 2
-                            1 -> 0
-                            else -> 1
-                        }
-                        logger.info("Updating session limit at week of ${screen.startDate} from $oldLimit to $newLimit")
-                        week.setUserSessionLimit(userId, newLimit)
+                    ) { period ->
+                        val old = period.responses.forUserId(userId)?.sessionLimit
+                        val new = cycleLimit(old)
+                        logger.info("Updating session limit for period ${screen.periodStart}–${screen.periodEnd} from $old to $new")
+                        period.setUserSessionLimit(userId, new)
                     }
                 }
             }
         }
     }
-}
 
-fun LocalDate.formatAsShortDate(): String = format(DateTimeFormatter.ofPattern("LLLL d", Locale.US))
+    companion object {
+        const val SINGLE_PAGE = -1
+
+        private fun cycleAvailability(current: AvailabilityStatus?) = when (current) {
+            null -> AvailabilityStatus.AVAILABLE
+            AvailabilityStatus.AVAILABLE -> AvailabilityStatus.IF_NEED_BE
+            AvailabilityStatus.IF_NEED_BE -> AvailabilityStatus.UNAVAILABLE
+            AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.AVAILABLE
+        }
+
+        private fun cycleLimit(current: Int?) = when (current) {
+            0 -> 2
+            1 -> 0
+            else -> 1
+        }
+
+        /**
+         * Splits the dates of [period] into week chunks, each starting on [startDayOfWeek].
+         * The first chunk may be a partial week and the last chunk may also be partial.
+         */
+        fun weekChunks(period: DatePeriod, startDayOfWeek: DayOfWeek): List<List<LocalDate>> {
+            val result = mutableListOf<MutableList<LocalDate>>()
+            var current = mutableListOf<LocalDate>()
+            for (date in period.dates()) {
+                if (date.dayOfWeek == startDayOfWeek && current.isNotEmpty()) {
+                    result.add(current)
+                    current = mutableListOf()
+                }
+                current.add(date)
+            }
+            if (current.isNotEmpty()) result.add(current)
+            return result
+        }
+    }
+}

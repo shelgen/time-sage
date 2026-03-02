@@ -41,6 +41,18 @@ open class Scheduling(
 
     fun getTimeSlots(datePeriod: DatePeriod, timeZone: TimeZone) =
         timeSlotRules.getTimeSlots(datePeriod, timeZone)
+
+    fun activePeriod(timeZone: TimeZone): DatePeriod {
+        val today = LocalDate.now(timeZone.toZoneId())
+        val lookAhead = today.plusDays(daysBeforePeriod.toLong())
+        return when (type) {
+            SchedulingType.WEEKLY -> {
+                val daysBack = (DayOfWeek.entries.size + lookAhead.dayOfWeek.value - startDayOfWeek.value) % DayOfWeek.entries.size
+                DatePeriod.weekFrom(lookAhead.minusDays(daysBack.toLong()))
+            }
+            SchedulingType.MONTHLY -> DatePeriod.monthFrom(YearMonth.from(lookAhead))
+        }
+    }
 }
 
 class MutableScheduling(
