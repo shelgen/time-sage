@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.planning
 
+import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.DatePeriod
@@ -12,117 +13,113 @@ class Planner(
     private val datePeriod: DatePeriod,
     private val responses: UserResponses
 ) {
-
     fun generatePossiblePlans(): List<Plan> {
-        logger.info("Generating suggestions for period $datePeriod")
+        logger.info("Generating possible plans for period $datePeriod")
         val timeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
-        return findAllWeekPlansSortedByScore(timeSlots).toList()
-    }
-
-    private fun findAllWeekPlansSortedByScore(timeSlots: List<Instant>) =
-        recursivelyFindPossiblePlans(planThusFar = emptyList(), remainingTimeSlots = timeSlots)
+        return buildSessions(plannedSessions = emptyList(), remainingTimeSlots = timeSlots)
             .distinct()
-            .filterNot(List<Plan.Session>::isEmpty)
-            .filterNot(::isSuboptimalForAParticipant)
+            .filter { it.isNotEmpty() }
+            .filterNot { isSuboptimalForAParticipant(it) }
             .map(::Plan)
             .sortedBy(Plan::score)
-
-    private fun isSuboptimalForAParticipant(plannedSessions: List<Plan.Session>) =
-        configuration.activities.flatMap { it.participants }
-            .asSequence()
-            .filter { participant ->
-                val userId = participant.userId
-                plannedSessions.count { it.hasAttendee(userId) } < getSessionLimit(userId)
-            }
-            .any { participant ->
-                val userId = participant.userId
-                plannedSessions
-                    .asSequence()
-                    .filter { session ->
-                        val activity = configuration.activities.first { it.id == session.activityId }
-                        activity.hasParticipant(participant.userId)
-                    }
-                    .filterNot { it.hasAttendee(userId) }
-                    .map(Plan.Session::timeSlot)
-                    .map { getAvailability(userId, it) }
-                    .any { it != AvailabilityStatus.UNAVAILABLE }
-            }
-
-    private fun getAvailability(userId: Long, timeSlot: Instant) =
-        responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot)
-            ?: AvailabilityStatus.UNAVAILABLE
-
-    private fun getSessionLimit(userId: Long) =
-        responses.forUserId(userId)?.sessionLimit ?: 2
-
-    private fun recursivelyFindPossiblePlans(
-        planThusFar: List<Plan.Session> = emptyList(),
-        remainingTimeSlots: List<Instant>
-    ): Sequence<List<Plan.Session>> {
-        val currentTimeSlot = remainingTimeSlots.firstOrNull()
-        return if (currentTimeSlot == null) {
-            sequenceOf(planThusFar)
-        } else {
-            configuration.activities
-                .asSequence()
-                .flatMap { activity ->
-                    val potentialAttendees =
-                        responses.map
-                            .asSequence()
-                            .map { (userId, response) ->
-                                userId to (response.availabilities.forTimeSlot(currentTimeSlot)
-                                    ?: AvailabilityStatus.UNAVAILABLE)
-                            }
-                            .filterNot { (_, availability) -> availability == AvailabilityStatus.UNAVAILABLE }
-                            .map { (userId, availability) ->
-                                Plan.Session.Attendee(
-                                    userId = userId,
-                                    ifNeedBe = availability == AvailabilityStatus.IF_NEED_BE
-                                )
-                            }
-                            .filter { activity.hasParticipant(it.userId) }
-                            .filterNot { attendee ->
-                                val userId = attendee.userId
-                                planThusFar.count { it.hasAttendee(userId) } == getSessionLimit(userId)
-                            }
-                            .toSet()
-
-                    val requiredAttendees =
-                        potentialAttendees
-                            .filter { activity.isRequiredParticipant(it.userId) }
-                            .toSet()
-
-                    if (planThusFar.size < 2 && requiredAttendees.size == activity.participants.count { !it.optional }) {
-                        potentialAttendees
-                            .minus(requiredAttendees)
-                            .combinations()
-                            .filter { activity.participants.count { it.optional } - it.size <= activity.maxMissingOptionalParticipants }
-                            .asSequence()
-                            .flatMap { attendees ->
-                                recursivelyFindPossiblePlans(
-                                    planThusFar = planThusFar + Plan.Session(
-                                        timeSlot = currentTimeSlot,
-                                        activityId = activity.id,
-                                        attendees = attendees + requiredAttendees,
-                                        missingOptionalCount = activity.participants.count { it.optional } - attendees.size
-                                    ),
-                                    remainingTimeSlots = remainingTimeSlots.drop(1)
-                                )
-                            }
-                    } else {
-                        emptySequence()
-                    }
-                } + recursivelyFindPossiblePlans(
-                planThusFar = planThusFar,
-                remainingTimeSlots = remainingTimeSlots.drop(1)
-            )
-        }
+            .toList()
     }
 
+    // Returns true if any participant could have been scheduled for more sessions but wasn't.
+    private fun isSuboptimalForAParticipant(sessions: List<Plan.Session>): Boolean =
+        configuration.activities
+            .flatMap { it.participants }
+            .any { participant ->
+                val userId = participant.userId
+                sessions.count { it.hasAttendee(userId) } < sessionLimit(userId) &&
+                        wasExcludedFromAnAvailableSession(userId, sessions)
+            }
+
+    private fun wasExcludedFromAnAvailableSession(userId: Long, sessions: List<Plan.Session>): Boolean =
+        sessions
+            .filter { session ->
+                val activity = configuration.activities.first { it.id == session.activityId }
+                activity.hasParticipant(userId)
+            }
+            .filterNot { it.hasAttendee(userId) }
+            .any { session -> availabilityFor(userId, session.timeSlot) != AvailabilityStatus.UNAVAILABLE }
+
+    private fun buildSessions(
+        plannedSessions: List<Plan.Session>,
+        remainingTimeSlots: List<Instant>
+    ): Sequence<List<Plan.Session>> {
+        val currentSlot = remainingTimeSlots.firstOrNull()
+            ?: return sequenceOf(plannedSessions)
+        val nextSlots = remainingTimeSlots.drop(1)
+
+        val withSessionInCurrentSlot = configuration.activities
+            .asSequence()
+            .flatMap { activity -> candidateSessionsFor(activity, currentSlot, plannedSessions, nextSlots) }
+        val withSlotSkipped = buildSessions(plannedSessions, nextSlots)
+
+        return withSessionInCurrentSlot + withSlotSkipped
+    }
+
+    private fun candidateSessionsFor(
+        activity: Activity,
+        timeSlot: Instant,
+        plannedSessions: List<Plan.Session>,
+        nextSlots: List<Instant>
+    ): Sequence<List<Plan.Session>> {
+        if (plannedSessions.size >= 2) return emptySequence()
+
+        val availableAttendees = availableAttendeesFor(activity, timeSlot, plannedSessions)
+        val requiredAttendees = availableAttendees.filter { activity.isRequiredParticipant(it.userId) }.toSet()
+        val optionalAttendees = availableAttendees - requiredAttendees
+
+        val allRequiredPresent = requiredAttendees.size == activity.participants.count { !it.optional }
+        if (!allRequiredPresent) return emptySequence()
+
+        val totalOptional = activity.participants.count { it.optional }
+
+        return optionalAttendees
+            .combinations()
+            .filter { subset -> totalOptional - subset.size <= activity.maxMissingOptionalParticipants }
+            .asSequence()
+            .flatMap { optionalSubset ->
+                val session = Plan.Session(
+                    timeSlot = timeSlot,
+                    activityId = activity.id,
+                    attendees = requiredAttendees + optionalSubset,
+                    missingOptionalCount = totalOptional - optionalSubset.size
+                )
+                buildSessions(plannedSessions + session, nextSlots)
+            }
+    }
+
+    private fun availableAttendeesFor(
+        activity: Activity,
+        timeSlot: Instant,
+        plannedSessions: List<Plan.Session>
+    ): Set<Plan.Session.Attendee> =
+        responses.map
+            .asSequence()
+            .filter { (userId, _) -> activity.hasParticipant(userId) }
+            .filter { (userId, _) -> plannedSessions.count { it.hasAttendee(userId) } < sessionLimit(userId) }
+            .mapNotNull { (userId, response) ->
+                val availability = response.availabilities.forTimeSlot(timeSlot) ?: AvailabilityStatus.UNAVAILABLE
+                if (availability == AvailabilityStatus.UNAVAILABLE) null
+                else Plan.Session.Attendee(userId, ifNeedBe = availability == AvailabilityStatus.IF_NEED_BE)
+            }
+            .toSet()
+
+    private fun availabilityFor(userId: Long, timeSlot: Instant): AvailabilityStatus =
+        responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot) ?: AvailabilityStatus.UNAVAILABLE
+
+    private fun sessionLimit(userId: Long): Int =
+        responses.forUserId(userId)?.sessionLimit ?: 2
+
     companion object {
-        fun <T> Set<T>.combinations(currentProgress: Set<T> = emptySet()): Set<Set<T>> = flatMap {
-            val newSet = currentProgress + it
-            setOf(newSet) + minus(it).combinations(newSet)
-        }.plus(setOf(emptySet())).toSet()
+        fun <T> Set<T>.combinations(): Set<Set<T>> {
+            if (isEmpty()) return setOf(emptySet())
+            val first = first()
+            val rest = minus(first).combinations()
+            return rest + rest.map { it + first }
+        }
     }
 }

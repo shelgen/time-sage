@@ -10,6 +10,7 @@ data class DatePeriod(
     val toDate: LocalDate
 ) {
     fun dates(): List<LocalDate> = fromDate.datesUntil(toDate.plusDays(1)).toList()
+    override fun toString() = "$fromDate through $toDate"
 
     companion object {
         fun weekFrom(startDate: LocalDate) =
@@ -47,9 +48,11 @@ open class Scheduling(
         val lookAhead = today.plusDays(daysBeforePeriod.toLong())
         return when (type) {
             SchedulingType.WEEKLY -> {
-                val daysBack = (DayOfWeek.entries.size + lookAhead.dayOfWeek.value - startDayOfWeek.value) % DayOfWeek.entries.size
+                val daysBack =
+                    (DayOfWeek.entries.size + lookAhead.dayOfWeek.value - startDayOfWeek.value) % DayOfWeek.entries.size
                 DatePeriod.weekFrom(lookAhead.minusDays(daysBack.toLong()))
             }
+
             SchedulingType.MONTHLY -> DatePeriod.monthFrom(YearMonth.from(lookAhead))
         }
     }
