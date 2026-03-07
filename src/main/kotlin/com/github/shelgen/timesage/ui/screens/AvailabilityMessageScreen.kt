@@ -1,0 +1,31 @@
+package com.github.shelgen.timesage.ui.screens
+
+import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.Tenant
+import net.dv8tion.jda.api.components.MessageTopLevelComponent
+import java.time.Instant
+
+class AvailabilityMessageScreen(dateRange: DateRange, tenant: Tenant) : AbstractDateRangeScreen(dateRange, tenant) {
+    override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
+        AvailabilityThreadStartScreen(dateRange, tenant).renderComponents(configuration) +
+                PeriodLevelScreenContent<AvailabilityMessageScreen>(this) {
+                    Buttons.ToggleSessionLimit(this)
+                }.renderComponents(configuration) +
+                TimeSlotContainerRenderer.renderTimeSlotContainers(
+                    weekTimeSlots = configuration.scheduling.timeSlotRules.getTimeSlots(
+                        dateRange = dateRange,
+                        timeZone = configuration.localization.timeZone
+                    ),
+                    dateRange = dateRange,
+                    tenant = tenant
+                ) { timeSlot -> Buttons.ToggleTimeSlotAvailability(timeSlot, this) }
+
+    class Buttons {
+        class ToggleTimeSlotAvailability(timeSlot: Instant, screen: AvailabilityMessageScreen) :
+            TimeSlotContainerRenderer.ToggleAvailabilityButton(timeSlot, screen)
+
+        class ToggleSessionLimit(override val screen: AvailabilityMessageScreen) :
+            PeriodLevelScreenContent.ToggleSessionLimitButton<AvailabilityMessageScreen>(screen)
+    }
+}

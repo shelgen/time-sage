@@ -22,13 +22,12 @@ class AlternativePrinterTest {
     private val printer = AlternativePrinter(
         Configuration(
             enabled = true,
-            timeZone = getTimeZone("UTC"),
+            localization = Localization(timeZone = getTimeZone("UTC"), startDayOfWeek = DayOfWeek.MONDAY),
             scheduling = Scheduling(
                 type = SchedulingType.WEEKLY,
-                startDayOfWeek = DayOfWeek.MONDAY,
                 timeSlotRules = TimeSlotRules.of(DayOfWeek.MONDAY to of(18, 0)),
-                daysBeforePeriod = 5,
-                planningStartHour = 17,
+                numDaysInAdvanceToStartPlanning = 5,
+                timeOfDayToStartPlanning = 17,
                 reminderIntervalDays = 1,
             ),
             activities = listOf(

@@ -1,11 +1,9 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DatePeriod
-import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.planning.Plan
-import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -14,39 +12,34 @@ import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
-import java.time.LocalDate
 
-class PlanAlternativeListScreen(
-    val periodStart: LocalDate,
-    val periodEnd: LocalDate,
-    val startIndex: Int,
-    val size: Int,
-    context: OperationContext
-) : Screen(context) {
+class PlanAlternativesPageScreen(
+    val dateRange: DateRange,
+    val fromInclusive: Int,
+    val pageSize: Int,
+    tenant: Tenant
+) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val period = DatePeriod(periodStart, periodEnd)
-        val data = AvailabilitiesPeriodRepository.loadOrInitialize(period, context)
-        val planner = Planner(configuration = configuration, datePeriod = period, responses = data.responses)
-        val plans = planner.generatePossiblePlans()
-        val alternativeNumberedPlans =
-            plans.drop(startIndex).take(size)
-                .mapIndexed { index, plan -> startIndex + index + 1 to plan }
-        val totalNumAlternatives = plans.size
-
-        return if (alternativeNumberedPlans.isEmpty()) {
+        val allPlans = getPlans(configuration, dateRange, tenant)
+        val numberedPlansInPage =
+            allPlans.drop(fromInclusive).take(pageSize)
+                .mapIndexed { index, plan -> fromInclusive + index + 1 to plan }
+        val header = if (allPlans.isEmpty()) {
             listOf(
                 TextDisplay.of("There are no possible alternatives given the current availabilities."),
-                ActionRow.of(Buttons.SuggestNoSession(screen = this@PlanAlternativeListScreen).render())
+                ActionRow.of(Buttons.SuggestNoSession(screen = this@PlanAlternativesPageScreen).render())
             )
+        } else if (numberedPlansInPage.isEmpty()) {
+            listOf(TextDisplay.of("There are no more plans (only ${allPlans.size} in total)."))
         } else {
-            val nextStartIndex = startIndex + size
-            val nextSize = size.coerceAtMost(totalNumAlternatives - nextStartIndex)
-            listOf(
-                renderHeader(alternativeNumberedPlans, totalNumAlternatives),
-                renderAlternatives(alternativeNumberedPlans, configuration),
-                renderBottomActionRow(nextSize)
-            ).flatten()
+            renderHeader(numberedPlansInPage, allPlans.size)
         }
+        return listOf(
+            header,
+            renderAlternatives(numberedPlansInPage, configuration),
+            renderBottomActionRow(pageSize.coerceAtMost(allPlans.size - (fromInclusive + pageSize)))
+        ).flatten()
+
     }
 
     private fun renderHeader(alternativeNumberedPlans: List<Pair<Int, Plan>>, totalNumAlternatives: Int) =
@@ -72,9 +65,9 @@ class PlanAlternativeListScreen(
         Container.of(
             Section.of(
                 Buttons.SuggestAlternative(
-                    alternativeNumber = alternativeNumber,
+                    planNumber = alternativeNumber,
                     alternativeHashcode = plan.hashCode(),
-                    screen = this@PlanAlternativeListScreen
+                    screen = this@PlanAlternativesPageScreen
                 ).render(),
                 TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
             )
@@ -82,29 +75,33 @@ class PlanAlternativeListScreen(
 
     private fun renderBottomActionRow(nextSize: Int): List<MessageTopLevelComponent> {
         val buttons = buildList {
-            if (nextSize > 0) add(Buttons.ShowMoreAlternatives(nextSize = nextSize, screen = this@PlanAlternativeListScreen).render())
-            if (startIndex == 0) add(Buttons.SuggestNoSession(screen = this@PlanAlternativeListScreen).render())
+            if (nextSize > 0) add(
+                Buttons.ShowMoreAlternatives(
+                    nextSize = nextSize,
+                    screen = this@PlanAlternativesPageScreen
+                ).render()
+            )
+            if (fromInclusive == 0) add(Buttons.SuggestNoSession(screen = this@PlanAlternativesPageScreen).render())
         }
         return if (buttons.isEmpty()) emptyList() else listOf(ActionRow.of(buttons))
     }
 
     class Buttons {
         class SuggestAlternative(
-            val alternativeNumber: Int,
+            val planNumber: Int,
             val alternativeHashcode: Int,
-            override val screen: PlanAlternativeListScreen
+            override val screen: PlanAlternativesPageScreen
         ) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Suggest this")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
-                    PlanAlternativeSuggestedScreen(
-                        periodStart = screen.periodStart,
-                        periodEnd = screen.periodEnd,
-                        alternativeNumber = alternativeNumber,
+                    PlanSuggestedScreen(
+                        planNumber = planNumber,
+                        dateRange = screen.dateRange,
                         suggestingUserId = event.user.idLong,
-                        context = screen.context
+                        tenant = screen.tenant
                     )
                 }
             }
@@ -112,36 +109,34 @@ class PlanAlternativeListScreen(
 
         class ShowMoreAlternatives(
             val nextSize: Int,
-            override val screen: PlanAlternativeListScreen
+            override val screen: PlanAlternativesPageScreen
         ) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Show $nextSize more...")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddEphemeralScreen {
-                    PlanAlternativeListScreen(
-                        periodStart = screen.periodStart,
-                        periodEnd = screen.periodEnd,
-                        startIndex = screen.startIndex + screen.size,
-                        size = nextSize,
-                        context = screen.context
+                    PlanAlternativesPageScreen(
+                        dateRange = screen.dateRange,
+                        fromInclusive = screen.fromInclusive + screen.pageSize,
+                        pageSize = nextSize,
+                        tenant = screen.tenant
                     )
                 }
             }
         }
 
-        class SuggestNoSession(override val screen: PlanAlternativeListScreen) : ScreenButton {
+        class SuggestNoSession(override val screen: PlanAlternativesPageScreen) : ScreenButton {
             fun render() =
                 Button.danger(CustomIdSerialization.serialize(this), "No session")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
-                    PlanAlternativeSuggestedScreen(
-                        periodStart = screen.periodStart,
-                        periodEnd = screen.periodEnd,
-                        alternativeNumber = 0,
+                    PlanSuggestedScreen(
+                        planNumber = 0,
+                        dateRange = screen.dateRange,
                         suggestingUserId = event.user.idLong,
-                        context = screen.context
+                        tenant = screen.tenant
                     )
                 }
             }

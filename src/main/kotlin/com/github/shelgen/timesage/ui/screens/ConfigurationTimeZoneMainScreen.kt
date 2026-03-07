@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.buttons.Button
@@ -25,7 +25,7 @@ val mainCategories = setOf(
 
 const val CUSTOM_PREFIX = "other"
 
-class ConfigurationTimeZoneMainScreen(context: OperationContext) : Screen(context) {
+class ConfigurationTimeZoneMainScreen(tenant: Tenant) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
         listOf(
             TextDisplay.of(
@@ -60,7 +60,7 @@ class ConfigurationTimeZoneMainScreen(context: OperationContext) : Screen(contex
                 Button.primary(CustomIdSerialization.serialize(this), "Select...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationTimeZoneSubScreen(prefix, 0, screen.context) }
+                event.processAndNavigateTo { ConfigurationTimeZoneSubScreen(prefix, 0, screen.tenant) }
             }
         }
     }

@@ -105,7 +105,15 @@ class TimeSlotRulesTest {
             ),
             Parameters(
                 description = "every day",
-                rules = TimeSlotRules.fromEveryDay(time),
+                rules = TimeSlotRules(
+                    mondays = time,
+                    tuesdays = time,
+                    wednesdays = time,
+                    thursdays = time,
+                    fridays = time,
+                    saturdays = time,
+                    sundays = time,
+                ),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
                 expectedInstants = listOf(
@@ -147,10 +155,10 @@ class TimeSlotRulesTest {
     @FieldSource("parameters")
     fun `returns correct time slots`(parameters: Parameters) {
         // Given:
-        val datePeriod = DatePeriod(LocalDate.parse(parameters.fromDate), LocalDate.parse(parameters.toDate))
+        val dateRange = DateRange(LocalDate.parse(parameters.fromDate), LocalDate.parse(parameters.toDate))
 
         // When:
-        val timeSlots = parameters.rules.getTimeSlots(datePeriod, TimeZone.getTimeZone("UTC"))
+        val timeSlots = parameters.rules.getTimeSlots(dateRange, TimeZone.getTimeZone("UTC"))
 
         // Then:
         assertEquals(parameters.expectedInstants.map(Instant::parse), timeSlots)

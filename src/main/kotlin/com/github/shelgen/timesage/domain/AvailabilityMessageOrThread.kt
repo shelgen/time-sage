@@ -5,7 +5,7 @@ sealed interface AvailabilityMessageOrThread {
         val headerMessageId: Long,
         val threadId: Long,
         val sessionLimitAndUnavailableMessageId: Long?,
-        val availabilityMessageIds: Map<DatePeriod, Long>,
+        val availabilityMessageIds: Map<DateRange, Long>,
     ) : AvailabilityMessageOrThread
 
     data class AvailabilityMessage(

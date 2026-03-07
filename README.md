@@ -114,8 +114,8 @@ Time Sage is written in Kotlin using the [JDA Library](https://github.com/discor
 
 To simplify interactivity,
 a sort of framework has been written thinking of Time Sage's messages as UI, where each particular view is called a
-`Screen`. Each screen in turn has particular components with behavior. The behavior of a button depends on context,
-so both the screen and components have contextual data that are serialized into their ID's in Discord. This allows
+`Screen`. Each screen in turn has particular components with behavior. The behavior of a button depends on tenant,
+so both the screen and components have tenantual data that are serialized into their ID's in Discord. This allows
 the state of each component to live in Discord's messages and custom ID's instead of having to be stored in a database
 or the like.
 

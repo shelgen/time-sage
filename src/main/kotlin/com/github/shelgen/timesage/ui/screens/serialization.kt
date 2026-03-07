@@ -1,6 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.Tenant
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -36,7 +37,7 @@ object CustomIdSerialization {
 
     private fun serializeFields(instance: Any): List<String> =
         instance::class.primaryConstructor!!.parameters
-            .filterNot { parameter -> parameter.type == typeOf<OperationContext>() }
+            .filterNot { parameter -> parameter.type == typeOf<Tenant>() }
             .filterNot { parameter -> parameter.type.isSubtypeOf(typeOf<Screen>()) }
             .mapNotNull { parameter ->
                 instance::class.memberProperties.find { it.name == parameter.name }?.let {
@@ -47,7 +48,7 @@ object CustomIdSerialization {
                 }
             }
 
-    fun <T : ScreenComponent<*>> deserialize(customId: String, context: OperationContext): T {
+    fun <T : ScreenComponent<*>> deserialize(customId: String, tenant: Tenant): T {
         val (screenPart, componentPart, _) = customId.split('|', limit = 3)
 
         val (screenSerialId, serializedScreenFieldsString) = screenPart.removeSuffix("}").split('{', limit = 2)
@@ -58,8 +59,8 @@ object CustomIdSerialization {
 
         var serializedScreenFieldIndex = 0
         val screenConstructorArgs = screenClass.primaryConstructor!!.parameters.map { parameter ->
-            if (parameter.type == typeOf<OperationContext>()) {
-                context
+            if (parameter.type == typeOf<Tenant>()) {
+                tenant
             } else {
                 deserializeField(serializedScreenFields[serializedScreenFieldIndex++], parameter.type)
             }
@@ -98,6 +99,8 @@ object CustomIdSerialization {
             typeOf<Long>()
                 -> fieldValue.toString()
 
+            typeOf<DateRange>() -> "${(fieldValue as DateRange).fromInclusive}_${fieldValue.toInclusive}"
+
             else -> error("Serialization of field of type $fieldType not supported")
         }
 
@@ -109,6 +112,14 @@ object CustomIdSerialization {
             typeOf<Instant>() -> Instant.parse(serializedValue)
             typeOf<Int>() -> serializedValue.toInt()
             typeOf<Long>() -> serializedValue.toLong()
+            typeOf<DateRange>() -> serializedValue.split("_", limit = 2)
+                .let { (fromInclusiveString, toInclusiveString) ->
+                    DateRange(
+                        fromInclusive = LocalDate.parse(fromInclusiveString),
+                        toInclusive = LocalDate.parse(toInclusiveString)
+                    )
+                }
+
             else -> error("Deserialization of field of type $fieldType not supported")
         }
 

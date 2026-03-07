@@ -26,16 +26,16 @@ import java.time.LocalTime
 import java.time.format.TextStyle
 import java.util.*
 
-class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
+class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         val orderedDays = (0..6).map {
-            DayOfWeek.of((configuration.scheduling.startDayOfWeek.value - 1 + it) % 7 + 1)
+            DayOfWeek.of((configuration.localization.startDayOfWeek.value - 1 + it) % 7 + 1)
         }
         return listOf(
             TextDisplay.of("# Time Sage configuration"),
             TextDisplay.of(
-                "${DiscordFormatter.mentionChannel(context.channelId)} in " +
-                        JDAHolder.jda.getGuildById(context.guildId)?.name
+                "${DiscordFormatter.mentionChannel(tenant.channelId)} in " +
+                        JDAHolder.jda.getGuildById(tenant.guildId)?.name
             ),
             TextDisplay.of("-# All configuration is specific for this channel in this server."),
             Section.of(
@@ -51,7 +51,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 TextDisplay.of(
                     "${DiscordFormatter.bold("Voice channel for scheduled events")}: " +
                             (configuration.voiceChannelId?.let { id ->
-                                JDAHolder.jda.getGuildById(context.guildId)
+                                JDAHolder.jda.getGuildById(tenant.guildId)
                                     ?.voiceChannelCache?.getElementById(id)?.name
                                     ?.let { "#$it" } ?: "Unknown channel"
                             } ?: "Not set")
@@ -60,14 +60,14 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
             TextDisplay.of("### Localization"),
             Section.of(
                 Buttons.ChangeTimeZone(this).render(),
-                TextDisplay.of("${DiscordFormatter.bold("Time zone")}: ${configuration.timeZone.toZoneId()}")
+                TextDisplay.of("${DiscordFormatter.bold("Time zone")}: ${configuration.localization.timeZone.toZoneId()}")
             ),
             Section.of(
                 Buttons.EditStartDay(this).render(),
                 TextDisplay.of(
                     "Weeks start on a ${
                         DiscordFormatter.bold(
-                            configuration.scheduling.startDayOfWeek.getDisplayName(TextStyle.FULL, Locale.US).lowercase()
+                            configuration.localization.startDayOfWeek.getDisplayName(TextStyle.FULL, Locale.US).lowercase()
                         )
                     }."
                 )
@@ -95,8 +95,8 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 TextDisplay.of("### Planning timing")
             ),
             TextDisplay.of(
-                "Planning starts ${DiscordFormatter.bold("${configuration.scheduling.daysBeforePeriod} days")} before the period at " +
-                        DiscordFormatter.bold("%02d:00".format(configuration.scheduling.planningStartHour)) + " (${configuration.timeZone.toZoneId()}).\n" +
+                "Planning starts ${DiscordFormatter.bold("${configuration.scheduling.numDaysInAdvanceToStartPlanning} days")} before the period at " +
+                        DiscordFormatter.bold("%02d:00".format(configuration.scheduling.timeOfDayToStartPlanning)) + " (${configuration.localization.timeZone.toZoneId()}).\n" +
                         "Reminders: " + when (configuration.scheduling.reminderIntervalDays) {
                     0 -> DiscordFormatter.bold("Never")
                     1 -> DiscordFormatter.bold("Every day")
@@ -129,8 +129,8 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(screen.context) { it.enabled = true }
-                    AvailabilityMessageSender.postAvailabilityMessage(screen.context)
+                    ConfigurationRepository.update(screen.tenant) { it.enabled = true }
+                    AvailabilityMessageSender.postAvailabilityMessage(screen.tenant)
                 }
             }
         }
@@ -141,7 +141,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(screen.context) { it.enabled = false }
+                    ConfigurationRepository.update(screen.tenant) { it.enabled = false }
                 }
             }
         }
@@ -151,7 +151,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Set voice channel...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 val modal = Modals.SetVoiceChannel(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -162,7 +162,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Change time zone...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationTimeZoneMainScreen(screen.context) }
+                event.processAndNavigateTo { ConfigurationTimeZoneMainScreen(screen.tenant) }
             }
         }
 
@@ -171,7 +171,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Change schedule interval...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 val modal = Modals.ChangeScheduleInterval(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -182,7 +182,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Edit weekdays...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 val modal = Modals.EditWeekdays(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -193,7 +193,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Edit weekend...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 val modal = Modals.EditWeekend(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -204,7 +204,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Change start day...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 val modal = Modals.EditStartDay(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -218,7 +218,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Edit...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 val modal = Modals.EditActivity(activityId, screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -229,7 +229,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.success(CustomIdSerialization.serialize(this), "Add new activity...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 val modal = Modals.AddActivity(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -241,7 +241,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
-                    ConfigurationDeleteActivitiesScreen(screen.context)
+                    ConfigurationDeleteActivitiesScreen(screen.tenant)
                 }
             }
         }
@@ -251,7 +251,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                 Button.primary(CustomIdSerialization.serialize(this), "Edit planning timing...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.context)
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 val modal = Modals.EditPlanningTiming(screen).render(configuration)
                 event.replyModal(modal).queue()
             }
@@ -280,7 +280,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         configuration.scheduling.type =
                             enumValueOf(event.getValue("scheduleInterval")!!.asStringList.first())
                     }
@@ -312,7 +312,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         configuration.voiceChannelId = event.getValue("voiceChannel")!!.asLongList.firstOrNull()
                     }
                 }
@@ -346,7 +346,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         val weekdays = listOf(
                             DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
                             DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
@@ -390,7 +390,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         val weekend = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
                         val updatedPairs = weekend.mapNotNull { day ->
                             val raw = event.getValue(day.name.lowercase())?.asString?.trim()
@@ -426,7 +426,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                                         it.value.toString()
                                     )
                                 })
-                                .setDefaultValues(configuration.scheduling.startDayOfWeek.value.toString())
+                                .setDefaultValues(configuration.localization.startDayOfWeek.value.toString())
                                 .build()
                         )
                     )
@@ -434,8 +434,8 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(context = screen.context) { configuration ->
-                        configuration.scheduling.startDayOfWeek =
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
+                        configuration.localization.startDayOfWeek =
                             DayOfWeek.of(event.getValue("startDayOfWeek")!!.asStringList.first().toInt())
                     }
                 }
@@ -482,7 +482,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         val activity = configuration.addNewActivity()
                         activity.name = event.getValue("name")!!.asString
                         activity.setOptionalParticipants(event.getValue("optionalParticipants")!!.asLongList)
@@ -547,7 +547,7 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(context = screen.context) { configuration ->
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         val activity = configuration.getActivity(activityId = activityId)
                         activity.name = event.getValue("name")!!.asString
                         activity.setOptionalParticipants(event.getValue("optionalParticipants")!!.asLongList)
@@ -572,16 +572,16 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
                                 .addOptions((1..14).map {
                                     SelectOption.of(if (it == 1) "1 day before" else "$it days before", it.toString())
                                 })
-                                .setDefaultValues(configuration.scheduling.daysBeforePeriod.coerceIn(1, 14).toString())
+                                .setDefaultValues(configuration.scheduling.numDaysInAdvanceToStartPlanning.coerceIn(1, 14).toString())
                                 .build()
                         ),
                         Label.of(
-                            "Planning start hour (${configuration.timeZone.toZoneId()})",
+                            "Planning start hour (${configuration.localization.timeZone.toZoneId()})",
                             StringSelectMenu.create("planningStartHour")
                                 .setMinValues(1)
                                 .setMaxValues(1)
                                 .addOptions((0..23).map { SelectOption.of("%02d:00".format(it), it.toString()) })
-                                .setDefaultValues(configuration.scheduling.planningStartHour.toString())
+                                .setDefaultValues(configuration.scheduling.timeOfDayToStartPlanning.toString())
                                 .build()
                         ),
                         Label.of(
@@ -607,10 +607,10 @@ class ConfigurationMainScreen(context: OperationContext) : Screen(context) {
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(context = screen.context) { configuration ->
-                        configuration.scheduling.daysBeforePeriod =
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
+                        configuration.scheduling.numDaysInAdvanceToStartPlanning =
                             event.getValue("daysBeforePeriod")!!.asStringList.first().toInt()
-                        configuration.scheduling.planningStartHour =
+                        configuration.scheduling.timeOfDayToStartPlanning =
                             event.getValue("planningStartHour")!!.asStringList.first().toInt()
                         configuration.scheduling.reminderIntervalDays =
                             event.getValue("reminderIntervalDays")!!.asStringList.first().toInt()

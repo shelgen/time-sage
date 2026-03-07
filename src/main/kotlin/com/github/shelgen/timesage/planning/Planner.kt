@@ -3,19 +3,19 @@ package com.github.shelgen.timesage.planning
 import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DatePeriod
+import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.UserResponses
 import com.github.shelgen.timesage.logger
 import java.time.Instant
 
 class Planner(
     private val configuration: Configuration,
-    private val datePeriod: DatePeriod,
+    private val dateRange: DateRange,
     private val responses: UserResponses
 ) {
     fun generatePossiblePlans(): List<Plan> {
-        logger.info("Generating possible plans for period $datePeriod")
-        val timeSlots = configuration.scheduling.getTimeSlots(datePeriod, configuration.timeZone)
+        logger.info("Generating possible plans for period $dateRange")
+        val timeSlots = configuration.scheduling.timeSlotRules.getTimeSlots(dateRange, configuration.localization.timeZone)
         return buildSessions(plannedSessions = emptyList(), remainingTimeSlots = timeSlots)
             .distinct()
             .filter { it.isNotEmpty() }
@@ -102,17 +102,17 @@ class Planner(
             .filter { (userId, _) -> activity.hasParticipant(userId) }
             .filter { (userId, _) -> plannedSessions.count { it.hasAttendee(userId) } < sessionLimit(userId) }
             .mapNotNull { (userId, response) ->
-                val availability = response.availabilities.forTimeSlot(timeSlot) ?: AvailabilityStatus.UNAVAILABLE
+                val availability = response.availabilities[timeSlot] ?: AvailabilityStatus.UNAVAILABLE
                 if (availability == AvailabilityStatus.UNAVAILABLE) null
                 else Plan.Session.Attendee(userId, ifNeedBe = availability == AvailabilityStatus.IF_NEED_BE)
             }
             .toSet()
 
     private fun availabilityFor(userId: Long, timeSlot: Instant): AvailabilityStatus =
-        responses.forUserId(userId)?.availabilities?.forTimeSlot(timeSlot) ?: AvailabilityStatus.UNAVAILABLE
+        responses[userId]?.availabilities?.get(timeSlot) ?: AvailabilityStatus.UNAVAILABLE
 
     private fun sessionLimit(userId: Long): Int =
-        responses.forUserId(userId)?.sessionLimit ?: 2
+        responses[userId]?.sessionLimit ?: 2
 
     companion object {
         fun <T> Set<T>.combinations(): Set<Set<T>> {

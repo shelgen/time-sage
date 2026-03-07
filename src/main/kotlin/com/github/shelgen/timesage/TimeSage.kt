@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage
 
 import com.github.shelgen.timesage.cronjobs.CronJobScheduling
-import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.slashcommands.AbstractSlashCommand
 import com.github.shelgen.timesage.ui.screens.*
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
@@ -42,13 +42,13 @@ class TimeSage : ListenerAdapter() {
     }
 
     override fun onButtonInteraction(event: ButtonInteractionEvent) {
-        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+        withTenantAndUserMDC(event.toTenant(), event.user.name) { tenant ->
             val id = event.componentId
             logger.info("Received ButtonInteractionEvent (custom id $id)")
             try {
                 val button = CustomIdSerialization.deserialize<ScreenButton>(
                     customId = id,
-                    context = context
+                    tenant = tenant
                 )
                 button.handle(event)
             } catch (e: Exception) {
@@ -59,13 +59,13 @@ class TimeSage : ListenerAdapter() {
     }
 
     override fun onEntitySelectInteraction(event: EntitySelectInteractionEvent) {
-        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+        withTenantAndUserMDC(event.toTenant(), event.user.name) { tenant ->
             val id = event.componentId
             logger.info("Received EntitySelectInteractionEvent (custom id $id)")
             try {
                 val selectMenu = CustomIdSerialization.deserialize<ScreenEntitySelectMenu>(
                     customId = id,
-                    context = context
+                    tenant = tenant
                 )
                 selectMenu.handle(event)
             } catch (e: Exception) {
@@ -76,13 +76,13 @@ class TimeSage : ListenerAdapter() {
     }
 
     override fun onStringSelectInteraction(event: StringSelectInteractionEvent) {
-        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+        withTenantAndUserMDC(event.toTenant(), event.user.name) { tenant ->
             val id = event.componentId
             logger.info("Received StringSelectInteractionEvent (custom id $id)")
             try {
                 val selectMenu = CustomIdSerialization.deserialize<ScreenStringSelectMenu>(
                     customId = id,
-                    context = context
+                    tenant = tenant
                 )
                 selectMenu.handle(event)
             } catch (e: Exception) {
@@ -93,13 +93,13 @@ class TimeSage : ListenerAdapter() {
     }
 
     override fun onModalInteraction(event: ModalInteractionEvent) {
-        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+        withTenantAndUserMDC(event.toTenant(), event.user.name) { tenant ->
             val id = event.modalId
             logger.info("Received ModalInteractionEvent (custom id $id)")
             try {
                 val modal = CustomIdSerialization.deserialize<ScreenModal>(
                     customId = id,
-                    context = context
+                    tenant = tenant
                 )
                 modal.handle(event)
             } catch (e: Exception) {
@@ -110,7 +110,7 @@ class TimeSage : ListenerAdapter() {
     }
 
     override fun onSlashCommandInteraction(event: SlashCommandInteractionEvent) {
-        withContextAndUserMDC(event.toOperationContext(), event.user.name) { context ->
+        withTenantAndUserMDC(event.toTenant(), event.user.name) { tenant ->
             val name = event.name
             logger.info("Received SlashCommandInteractionEvent (name $name)")
             try {
@@ -121,7 +121,7 @@ class TimeSage : ListenerAdapter() {
                 } else {
                     command.handle(
                         event = event,
-                        context = context
+                        tenant = tenant
                     )
                 }
             } catch (e: Exception) {
@@ -131,10 +131,10 @@ class TimeSage : ListenerAdapter() {
         }
     }
 
-    private fun withUser(name: String, block: (OperationContext) -> Unit) {
+    private fun withUser(name: String, block: (Tenant) -> Unit) {
         MDC.putCloseable(MDC_USER_NAME, name).use({ block })
     }
 
-    private fun Interaction.toOperationContext(): OperationContext =
-        OperationContext(guildId = guild!!.idLong, channelId = channel!!.idLong)
+    private fun Interaction.toTenant(): Tenant =
+        Tenant(guildId = guild!!.idLong, channelId = channel!!.idLong)
 }

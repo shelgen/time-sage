@@ -1,26 +1,28 @@
 package com.github.shelgen.timesage.repositories
 
-import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.Tenant
 import java.io.File
 
-fun getChannelDir(context: OperationContext): File =
-    File(getChannelsDir(context.guildId), context.channelId.toString())
-
-fun getChannelsDir(guildId: Long): File =
-    File(getServerDir(guildId), "channels")
+val SERVERS_DIR = File("time-sage/servers")
 
 fun getServerDir(guildId: Long): File =
     File(SERVERS_DIR, guildId.toString())
 
-val SERVERS_DIR = File("time-sage/servers")
+fun getChannelsDir(guildId: Long): File =
+    File(getServerDir(guildId), "channels")
 
-fun findAllChannelIds(guildId: Long): List<Long> = getChannelsDir(guildId).findAllLongSubfolderNames()
+fun getTenantDir(tenant: Tenant): File =
+    File(getChannelsDir(tenant.guildId), tenant.channelId.toString())
 
-fun findAllGuildIds(): List<Long> = SERVERS_DIR.findAllLongSubfolderNames()
+fun getAllTenants(): List<Tenant> =
+    SERVERS_DIR.findAllLongSubfolderNames().flatMap { guildId ->
+        getChannelsDir(guildId).findAllLongSubfolderNames().map { channelId ->
+            Tenant(guildId = guildId, channelId = channelId)
+        }
+    }
 
 fun File.findAllLongSubfolderNames() =
     takeIf(File::exists)
-        ?.listFiles { channelDir -> channelDir.isDirectory && channelDir.name.toLongOrNull() != null }
-        .orEmpty()
+        ?.listFiles(File::isDirectory).orEmpty()
         .map(File::getName)
-        .map(String::toLong)
+        .mapNotNull(String::toLongOrNull)

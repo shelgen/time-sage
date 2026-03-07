@@ -1,10 +1,12 @@
 package com.github.shelgen.timesage.domain
 
-import java.util.TimeZone
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.YearMonth
 
 open class Configuration(
     open val enabled: Boolean,
-    open val timeZone: TimeZone,
+    open val localization: Localization,
     open val scheduling: Scheduling,
     open val activities: List<Activity>,
     open val voiceChannelId: Long?
@@ -12,10 +14,24 @@ open class Configuration(
     open fun getActivity(activityId: Int): Activity =
         activities.first { it.id == activityId }
 
+    fun activePeriod(): DateRange {
+        val today = LocalDate.now(localization.timeZone.toZoneId())
+        val lookAhead = today.plusDays(scheduling.numDaysInAdvanceToStartPlanning.toLong())
+        return when (scheduling.type) {
+            SchedulingType.WEEKLY -> {
+                val daysBack =
+                    (DayOfWeek.entries.size + lookAhead.dayOfWeek.value - localization.startDayOfWeek.value) % DayOfWeek.entries.size
+                DateRange.weekFrom(lookAhead.minusDays(daysBack.toLong()))
+            }
+
+            SchedulingType.MONTHLY -> DateRange.from(YearMonth.from(lookAhead))
+        }
+    }
+
     companion object {
-        val DEFAULT = Configuration(
+        fun createDefault(tenant: Tenant) = Configuration(
             enabled = false,
-            timeZone = TimeZone.getTimeZone("Europe/Berlin"),
+            localization = Localization.DEFAULT,
             scheduling = Scheduling.DEFAULT,
             activities = emptyList(),
             voiceChannelId = null
@@ -25,20 +41,20 @@ open class Configuration(
 
 class MutableConfiguration(
     override var enabled: Boolean,
-    override var timeZone: TimeZone,
+    override val localization: MutableLocalization,
     override val scheduling: MutableScheduling,
     override val activities: MutableList<MutableActivity>,
     override var voiceChannelId: Long?
 ) : Configuration(
     enabled = enabled,
-    timeZone = timeZone,
+    localization = localization,
     scheduling = scheduling,
     activities = activities,
     voiceChannelId = voiceChannelId
 ) {
     constructor(configuration: Configuration) : this(
         enabled = configuration.enabled,
-        timeZone = configuration.timeZone,
+        localization = MutableLocalization(configuration.localization),
         scheduling = MutableScheduling(configuration.scheduling),
         activities = configuration.activities.map(::MutableActivity).toMutableList(),
         voiceChannelId = configuration.voiceChannelId

@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.slashcommands
 
 import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
-import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageHistory
@@ -19,13 +19,13 @@ object CleanupCommand : AbstractSlashCommand(
     name = "tscleanup",
     description = "Delete old bot messages, keeping availability and plan messages",
 ) {
-    override fun handle(event: SlashCommandInteractionEvent, context: OperationContext) {
+    override fun handle(event: SlashCommandInteractionEvent, tenant: Tenant) {
         val outerMdc = MDC.getCopyOfContextMap()
         val selfId = event.jda.selfUser.idLong
         event.deferReply(true).queue { hook ->
             MDC.setContextMap(outerMdc)
             val channel = event.channel.asTextChannel()
-            val keepMessageIds = AvailabilitiesPeriodRepository.loadAll(context)
+            val keepMessageIds = AvailabilitiesPeriodRepository.loadAll(tenant)
                 .flatMap { period ->
                     buildList {
                         when (val ref = period.availabilityMessageOrThread) {

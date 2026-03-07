@@ -8,7 +8,7 @@ import java.time.ZoneOffset
 
 private const val SESSION_DURATION_HOURS = 3L
 
-fun createScheduledEventsForPlan(guild: Guild, plan: Plan, configuration: Configuration) {
+fun createScheduledEventsForPlan(plan: Plan, guild: Guild, configuration: Configuration) {
     val voiceChannel = configuration.voiceChannelId?.let { guild.voiceChannelCache.getElementById(it) }
 
     plan.sessions.forEach { session ->

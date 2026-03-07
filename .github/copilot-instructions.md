@@ -49,7 +49,7 @@ Data is persisted as pretty-printed JSON files under `time-sage/servers/<guildId
 ### Domain model
 `Configuration` / `Scheduling` / `Activity` each have a mutable subclass (`MutableConfiguration`, etc.) used only during update operations inside `ConfigurationRepository.update { }` lambdas. Treat the base class as read-only everywhere else.
 
-`OperationContext(guildId, channelId)` is threaded through the entire call stack to scope data to the correct channel.
+`Tenant(guildId, channelId)` is threaded through the entire call stack to scope data to the correct channel.
 
 ### Scheduling / Planning
 Quartz cron jobs (`CronJobScheduling`) fire `SendNextWeeksAvailabilityMessageJob` and `ReminderJob`. `Planner` generates all valid week plans using recursive permutations of activities × time slots, then ranks them by `Plan.Score` (more attendees > fewer "if need be" slots > sessions not on consecutive days).
@@ -59,6 +59,6 @@ Quartz cron jobs (`CronJobScheduling`) fire `SendNextWeeksAvailabilityMessageJob
 - **Sealed class discovery via reflection** – `AbstractSlashCommand` and `Screen` subclasses are discovered at runtime with `sealedSubclasses`. New subclasses are picked up automatically; no registration needed.
 - **`ScreenComponent` classes must be nested inside their `Screen`** – `CustomIdSerialization.getScreenComponents` only searches nested classes of the screen class.
 - **Supported serializable field types in custom IDs**: `String`, `Int`, `Long`, `LocalDate`, `Instant`. Adding new field types requires extending `serializeField` / `deserializeField` in `serialization.kt`.
-- **`OperationContext` fields are excluded from serialization** – they are injected from the live Discord event during deserialization.
-- **Logging**: use the `logger` extension property (`inline val <reified T> T.logger`) for class-level loggers. MDC keys `guildId`, `channelId`, `userName` are set via `withContextAndUserMDC` at every event handler entry point.
+- **`Tenant` fields are excluded from serialization** – they are injected from the live Discord event during deserialization.
+- **Logging**: use the `logger` extension property (`inline val <reified T> T.logger`) for class-level loggers. MDC keys `guildId`, `channelId`, `userName` are set via `withTenantAndUserMDC` at every event handler entry point.
 - **Mutable vs immutable domain objects**: only mutate inside `ConfigurationRepository.update { }` where a `MutableConfiguration` is provided.

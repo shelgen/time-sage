@@ -37,10 +37,10 @@ class MutableAvailabilitiesPeriod(
     )
 
     fun setUserTimeSlotAvailability(userId: Long, timeSlot: Instant, availabilityStatus: AvailabilityStatus) {
-        responses.getOrSetForUserId(userId).availabilities.setForTimeSlot(timeSlot, availabilityStatus)
+        responses.getOrInitialize(userId).availabilities.set(timeSlot, availabilityStatus)
     }
 
     fun setUserSessionLimit(userId: Long, sessionLimit: Int) {
-        responses.getOrSetForUserId(userId).sessionLimit = sessionLimit
+        responses.getOrInitialize(userId).sessionLimit = sessionLimit
     }
 }

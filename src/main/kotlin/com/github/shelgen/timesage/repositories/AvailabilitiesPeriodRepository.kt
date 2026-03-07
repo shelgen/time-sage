@@ -7,24 +7,24 @@ import java.util.*
 object AvailabilitiesPeriodRepository {
     private val dao = AvailabilitiesPeriodFileDao()
 
-    fun loadOrInitialize(period: DatePeriod, context: OperationContext): AvailabilitiesPeriod =
-        dao.load(period, context)?.toDomain() ?: AvailabilitiesPeriod.DEFAULT
+    fun loadOrInitialize(period: DateRange, tenant: Tenant): AvailabilitiesPeriod =
+        dao.load(period, tenant)?.toDomain() ?: AvailabilitiesPeriod.DEFAULT
 
     @Synchronized
     fun <T> update(
-        period: DatePeriod,
-        context: OperationContext,
+        period: DateRange,
+        tenant: Tenant,
         modification: (period: MutableAvailabilitiesPeriod) -> T
     ): T {
-        val existing = loadOrInitialize(period, context)
+        val existing = loadOrInitialize(period, tenant)
         val mutable = MutableAvailabilitiesPeriod(existing)
         val returnValue = modification(mutable)
-        dao.save(period, context, mutable.toJson())
+        dao.save(period, tenant, mutable.toJson())
         return returnValue
     }
 
-    fun loadAll(context: OperationContext): List<AvailabilitiesPeriod> =
-        dao.loadAll(context).map { it.toDomain() }
+    fun loadAll(tenant: Tenant): List<AvailabilitiesPeriod> =
+        dao.loadAll(tenant).map { it.toDomain() }
 
     private fun AvailabilitiesPeriodFileDao.Json.toDomain() = AvailabilitiesPeriod(
         availabilityMessageOrThread = toAvailabilityMessageOrThread(),
@@ -42,7 +42,7 @@ object AvailabilitiesPeriodRepository {
                 sessionLimitAndUnavailableMessageId = sessionLimitAndUnavailableMessageId,
                 availabilityMessageIds = availabilityMessageIds.mapKeys { (key, _) ->
                     val (from, to) = key.split("_")
-                    DatePeriod(LocalDate.parse(from), LocalDate.parse(to))
+                    DateRange(LocalDate.parse(from), LocalDate.parse(to))
                 },
             )
             messageId != null -> AvailabilityMessageOrThread.AvailabilityMessage(messageId)
@@ -69,7 +69,7 @@ object AvailabilitiesPeriodRepository {
             headerMessageId = thread?.headerMessageId,
             sessionLimitAndUnavailableMessageId = thread?.sessionLimitAndUnavailableMessageId,
             availabilityMessageIds = thread?.availabilityMessageIds
-                ?.mapKeys { (period, _) -> "${period.fromDate}_${period.toDate}" }
+                ?.mapKeys { (period, _) -> "${period.fromInclusive}_${period.toInclusive}" }
                 ?: emptyMap(),
             responses = responses.map.map { (userId, r) -> userId to r.toJson() }.toMap(TreeMap()),
             concluded = concluded,

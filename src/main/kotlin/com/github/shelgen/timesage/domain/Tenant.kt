@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.domain
 
-data class OperationContext(
+data class Tenant(
     val guildId: Long,
     val channelId: Long
 )

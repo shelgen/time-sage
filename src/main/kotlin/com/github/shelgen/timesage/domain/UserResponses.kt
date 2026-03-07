@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.domain
 open class UserResponses(
     open val map: Map<Long, UserResponse>
 ) {
-    open fun forUserId(userId: Long): UserResponse? = map[userId]
+    open operator fun get(userId: Long): UserResponse? = map[userId]
 
     companion object {
         val NONE = UserResponses(map = emptyMap())
@@ -20,6 +20,6 @@ class MutableUserResponses(
             .toMutableMap()
     )
 
-    override fun forUserId(userId: Long): MutableUserResponse? = map[userId]
-    fun getOrSetForUserId(userId: Long): MutableUserResponse = map.getOrPut(userId) { MutableUserResponse.createNew() }
+    override operator fun get(userId: Long): MutableUserResponse? = map[userId]
+    fun getOrInitialize(userId: Long): MutableUserResponse = map.getOrPut(userId) { MutableUserResponse.createNew() }
 }

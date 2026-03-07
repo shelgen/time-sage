@@ -15,17 +15,17 @@ data class TimeSlotRules(
     val sundays: LocalTime?,
 ) {
     companion object {
-        val DEFAULT = fromEveryDay(LocalTime.parse("18:00"))
-
-        fun fromEveryDay(timeOfDay: LocalTime) = TimeSlotRules(
-            mondays = timeOfDay,
-            tuesdays = timeOfDay,
-            wednesdays = timeOfDay,
-            thursdays = timeOfDay,
-            fridays = timeOfDay,
-            saturdays = timeOfDay,
-            sundays = timeOfDay,
-        )
+        val DEFAULT = run {
+            TimeSlotRules(
+                mondays = LocalTime.parse("18:00"),
+                tuesdays = LocalTime.parse("18:00"),
+                wednesdays = LocalTime.parse("18:00"),
+                thursdays = LocalTime.parse("18:00"),
+                fridays = LocalTime.parse("18:00"),
+                saturdays = LocalTime.parse("18:00"),
+                sundays = LocalTime.parse("18:00"),
+            )
+        }
 
         fun of(vararg entries: Pair<DayOfWeek, LocalTime>) = TimeSlotRules(
             mondays = entries.firstOrNull { it.first == DayOfWeek.MONDAY }?.second,
@@ -48,8 +48,8 @@ data class TimeSlotRules(
         DayOfWeek.SUNDAY -> sundays
     }
 
-    fun getTimeSlots(datePeriod: DatePeriod, timeZone: TimeZone): List<Instant> =
-        datePeriod.dates().mapNotNull { date ->
+    fun getTimeSlots(dateRange: DateRange, timeZone: TimeZone): List<Instant> =
+        dateRange.dates().mapNotNull { date ->
             this[date.dayOfWeek]?.let { time ->
                 date.atTime(time).atZone(timeZone.toZoneId()).toInstant()
             }

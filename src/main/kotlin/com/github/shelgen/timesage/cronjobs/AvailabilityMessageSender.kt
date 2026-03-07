@@ -2,90 +2,68 @@ package com.github.shelgen.timesage.cronjobs
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
-import com.github.shelgen.timesage.domain.DatePeriod
-import com.github.shelgen.timesage.domain.OperationContext
-import com.github.shelgen.timesage.formatAsShortDate
+import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
-import com.github.shelgen.timesage.ui.screens.AvailabilityScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityMessageScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityThreadWeekScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityThreadPeriodLevelScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityThreadStartScreen
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
-import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder
 import java.time.LocalDate
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
-import java.util.*
 
 object AvailabilityMessageSender {
-    fun postAvailabilityMessage(context: OperationContext) {
-        val configuration = ConfigurationRepository.loadOrInitialize(context)
+    fun postAvailabilityMessage(tenant: Tenant) {
+        val configuration = ConfigurationRepository.loadOrInitialize(tenant)
         if (!configuration.enabled) {
-            logger.info("Disabled, not sending a message.")
+            logger.info("Time sage is disabled. Not sending a message.")
             return
         }
 
-        val period = configuration.scheduling.activePeriod(configuration.timeZone)
-        val existing = AvailabilitiesPeriodRepository.loadOrInitialize(period, context)
+        val dateRange = configuration.activePeriod()
+        val existing = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant)
         if (existing.availabilityMessageOrThread != null) {
-            logger.info("Availability message for $period has already been sent.")
+            logger.info("Availability message for $dateRange has already been sent.")
             return
         }
 
-        val channel = JDAHolder.jda.getTextChannelById(context.channelId) ?: run {
-            logger.warn("Could not find text channel ${context.channelId}")
+        val channel = JDAHolder.jda.getTextChannelById(tenant.channelId) ?: run {
+            logger.warn("Could not find text channel ${tenant.channelId}")
             return
         }
 
-        logger.info("Sending availability message for $period")
+        logger.info("Sending availability message for $dateRange")
 
-        val timeSlots = configuration.scheduling.getTimeSlots(period, configuration.timeZone)
+        val timeSlots =
+            configuration.scheduling.timeSlotRules.getTimeSlots(dateRange, configuration.localization.timeZone)
 
         if (timeSlots.size > 7) {
-            val periodLabel = periodLabel(period)
-            val chunks = AvailabilityScreen.weekChunks(period, configuration.scheduling.startDayOfWeek)
+            val chunks = dateRange.chunkedByWeek(configuration.localization.startDayOfWeek)
 
-            val headerText = "## Availability for $periodLabel\n" +
-                    "Please fill in your availability in the thread below."
-
-            channel.sendMessage(
-                MessageCreateBuilder().setContent(headerText).build()
-            ).queue { headerMessage ->
-                headerMessage.createThreadChannel("$periodLabel availability")
+            channel.sendMessage(AvailabilityThreadStartScreen(dateRange, tenant).render()).queue { headerMessage ->
+                headerMessage.createThreadChannel("${dateRange.toLocalizedString(configuration.localization)} availability")
                     .queue { thread ->
-                        thread.sendMessage(
-                            AvailabilityScreen(
-                                periodStart = period.fromDate,
-                                periodEnd = period.toDate,
-                                pageIndex = 0,
-                                mainChannelId = context.channelId,
-                                context = context
-                            ).render()
-                        ).queue { introMessage ->
-                            sendChunksAndPersist(
-                                thread = thread,
-                                period = period,
-                                context = context,
-                                chunks = chunks,
-                                chunkIndex = 0,
-                                headerMessageId = headerMessage.idLong,
-                                introMessageId = introMessage.idLong,
-                                accumulatedIds = emptyMap(),
-                            )
-                        }
+                        thread.sendMessage(AvailabilityThreadPeriodLevelScreen(dateRange, tenant).render())
+                            .queue { introMessage ->
+                                sendChunksAndPersist(
+                                    thread = thread,
+                                    dateRange = dateRange,
+                                    tenant = tenant,
+                                    weekChunks = chunks,
+                                    weekChunkIndex = 0,
+                                    headerMessageId = headerMessage.idLong,
+                                    introMessageId = introMessage.idLong,
+                                    accumulatedIds = emptyMap(),
+                                )
+                            }
                     }
             }
         } else {
-            channel.sendMessage(
-                AvailabilityScreen(
-                    periodStart = period.fromDate,
-                    periodEnd = period.toDate,
-                    pageIndex = AvailabilityScreen.SINGLE_PAGE,
-                    mainChannelId = context.channelId,
-                    context = context
-                ).render()
-            ).queue { message ->
-                AvailabilitiesPeriodRepository.update(period, context) {
+            channel.sendMessage(AvailabilityMessageScreen(dateRange, tenant).render()).queue { message ->
+                AvailabilitiesPeriodRepository.update(dateRange, tenant) {
                     it.availabilityMessageOrThread = AvailabilityMessageOrThread.AvailabilityMessage(message.idLong)
                 }
                 replaceBotPinsWith(message)
@@ -95,16 +73,16 @@ object AvailabilityMessageSender {
 
     private fun sendChunksAndPersist(
         thread: ThreadChannel,
-        period: DatePeriod,
-        context: OperationContext,
-        chunks: List<List<LocalDate>>,
-        chunkIndex: Int,
+        dateRange: DateRange,
+        tenant: Tenant,
+        weekChunks: List<List<LocalDate>>,
+        weekChunkIndex: Int,
         headerMessageId: Long,
         introMessageId: Long,
-        accumulatedIds: Map<DatePeriod, Long>,
+        accumulatedIds: Map<DateRange, Long>,
     ) {
-        if (chunkIndex >= chunks.size) {
-            AvailabilitiesPeriodRepository.update(period, context) {
+        if (weekChunkIndex >= weekChunks.size) {
+            AvailabilitiesPeriodRepository.update(dateRange, tenant) {
                 it.availabilityMessageOrThread = AvailabilityMessageOrThread.AvailabilityThread(
                     headerMessageId = headerMessageId,
                     threadId = thread.idLong,
@@ -116,39 +94,25 @@ object AvailabilityMessageSender {
             return
         }
 
-        val chunk = chunks[chunkIndex]
-        val chunkPeriod = DatePeriod(chunk.first(), chunk.last())
+        val weekChunk = weekChunks[weekChunkIndex]
+        val chunkPeriod = DateRange(weekChunk.first(), weekChunk.last())
         thread.sendMessage(
-            AvailabilityScreen(
-                periodStart = period.fromDate,
-                periodEnd = period.toDate,
-                pageIndex = chunkIndex + 1,
-                mainChannelId = context.channelId,
-                context = context
+            AvailabilityThreadWeekScreen(
+                weekChunkIndex = weekChunkIndex,
+                dateRange = dateRange,
+                tenant = tenant
             ).render()
         ).queue { chunkMessage ->
             sendChunksAndPersist(
                 thread = thread,
-                period = period,
-                context = context,
-                chunks = chunks,
-                chunkIndex = chunkIndex + 1,
+                dateRange = dateRange,
+                tenant = tenant,
+                weekChunks = weekChunks,
+                weekChunkIndex = weekChunkIndex + 1,
                 headerMessageId = headerMessageId,
                 introMessageId = introMessageId,
                 accumulatedIds = accumulatedIds + (chunkPeriod to chunkMessage.idLong),
             )
         }
-    }
-
-    fun periodLabel(period: DatePeriod): String =
-        if (exactlyCoversAMonth(period)) {
-            period.fromDate.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US))
-        } else {
-            "${period.fromDate.formatAsShortDate()} through ${period.toDate.formatAsShortDate()}"
-        }
-
-    private fun exactlyCoversAMonth(period: DatePeriod): Boolean {
-        val yearMonth = YearMonth.from(period.fromDate)
-        return yearMonth.atDay(1) == period.fromDate && yearMonth.atEndOfMonth() == period.toDate
     }
 }

@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -17,8 +17,8 @@ private const val PAGE_SIZE = 10
 class ConfigurationTimeZoneSubScreen(
     private val prefix: String,
     private val startIndex: Int,
-    context: OperationContext
-) : Screen(context) {
+    tenant: Tenant
+) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         val timeZoneList =
             if (prefix == CUSTOM_PREFIX) {
@@ -78,10 +78,10 @@ class ConfigurationTimeZoneSubScreen(
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
-                    ConfigurationRepository.update(screen.context) { configuration ->
-                        configuration.timeZone = TimeZone.getTimeZone(zoneId)
+                    ConfigurationRepository.update(screen.tenant) { configuration ->
+                        configuration.localization.timeZone = TimeZone.getTimeZone(zoneId)
                     }
-                    ConfigurationMainScreen(screen.context)
+                    ConfigurationMainScreen(screen.tenant)
                 }
             }
         }
@@ -95,7 +95,7 @@ class ConfigurationTimeZoneSubScreen(
                     ConfigurationTimeZoneSubScreen(
                         prefix = screen.prefix,
                         startIndex = screen.startIndex - PAGE_SIZE,
-                        context = screen.context
+                        tenant = screen.tenant
                     )
                 }
             }
@@ -110,7 +110,7 @@ class ConfigurationTimeZoneSubScreen(
                     ConfigurationTimeZoneSubScreen(
                         prefix = screen.prefix,
                         startIndex = screen.startIndex + PAGE_SIZE,
-                        context = screen.context
+                        tenant = screen.tenant
                     )
                 }
             }
@@ -121,7 +121,7 @@ class ConfigurationTimeZoneSubScreen(
                 Button.secondary(CustomIdSerialization.serialize(this), "Back")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationMainScreen(screen.context) }
+                event.processAndNavigateTo { ConfigurationMainScreen(screen.tenant) }
             }
         }
     }

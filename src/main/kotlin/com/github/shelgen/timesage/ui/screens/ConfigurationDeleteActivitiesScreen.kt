@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.OperationContext
+import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class ConfigurationDeleteActivitiesScreen(context: OperationContext) : Screen(context) {
+class ConfigurationDeleteActivitiesScreen(tenant: Tenant) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
         listOf(
             TextDisplay.of(
@@ -41,7 +41,7 @@ class ConfigurationDeleteActivitiesScreen(context: OperationContext) : Screen(co
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
-                    ConfigurationRepository.update(screen.context) { configuration ->
+                    ConfigurationRepository.update(screen.tenant) { configuration ->
                         configuration.activities.removeIf { it.id == activityId }
                     }
                 }
@@ -53,7 +53,7 @@ class ConfigurationDeleteActivitiesScreen(context: OperationContext) : Screen(co
                 Button.secondary(CustomIdSerialization.serialize(this), "Back")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo { ConfigurationMainScreen(screen.context) }
+                event.processAndNavigateTo { ConfigurationMainScreen(screen.tenant) }
             }
         }
     }

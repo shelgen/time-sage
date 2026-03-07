@@ -297,20 +297,19 @@ class PlannerTest {
     private fun planner(
         configuration: Configuration,
         responses: UserResponses = UserResponses.NONE,
-    ) = Planner(configuration = configuration, datePeriod = DatePeriod.weekFrom(weekStart), responses = responses)
+    ) = Planner(configuration = configuration, dateRange = DateRange.weekFrom(weekStart), responses = responses)
 
     private fun config(
         vararg activities: Activity,
         rules: TimeSlotRules = TimeSlotRules.of(DayOfWeek.MONDAY to LocalTime.of(18, 0)),
     ) = Configuration(
         enabled = true,
-        timeZone = UTC,
+        localization = Localization(timeZone = UTC, startDayOfWeek = DayOfWeek.MONDAY),
         scheduling = Scheduling(
             type = SchedulingType.WEEKLY,
-            startDayOfWeek = DayOfWeek.MONDAY,
             timeSlotRules = rules,
-            daysBeforePeriod = 5,
-            planningStartHour = 17,
+            numDaysInAdvanceToStartPlanning = 5,
+            timeOfDayToStartPlanning = 17,
             reminderIntervalDays = 1,
         ),
         activities = activities.toList(),

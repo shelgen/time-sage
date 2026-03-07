@@ -13,7 +13,7 @@ object CronJobScheduling {
             JobBuilder.newJob(HourlyPlanningJob::class.java).build(),
             TriggerBuilder.newTrigger()
                 .startNow()
-                .withSchedule(HourlyPlanningJob.cronSchedule)
+                .withSchedule(HourlyPlanningJob.CRON_SCHEDULE)
                 .build()
         )
     }

@@ -1,53 +1,58 @@
 package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.domain.*
+import java.time.DayOfWeek
 import java.util.*
 
 object ConfigurationRepository {
     private val dao = ConfigurationFileDao()
 
-    fun loadOrInitialize(context: OperationContext): Configuration =
-        dao.load(context)
-            ?.toDomain()
-            ?: Configuration.DEFAULT
+    fun loadOrInitialize(tenant: Tenant): Configuration =
+        dao.load(tenant)
+            ?.toDomain(tenant)
+            ?: Configuration.createDefault(tenant)
 
     @Synchronized
     fun <T> update(
-        context: OperationContext,
+        tenant: Tenant,
         modification: (configuration: MutableConfiguration) -> T
     ): T {
-        val configuration = loadOrInitialize(context)
+        val configuration = loadOrInitialize(tenant)
         val mutableConfiguration = MutableConfiguration(configuration)
         val returnValue = modification(mutableConfiguration)
-        dao.save(context, mutableConfiguration.toJson())
+        dao.save(tenant, mutableConfiguration.toJson())
         return returnValue
     }
 
-    fun findAllOperationContexts() = dao.findAllOperationContexts()
+    fun findAllTenants() = getAllTenants()
 
-    private fun ConfigurationFileDao.Json.toDomain() = Configuration(
-        enabled = enabled,
-        timeZone = timeZone ?: TimeZone.getTimeZone("UTC"),
-        scheduling = scheduling.toDomain(),
-        activities = activities.map { it.toDomain() },
-        voiceChannelId = voiceChannelId
-    )
+    private fun ConfigurationFileDao.Json.toDomain(tenant: Tenant): Configuration {
+        return Configuration(
+            enabled = enabled,
+            localization = Localization(
+                timeZone = timeZone ?: TimeZone.getTimeZone("UTC"),
+                startDayOfWeek = scheduling.startDayOfWeek,
+            ),
+            scheduling = scheduling.toDomain(),
+            activities = activities.map { it.toDomain() },
+            voiceChannelId = voiceChannelId
+        )
+    }
 
     private fun ConfigurationFileDao.Json.Scheduling.toDomain() = Scheduling(
         type = type.toDomain(),
-        startDayOfWeek = startDayOfWeek,
-        timeSlotRules = (timeSlotRulesPerDay ?: ConfigurationFileDao.Json.TimeSlotRulesJson.EVERY_DAY_DEFAULT).toDomain(),
-        daysBeforePeriod = daysBeforePeriod ?: 5,
-        planningStartHour = planningStartHour ?: 17,
-        reminderIntervalDays = reminderIntervalDays ?: 1,
+        timeSlotRules = timeSlotRulesPerDay.toDomain(),
+        numDaysInAdvanceToStartPlanning = daysBeforePeriod,
+        timeOfDayToStartPlanning = planningStartHour,
+        reminderIntervalDays = reminderIntervalDays,
     )
 
-    private fun ConfigurationFileDao.Json.SchedulingType.toDomain() = when (this) {
-        ConfigurationFileDao.Json.SchedulingType.WEEKLY -> SchedulingType.WEEKLY
-        ConfigurationFileDao.Json.SchedulingType.MONTHLY -> SchedulingType.MONTHLY
+    private fun ConfigurationFileDao.Json.Scheduling.Type.toDomain() = when (this) {
+        ConfigurationFileDao.Json.Scheduling.Type.WEEKLY -> SchedulingType.WEEKLY
+        ConfigurationFileDao.Json.Scheduling.Type.MONTHLY -> SchedulingType.MONTHLY
     }
 
-    private fun ConfigurationFileDao.Json.TimeSlotRulesJson.toDomain() = TimeSlotRules(
+    private fun ConfigurationFileDao.Json.TimeSlotRules.toDomain() = TimeSlotRules(
         mondays = mondays,
         tuesdays = tuesdays,
         wednesdays = wednesdays,
@@ -72,27 +77,27 @@ object ConfigurationRepository {
 
     private fun Configuration.toJson() = ConfigurationFileDao.Json(
         enabled = enabled,
-        timeZone = timeZone,
-        scheduling = scheduling.toJson(),
+        timeZone = localization.timeZone,
+        scheduling = scheduling.toJson(localization.startDayOfWeek),
         activities = activities.sortedBy { it.id }.map { it.toJson() },
         voiceChannelId = voiceChannelId
     )
 
-    private fun Scheduling.toJson() = ConfigurationFileDao.Json.Scheduling(
+    private fun Scheduling.toJson(startDayOfWeek: DayOfWeek) = ConfigurationFileDao.Json.Scheduling(
         type = type.toJson(),
         startDayOfWeek = startDayOfWeek,
         timeSlotRulesPerDay = timeSlotRules.toJson(),
-        daysBeforePeriod = daysBeforePeriod,
-        planningStartHour = planningStartHour,
+        daysBeforePeriod = numDaysInAdvanceToStartPlanning,
+        planningStartHour = timeOfDayToStartPlanning,
         reminderIntervalDays = reminderIntervalDays,
     )
 
     private fun SchedulingType.toJson() = when (this) {
-        SchedulingType.WEEKLY -> ConfigurationFileDao.Json.SchedulingType.WEEKLY
-        SchedulingType.MONTHLY -> ConfigurationFileDao.Json.SchedulingType.MONTHLY
+        SchedulingType.WEEKLY -> ConfigurationFileDao.Json.Scheduling.Type.WEEKLY
+        SchedulingType.MONTHLY -> ConfigurationFileDao.Json.Scheduling.Type.MONTHLY
     }
 
-    private fun TimeSlotRules.toJson() = ConfigurationFileDao.Json.TimeSlotRulesJson(
+    private fun TimeSlotRules.toJson() = ConfigurationFileDao.Json.TimeSlotRules(
         mondays = mondays,
         tuesdays = tuesdays,
         wednesdays = wednesdays,
