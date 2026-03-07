@@ -41,8 +41,8 @@ class PlanConcludedWithScreen(
     private fun getParticipantsLeftOut(plan: Plan, configuration: Configuration) =
         configuration.activities
             .asSequence()
-            .flatMap(Activity::participants)
-            .map(Participant::userId)
+            .flatMap(Activity::members)
+            .map(ActivityMember::userId)
             .minus(
                 plan.sessions
                     .flatMap(Plan.Session::attendees)

@@ -34,21 +34,21 @@ class AlternativePrinterTest {
                 Activity(
                     id = 1,
                     name = "Save the World",
-                    participants = listOf(
-                        Participant(cyclops, optional = false),
-                        Participant(jeanGrey, optional = false),
-                        Participant(wolverine, optional = true),
+                    members = listOf(
+                        ActivityMember(cyclops, optional = false),
+                        ActivityMember(jeanGrey, optional = false),
+                        ActivityMember(wolverine, optional = true),
                     ),
-                    maxMissingOptionalParticipants = 1,
+                    maxMissingOptionalMembers = 1,
                 ),
                 Activity(
                     id = 2,
                     name = "Prevent Mutant Extinction",
-                    participants = listOf(
-                        Participant(storm, optional = false),
-                        Participant(rogue, optional = false),
+                    members = listOf(
+                        ActivityMember(storm, optional = false),
+                        ActivityMember(rogue, optional = false),
                     ),
-                    maxMissingOptionalParticipants = 0,
+                    maxMissingOptionalMembers = 0,
                 ),
             ),
             voiceChannelId = null,

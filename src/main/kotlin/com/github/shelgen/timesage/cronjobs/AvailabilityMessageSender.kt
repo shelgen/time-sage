@@ -45,11 +45,11 @@ object AvailabilityMessageSender {
 
             channel.sendMessage(AvailabilityThreadStartScreen(dateRange, tenant).render()).queue { headerMessage ->
                 headerMessage.createThreadChannel("${dateRange.toLocalizedString(configuration.localization)} availability")
-                    .queue { thread ->
-                        thread.sendMessage(AvailabilityThreadPeriodLevelScreen(dateRange, tenant).render())
+                    .queue { threadChannel ->
+                        threadChannel.sendMessage(AvailabilityThreadPeriodLevelScreen(dateRange, tenant).render())
                             .queue { introMessage ->
                                 sendChunksAndPersist(
-                                    thread = thread,
+                                    thread = threadChannel,
                                     dateRange = dateRange,
                                     tenant = tenant,
                                     weekChunks = chunks,
@@ -84,10 +84,10 @@ object AvailabilityMessageSender {
         if (weekChunkIndex >= weekChunks.size) {
             AvailabilitiesPeriodRepository.update(dateRange, tenant) {
                 it.availabilityMessageOrThread = AvailabilityMessageOrThread.AvailabilityThread(
-                    headerMessageId = headerMessageId,
-                    threadId = thread.idLong,
-                    sessionLimitAndUnavailableMessageId = introMessageId,
-                    availabilityMessageIds = accumulatedIds,
+                    threadStartScreenMessageId = headerMessageId,
+                    threadChannelId = thread.idLong,
+                    periodLevelScreenMessageId = introMessageId,
+                    availabilityWeekScreenMessageIds = accumulatedIds,
                 )
             }
             thread.manager.setLocked(true).queue()

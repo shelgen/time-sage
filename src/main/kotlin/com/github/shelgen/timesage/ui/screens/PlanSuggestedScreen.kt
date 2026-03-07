@@ -65,12 +65,12 @@ class PlanSuggestedScreen(
                             }
                         when (availabilityMessageOrThread) {
                             is AvailabilityMessageOrThread.AvailabilityThread ->
-                                JDAHolder.jda.getThreadChannelById(availabilityMessageOrThread.threadId)
+                                JDAHolder.jda.getThreadChannelById(availabilityMessageOrThread.threadChannelId)
                                     ?.manager?.setArchived(true)?.queue()
 
                             is AvailabilityMessageOrThread.AvailabilityMessage ->
                                 rerenderOtherScreen(
-                                    messageId = availabilityMessageOrThread.messageId,
+                                    messageId = availabilityMessageOrThread.screenMessageId,
                                     screen = AvailabilityMessageScreen(screen.dateRange, screen.tenant)
                                 )
 

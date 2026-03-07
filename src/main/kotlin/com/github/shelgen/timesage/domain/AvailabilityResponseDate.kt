@@ -2,16 +2,16 @@ package com.github.shelgen.timesage.domain
 
 import java.time.Instant
 
-open class DateAvailabilities(
+open class AvailabilityResponseDate(
     open val map: Map<Instant, AvailabilityStatus>
 ) {
     operator fun get(timeSlot: Instant): AvailabilityStatus? = map[timeSlot]
 }
 
-class MutableDateAvailabilities(
+class MutableAvailabilityResponseDate(
     override val map: MutableMap<Instant, AvailabilityStatus>
-) : DateAvailabilities(map) {
-    constructor(userResponses: DateAvailabilities) : this(
+) : AvailabilityResponseDate(map) {
+    constructor(userResponses: AvailabilityResponseDate) : this(
         map = userResponses.map.toMutableMap()
     )
 

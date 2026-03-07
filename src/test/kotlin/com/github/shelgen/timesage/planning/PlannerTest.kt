@@ -296,8 +296,8 @@ class PlannerTest {
 
     private fun planner(
         configuration: Configuration,
-        responses: UserResponses = UserResponses.NONE,
-    ) = Planner(configuration = configuration, dateRange = DateRange.weekFrom(weekStart), responses = responses)
+        availabilityResponses: AvailabilityResponses = AvailabilityResponses.NONE,
+    ) = Planner(configuration = configuration, dateRange = DateRange.weekFrom(weekStart), availabilityResponses = availabilityResponses)
 
     private fun config(
         vararg activities: Activity,
@@ -320,21 +320,21 @@ class PlannerTest {
         Activity(
             id = id,
             name = "Activity $id",
-            participants = participants.map { (userId, optional) -> Participant(userId, optional) },
-            maxMissingOptionalParticipants = maxMissing,
+            members = participants.map { (userId, optional) -> ActivityMember(userId, optional) },
+            maxMissingOptionalMembers = maxMissing,
         )
 
-    private fun responses(vararg pairs: Pair<Long, UserResponse>) = UserResponses(pairs.toMap())
+    private fun responses(vararg pairs: Pair<Long, AvailabilityResponse>) = AvailabilityResponses(pairs.toMap())
 
     private fun response(vararg availabilities: Pair<Instant, AvailabilityStatus>) =
-        UserResponse(
+        AvailabilityResponse(
             sessionLimit = null,
-            availabilities = DateAvailabilities(availabilities.toMap()),
+            dates = AvailabilityResponseDate(availabilities.toMap()),
         )
 
     private fun response(sessionLimit: Int, vararg availabilities: Pair<Instant, AvailabilityStatus>) =
-        UserResponse(
+        AvailabilityResponse(
             sessionLimit = sessionLimit,
-            availabilities = DateAvailabilities(availabilities.toMap()),
+            dates = AvailabilityResponseDate(availabilities.toMap()),
         )
 }

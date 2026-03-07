@@ -2,13 +2,13 @@ package com.github.shelgen.timesage.domain
 
 sealed interface AvailabilityMessageOrThread {
     data class AvailabilityThread(
-        val headerMessageId: Long,
-        val threadId: Long,
-        val sessionLimitAndUnavailableMessageId: Long?,
-        val availabilityMessageIds: Map<DateRange, Long>,
+        val threadStartScreenMessageId: Long,
+        val threadChannelId: Long,
+        val periodLevelScreenMessageId: Long?,
+        val availabilityWeekScreenMessageIds: Map<DateRange, Long>,
     ) : AvailabilityMessageOrThread
 
     data class AvailabilityMessage(
-        val messageId: Long,
+        val screenMessageId: Long,
     ) : AvailabilityMessageOrThread
 }

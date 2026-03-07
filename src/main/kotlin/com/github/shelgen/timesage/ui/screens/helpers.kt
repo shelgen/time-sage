@@ -3,12 +3,9 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
-import com.github.shelgen.timesage.formatAsShortDate
 import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
-import java.time.format.DateTimeFormatter
-import java.util.*
 
 fun getPlans(
     configuration: Configuration,
@@ -17,7 +14,7 @@ fun getPlans(
 ): List<Plan> = Planner(
     configuration = configuration,
     dateRange = dateRange,
-    responses = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant).responses
+    availabilityResponses = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant).availabilityResponses
 ).generatePossiblePlans()
 
 fun getPlan(

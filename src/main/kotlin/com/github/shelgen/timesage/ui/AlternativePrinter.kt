@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui
 
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.Participant
+import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.planning.Plan
 
 class AlternativePrinter(private val configuration: Configuration) {
@@ -23,8 +23,8 @@ class AlternativePrinter(private val configuration: Configuration) {
         DiscordFormatter.bold(configuration.getActivity(activityId).name)
 
     private fun Plan.Session.printParticipants() =
-        configuration.getActivity(activityId).participants
-            .map(Participant::userId)
+        configuration.getActivity(activityId).members
+            .map(ActivityMember::userId)
             .sorted()
             .joinToString(
                 separator = "\n",

@@ -4,7 +4,7 @@ import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
 import com.github.shelgen.timesage.domain.Tenant
-import com.github.shelgen.timesage.domain.Participant
+import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
@@ -63,9 +63,9 @@ class HourlyPlanningJob : Job {
 
         val unansweredParticipants = configuration.activities
             .asSequence()
-            .flatMap(Activity::participants)
-            .map(Participant::userId)
-            .filter { data.responses[it] == null }
+            .flatMap(Activity::members)
+            .map(ActivityMember::userId)
+            .filter { data.availabilityResponses[it] == null }
             .distinct()
             .sorted()
             .toList()
@@ -74,9 +74,9 @@ class HourlyPlanningJob : Job {
         logger.info("Sending reminder for period $period")
         val messageUrl = when (val ref = data.availabilityMessageOrThread) {
             is AvailabilityMessageOrThread.AvailabilityThread ->
-                "https://discord.com/channels/${tenant.guildId}/${ref.threadId}"
+                "https://discord.com/channels/${tenant.guildId}/${ref.threadChannelId}"
             is AvailabilityMessageOrThread.AvailabilityMessage ->
-                "https://discord.com/channels/${tenant.guildId}/${tenant.channelId}/${ref.messageId}"
+                "https://discord.com/channels/${tenant.guildId}/${tenant.channelId}/${ref.screenMessageId}"
             null -> return
         }
 

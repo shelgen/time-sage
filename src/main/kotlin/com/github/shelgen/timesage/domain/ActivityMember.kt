@@ -1,19 +1,19 @@
 package com.github.shelgen.timesage.domain
 
-open class Participant(
+open class ActivityMember(
     open val userId: Long,
     open val optional: Boolean
 )
 
-class MutableParticipant(
+class MutableActivityMember(
     userId: Long,
     override var optional: Boolean
-) : Participant(
+) : ActivityMember(
     userId = userId,
     optional = optional
 ) {
-    constructor(participant: Participant) : this(
-        userId = participant.userId,
-        optional = participant.optional
+    constructor(activityMember: ActivityMember) : this(
+        userId = activityMember.userId,
+        optional = activityMember.optional
     )
 }

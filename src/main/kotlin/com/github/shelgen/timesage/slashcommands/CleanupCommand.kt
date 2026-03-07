@@ -30,11 +30,11 @@ object CleanupCommand : AbstractSlashCommand(
                     buildList {
                         when (val ref = period.availabilityMessageOrThread) {
                             is AvailabilityMessageOrThread.AvailabilityThread -> {
-                                add(ref.headerMessageId)
-                                ref.sessionLimitAndUnavailableMessageId?.let { add(it) }
-                                addAll(ref.availabilityMessageIds.values)
+                                add(ref.threadStartScreenMessageId)
+                                ref.periodLevelScreenMessageId?.let { add(it) }
+                                addAll(ref.availabilityWeekScreenMessageIds.values)
                             }
-                            is AvailabilityMessageOrThread.AvailabilityMessage -> add(ref.messageId)
+                            is AvailabilityMessageOrThread.AvailabilityMessage -> add(ref.screenMessageId)
                             null -> {}
                         }
                         period.conclusionMessageId?.let { add(it) }

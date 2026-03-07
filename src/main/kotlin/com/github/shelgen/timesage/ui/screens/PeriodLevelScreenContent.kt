@@ -1,9 +1,9 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Activity
-import com.github.shelgen.timesage.domain.AvailabilitiesPeriod
+import com.github.shelgen.timesage.domain.PlanningTargetPeriod
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.Participant
+import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -28,12 +28,12 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
                 renderLimits("Limits this ${dateRange.toLocalizedString(configuration.localization)}", dateRangeState)
     }
 
-    private fun renderMissingResponses(data: AvailabilitiesPeriod, configuration: Configuration) =
+    private fun renderMissingResponses(data: PlanningTargetPeriod, configuration: Configuration) =
         listOfNotNull(
             configuration.activities
-                .flatMap(Activity::participants)
-                .map(Participant::userId)
-                .filter { data.responses[it] == null }
+                .flatMap(Activity::members)
+                .map(ActivityMember::userId)
+                .filter { data.availabilityResponses[it] == null }
                 .distinct()
                 .sorted()
                 .takeUnless(List<Long>::isEmpty)
@@ -45,7 +45,7 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
                 ?.let { Container.of(it).withAccentColor(0xFFB6C1) }
         )
 
-    private fun renderLimits(title: String, data: AvailabilitiesPeriod) =
+    private fun renderLimits(title: String, data: PlanningTargetPeriod) =
         listOf(
             Container.of(
                 Section.of(
@@ -54,7 +54,7 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
                     TextDisplay.of(
                         "### $title\n" +
                                 listOf(
-                                    data.responses.map
+                                    data.availabilityResponses.map
                                         .asSequence()
                                         .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
                                         .filter { (_, sessionLimit) -> sessionLimit == 1 }
@@ -67,7 +67,7 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
                                             transform = DiscordFormatter::mentionUser,
                                             separator = "\n"
                                         ).orEmpty(),
-                                    data.responses.map
+                                    data.availabilityResponses.map
                                         .asSequence()
                                         .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
                                         .filter { (_, sessionLimit) -> sessionLimit == 0 }
@@ -94,7 +94,7 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
             event.processAndRerender {
                 val userId = event.user.idLong
                 AvailabilitiesPeriodRepository.update(screen.dateRange, screen.tenant) { period ->
-                    val old = period.responses[userId]?.sessionLimit
+                    val old = period.availabilityResponses[userId]?.sessionLimit
                     val new = cycleLimit(old)
                     logger.info("Updating session limit for date range ${screen.dateRange} from $old to $new")
                     period.setUserSessionLimit(userId, new)

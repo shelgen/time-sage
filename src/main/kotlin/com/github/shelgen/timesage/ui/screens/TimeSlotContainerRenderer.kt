@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.AvailabilitiesPeriod
+import com.github.shelgen.timesage.domain.PlanningTargetPeriod
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
@@ -33,7 +33,7 @@ object TimeSlotContainerRenderer {
 
     private fun renderTimeSlotContainer(
         timeSlot: Instant,
-        data: AvailabilitiesPeriod,
+        data: PlanningTargetPeriod,
         toggleButtonFactory: (timeSlot: Instant) -> ToggleAvailabilityButton,
     ) = Container.of(
         Section.of(
@@ -41,11 +41,11 @@ object TimeSlotContainerRenderer {
                 .let { if (data.concluded) it.asDisabled() else it },
             TextDisplay.of(
                 "### ${timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
-                        data.responses.map
+                        data.availabilityResponses.map
                             .asSequence()
                             .filter { (_, response) -> response.sessionLimit != 0 }
                             .mapNotNull { (userId, response) ->
-                                response.availabilities[timeSlot]?.let { userId to it }
+                                response.dates[timeSlot]?.let { userId to it }
                             }
                             .filter { (_, availability) ->
                                 availability in setOf(
@@ -79,7 +79,7 @@ object TimeSlotContainerRenderer {
             event.processAndRerender {
                 val userId = event.user.idLong
                 AvailabilitiesPeriodRepository.update(screen.dateRange, screen.tenant) { period ->
-                    val old = period.responses[userId]?.availabilities?.get(timeSlot)
+                    val old = period.availabilityResponses[userId]?.dates?.get(timeSlot)
                     val new = cycleAvailability(old)
                     logger.info("Updating availability at $timeSlot from $old to $new")
                     period.setUserTimeSlotAvailability(userId, timeSlot, new)

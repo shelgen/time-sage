@@ -66,14 +66,14 @@ object ConfigurationRepository {
         return Activity(
             id = id,
             name = name,
-            participants = participants.toDomain(),
-            maxMissingOptionalParticipants = this.maxMissingOptionalParticipants
+            members = participants.toDomain(),
+            maxMissingOptionalMembers = this.maxMissingOptionalParticipants
         )
     }
 
-    private fun ConfigurationFileDao.Json.Participants.toDomain(): List<Participant> =
-        required.map { Participant(userId = it, optional = false) } +
-                optional.map { Participant(userId = it, optional = true) }
+    private fun ConfigurationFileDao.Json.Participants.toDomain(): List<ActivityMember> =
+        required.map { ActivityMember(userId = it, optional = false) } +
+                optional.map { ActivityMember(userId = it, optional = true) }
 
     private fun Configuration.toJson() = ConfigurationFileDao.Json(
         enabled = enabled,
@@ -110,11 +110,11 @@ object ConfigurationRepository {
     private fun Activity.toJson() = ConfigurationFileDao.Json.Activity(
         id = id,
         name = name,
-        participants = participants.toJson(),
-        maxMissingOptionalParticipants = maxMissingOptionalParticipants
+        participants = members.toJson(),
+        maxMissingOptionalParticipants = maxMissingOptionalMembers
     )
 
-    private fun List<Participant>.toJson() = ConfigurationFileDao.Json.Participants(
+    private fun List<ActivityMember>.toJson() = ConfigurationFileDao.Json.Participants(
         required = filterNot { it.optional }.map { it.userId }.toSortedSet(),
         optional = filter { it.optional }.map { it.userId }.toSortedSet(),
     )

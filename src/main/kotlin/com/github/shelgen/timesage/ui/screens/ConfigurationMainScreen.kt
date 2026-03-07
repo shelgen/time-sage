@@ -487,7 +487,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                         activity.name = event.getValue("name")!!.asString
                         activity.setOptionalParticipants(event.getValue("optionalParticipants")!!.asLongList)
                         activity.setRequiredParticipants(event.getValue("requiredParticipants")!!.asLongList)
-                        activity.maxMissingOptionalParticipants =
+                        activity.maxMissingOptionalMembers =
                             event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
                     }
                 }
@@ -513,9 +513,9 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 .setMaxValues(25)
                                 .setDefaultValues(
                                     configuration.getActivity(activityId)
-                                        .participants
-                                        .filterNot(Participant::optional)
-                                        .map(Participant::userId)
+                                        .members
+                                        .filterNot(ActivityMember::optional)
+                                        .map(ActivityMember::userId)
                                         .map(EntitySelectMenu.DefaultValue::user)
                                 ).build()
                         ),
@@ -527,9 +527,9 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 .setMaxValues(25)
                                 .setDefaultValues(
                                     configuration.getActivity(activityId)
-                                        .participants
-                                        .filter(Participant::optional)
-                                        .map(Participant::userId)
+                                        .members
+                                        .filter(ActivityMember::optional)
+                                        .map(ActivityMember::userId)
                                         .map(EntitySelectMenu.DefaultValue::user)
                                 ).build()
                         ),
@@ -539,7 +539,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 .setMinValues(1)
                                 .setMaxValues(1)
                                 .addOptions((0..4).map(Int::toString).map { SelectOption.of(it, it) })
-                                .setDefaultValues(configuration.getActivity(activityId).maxMissingOptionalParticipants.toString())
+                                .setDefaultValues(configuration.getActivity(activityId).maxMissingOptionalMembers.toString())
                                 .build()
                         )
                     )
@@ -552,7 +552,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                         activity.name = event.getValue("name")!!.asString
                         activity.setOptionalParticipants(event.getValue("optionalParticipants")!!.asLongList)
                         activity.setRequiredParticipants(event.getValue("requiredParticipants")!!.asLongList)
-                        activity.maxMissingOptionalParticipants =
+                        activity.maxMissingOptionalMembers =
                             event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
                     }
                 }
