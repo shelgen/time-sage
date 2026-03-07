@@ -4,7 +4,7 @@ import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.createScheduledEventsForPlan
 import com.github.shelgen.timesage.domain.AvailabilityMessage
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
@@ -20,12 +20,12 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class PlanSuggestedScreen(
     val planNumber: Int,
-    val targetPeriod: TargetPeriod,
+    val dateRange: DateRange,
     val suggestingUserId: Long,
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val plan = getPlan(planNumber, targetPeriod, configuration, tenant)
+        val plan = getPlan(planNumber, dateRange, configuration, tenant)
         return if (plan.sessions.isEmpty()) {
             listOf(
                 TextDisplay.of(
@@ -56,7 +56,7 @@ class PlanSuggestedScreen(
                     onMessagePosted = { conclusionMessage ->
                         val availabilityMessage =
                             AvailabilitiesPeriodRepository.update(
-                                screen.targetPeriod,
+                                screen.dateRange,
                                 screen.tenant
                             ) { availabilitiesPeriod ->
                                 availabilitiesPeriod.conclusionMessageId = conclusionMessage.idLong
@@ -70,14 +70,14 @@ class PlanSuggestedScreen(
                             is AvailabilityMessage.Composite ->
                                 rerenderOtherScreen(
                                     messageId = availabilityMessage.screenMessageId,
-                                    screen = AvailabilityMessageScreen(screen.targetPeriod, screen.tenant)
+                                    screen = AvailabilityMessageScreen(screen.dateRange, screen.tenant)
                                 )
 
                             null -> {}
                         }
                         replaceBotPinsWith(conclusionMessage)
                         val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                        val plan = getPlan(screen.planNumber, screen.targetPeriod, configuration, screen.tenant)
+                        val plan = getPlan(screen.planNumber, screen.dateRange, configuration, screen.tenant)
                         if (plan.sessions.isNotEmpty()) {
                             JDAHolder.jda.getGuildById(screen.tenant.guildId)?.let { guild ->
                                 createScheduledEventsForPlan(plan, guild, configuration)
@@ -87,7 +87,7 @@ class PlanSuggestedScreen(
                 ) {
                     PlanConcludedWithScreen(
                         planNumber = screen.planNumber,
-                        targetPeriod = screen.targetPeriod,
+                        dateRange = screen.dateRange,
                         tenant = screen.tenant
                     )
                 }

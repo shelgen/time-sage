@@ -4,18 +4,18 @@ import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.AvailabilityResponses
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.logger
 import java.time.Instant
 
 class Planner(
     private val configuration: Configuration,
-    private val targetPeriod: TargetPeriod,
+    private val dateRange: DateRange,
     private val availabilityResponses: AvailabilityResponses
 ) {
     fun generatePossiblePlans(): List<Plan> {
-        logger.info("Generating possible plans for period $targetPeriod")
-        val timeSlots = configuration.scheduling.timeSlotRules.getTimeSlots(targetPeriod, configuration.localization.timeZone)
+        logger.info("Generating possible plans for period $dateRange")
+        val timeSlots = configuration.scheduling.timeSlotRules.getTimeSlots(dateRange, configuration.localization.timeZone)
         return buildSessions(plannedSessions = emptyList(), remainingTimeSlots = timeSlots)
             .distinct()
             .filter { it.isNotEmpty() }

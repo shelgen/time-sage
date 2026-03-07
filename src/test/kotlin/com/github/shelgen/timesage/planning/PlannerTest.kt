@@ -310,7 +310,7 @@ class PlannerTest {
     private fun planner(
         configuration: Configuration,
         availabilityResponses: AvailabilityResponses = AvailabilityResponses.NONE,
-    ) = Planner(configuration = configuration, targetPeriod = DateRange.weekFrom(weekStart), availabilityResponses = availabilityResponses)
+    ) = Planner(configuration = configuration, dateRange = DateRange.weekFrom(weekStart), availabilityResponses = availabilityResponses)
 
     private fun config(
         vararg activities: Activity,

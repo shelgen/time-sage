@@ -14,7 +14,7 @@ open class Configuration(
     open fun getActivity(activityId: Int): Activity =
         activities.first { it.id == activityId }
 
-    fun activePeriod(): TargetPeriod {
+    fun activePeriod(): DateRange {
         val today = LocalDate.now(localization.timeZone.toZoneId())
         val lookAhead = today.plusDays(scheduling.numDaysInAdvanceToStartPlanning.toLong())
         return when (scheduling.type) {

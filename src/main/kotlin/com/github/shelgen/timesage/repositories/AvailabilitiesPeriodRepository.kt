@@ -6,9 +6,8 @@ import com.github.shelgen.timesage.domain.AvailabilityResponseDate
 import com.github.shelgen.timesage.domain.AvailabilityResponses
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.DateRange
-import com.github.shelgen.timesage.domain.MutablePlanningTargetPeriod
-import com.github.shelgen.timesage.domain.PlanningTargetPeriod
-import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.MutablePlanningProcess
+import com.github.shelgen.timesage.domain.PlanningProcess
 import com.github.shelgen.timesage.domain.Tenant
 import java.time.LocalDate
 import java.util.*
@@ -16,26 +15,26 @@ import java.util.*
 object AvailabilitiesPeriodRepository {
     private val dao = AvailabilitiesPeriodFileDao()
 
-    fun loadOrInitialize(targetPeriod: TargetPeriod, tenant: Tenant): PlanningTargetPeriod =
-        dao.load(targetPeriod, tenant)?.toDomain() ?: PlanningTargetPeriod.DEFAULT
+    fun loadOrInitialize(dateRange: DateRange, tenant: Tenant): PlanningProcess =
+        dao.load(dateRange, tenant)?.toDomain() ?: PlanningProcess.DEFAULT
 
     @Synchronized
     fun <T> update(
-        targetPeriod: TargetPeriod,
+        dateRange: DateRange,
         tenant: Tenant,
-        modification: (period: MutablePlanningTargetPeriod) -> T
+        modification: (period: MutablePlanningProcess) -> T
     ): T {
-        val existing = loadOrInitialize(targetPeriod, tenant)
-        val mutable = MutablePlanningTargetPeriod(existing)
+        val existing = loadOrInitialize(dateRange, tenant)
+        val mutable = MutablePlanningProcess(existing)
         val returnValue = modification(mutable)
-        dao.save(targetPeriod, tenant, mutable.toJson())
+        dao.save(dateRange, tenant, mutable.toJson())
         return returnValue
     }
 
-    fun loadAll(tenant: Tenant): List<PlanningTargetPeriod> =
+    fun loadAll(tenant: Tenant): List<PlanningProcess> =
         dao.loadAll(tenant).map { it.toDomain() }
 
-    private fun AvailabilitiesPeriodFileDao.Json.toDomain() = PlanningTargetPeriod(
+    private fun AvailabilitiesPeriodFileDao.Json.toDomain() = PlanningProcess(
         availabilityMessage = toAvailabilityMessage(),
         availabilityResponses = AvailabilityResponses(responses.map { (userId, r) -> userId to r.toDomain() }.toMap()),
         conclusionMessageId = conclusionMessageId,
@@ -68,7 +67,7 @@ object AvailabilitiesPeriodRepository {
         AvailabilitiesPeriodFileDao.Json.AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.UNAVAILABLE
     }
 
-    private fun MutablePlanningTargetPeriod.toJson(): AvailabilitiesPeriodFileDao.Json {
+    private fun MutablePlanningProcess.toJson(): AvailabilitiesPeriodFileDao.Json {
         val thread = availabilityMessage as? AvailabilityMessage.Thread
         val message = availabilityMessage as? AvailabilityMessage.Composite
         return AvailabilitiesPeriodFileDao.Json(

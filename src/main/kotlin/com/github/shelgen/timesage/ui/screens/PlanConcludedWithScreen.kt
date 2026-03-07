@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.PlannedSession
@@ -15,12 +15,12 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 
 class PlanConcludedWithScreen(
     val planNumber: Int,
-    val targetPeriod: TargetPeriod,
+    val dateRange: DateRange,
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val plan = getPlan(planNumber, targetPeriod, configuration, tenant)
-        return listOf(TextDisplay.of("## Plan for ${targetPeriod.toLocalizedString(configuration.localization)}:")) +
+        val plan = getPlan(planNumber, dateRange, configuration, tenant)
+        return listOf(TextDisplay.of("## Plan for ${dateRange.toLocalizedString(configuration.localization)}:")) +
                 if (plan.sessions.isEmpty()) {
                     TextDisplay.of("No sessions this period.")
                 } else {

@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.Planner
@@ -9,21 +9,21 @@ import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 
 fun getPlans(
     configuration: Configuration,
-    targetPeriod: TargetPeriod,
+    dateRange: DateRange,
     tenant: Tenant
 ): List<Plan> = Planner(
     configuration = configuration,
-    targetPeriod = targetPeriod,
-    availabilityResponses = AvailabilitiesPeriodRepository.loadOrInitialize(targetPeriod, tenant).availabilityResponses
+    dateRange = dateRange,
+    availabilityResponses = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant).availabilityResponses
 ).generatePossiblePlans()
 
 fun getPlan(
     planNumber: Int,
-    targetPeriod: TargetPeriod,
+    dateRange: DateRange,
     configuration: Configuration,
     tenant: Tenant
 ): Plan = if (planNumber == 0) {
     Plan(emptyList())
 } else {
-    getPlans(configuration, targetPeriod, tenant)[planNumber - 1]
+    getPlans(configuration, dateRange, tenant)[planNumber - 1]
 }

@@ -6,8 +6,6 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-typealias TargetPeriod = DateRange
-
 data class DateRange(
     val fromInclusive: LocalDate,
     val toInclusive: LocalDate

@@ -3,7 +3,7 @@ package com.github.shelgen.timesage.domain
 import java.time.Instant
 import java.time.LocalDate
 
-open class PlanningTargetPeriod(
+open class PlanningProcess(
     open val availabilityMessage: AvailabilityMessage?,
     open val availabilityResponses: AvailabilityResponses,
     open val conclusionMessageId: Long?,
@@ -12,7 +12,7 @@ open class PlanningTargetPeriod(
     val concluded: Boolean get() = conclusionMessageId != null
 
     companion object {
-        val DEFAULT = PlanningTargetPeriod(
+        val DEFAULT = PlanningProcess(
             availabilityMessage = null,
             availabilityResponses = AvailabilityResponses.NONE,
             conclusionMessageId = null,
@@ -21,13 +21,13 @@ open class PlanningTargetPeriod(
     }
 }
 
-class MutablePlanningTargetPeriod(
+class MutablePlanningProcess(
     override var availabilityMessage: AvailabilityMessage?,
     override val availabilityResponses: MutableAvailabilityResponses,
     override var conclusionMessageId: Long?,
     override var lastReminderDate: LocalDate?,
-) : PlanningTargetPeriod(availabilityMessage, availabilityResponses, conclusionMessageId, lastReminderDate) {
-    constructor(period: PlanningTargetPeriod) : this(
+) : PlanningProcess(availabilityMessage, availabilityResponses, conclusionMessageId, lastReminderDate) {
+    constructor(period: PlanningProcess) : this(
         availabilityMessage = period.availabilityMessage,
         availabilityResponses = MutableAvailabilityResponses(availabilityResponses = period.availabilityResponses),
         conclusionMessageId = period.conclusionMessageId,

@@ -15,9 +15,9 @@ object ScheduleCommand : AbstractSlashCommand(
         event.deferReply(true).queue {
             MDC.setContextMap(outerMdc)
             val configuration = ConfigurationRepository.loadOrInitialize(tenant)
-            val targetPeriod = configuration.activePeriod()
+            val dateRange = configuration.activePeriod()
             val screen = PlanAlternativesPageScreen(
-                targetPeriod = targetPeriod,
+                dateRange = dateRange,
                 fromInclusive = 0,
                 pageSize = 3,
                 tenant = tenant

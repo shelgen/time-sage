@@ -1,5 +1,5 @@
-The goal of Time Sage is to help users arrive at a **plan** for a **target period**, given a set of **activities**
-and the **time slots** within that period, by collecting each activity's **members**' **availabilities**.
+The goal of Time Sage is to help users arrive at a **plan** for a specific **date range**, given a set of **activities**
+and the **time slots** within that date range, by collecting each activity's **members**' **availabilities**.
 
 Once the **planning process** has collected enough responses, Time Sage presents all logically possible **plans**.
 Each plan consists of zero or more **sessions** and has a **score** based on certain criteria.
@@ -7,7 +7,7 @@ Time Sage sorts plans by their score so users can pick the best one.
 
 Time Sage collects availabilities through an **availability interface** posted in the tenant's channel, which is
 either an **availability message** (a single Discord message) or an **availability thread** (a thread with one
-message per week in the target period). A thread is used when there are too many **time slots** to fit in a
+message per week in the date range). A thread is used when there are too many **time slots** to fit in a
 single message.
 
 Time Sage operates independently for each **tenant**, which is equivalent to a specific Discord text channel in
@@ -50,7 +50,7 @@ A **configuration** is scoped to exactly one **tenant** and governs how Time Sag
 - **Periodic planning** specifies whether Time Sage automatically initiates a planning process, how many days
   before the start of the next period to do so, and the **hour of day** to trigger it. It also specifies the
   **period type**.
-- A **period type** determines the shape of a target period. It is either **weekly** (a 7-day week starting on
+- A **period type** determines the shape of a date range. It is either **weekly** (a 7-day week starting on
   the configured first day of week) or **monthly** (a calendar month).
 - **Reminders** specifies whether Time Sage sends reminders to members who have not yet responded, and how many
   days apart and at what hour of day those reminders are sent.
@@ -68,8 +68,7 @@ A **configuration** is scoped to exactly one **tenant** and governs how Time Sag
 
 ## Planning Process
 
-A **planning process** exists in the scope of a single **tenant** and regards a single **date range**, referred
-to as the **target period** when emphasising its role as the period being planned for. A planning process is
+A **planning process** exists in the scope of a single **tenant** and regards a single **date range**. A planning process is
 always in exactly one of the following states:
 
 - **Collecting availabilities** — the availability interface has been posted and members are submitting responses.
@@ -86,10 +85,10 @@ Concluded).
 
 An **availability interface** is posted in the tenant's text channel to collect availabilities. It is one of:
 
-- An **availability message** — refers to a single **Discord message** containing all time slots for the target
-  period. Used when the number of time slots fits in a single message.
+- An **availability message** — refers to a single **Discord message** containing all time slots for the date
+  range. Used when the number of time slots fits in a single message.
 - An **availability thread** — refers to one or more **Discord messages** inside a
-  **Discord text channel thread channel**, with one message per week of the target period. Used when there are
+  **Discord text channel thread channel**, with one message per week of the date range. Used when there are
   too many time slots for a single message.
 
 ---
@@ -105,13 +104,13 @@ process.
   - **Available if need be** — the member can attend but prefers not to.
   - **Unavailable** — the member cannot attend.
 - A **session limit** is an optional part of an availability response, capping the number of sessions the member
-  wishes to attend in the target period.
+  wishes to attend in the date range.
 
 ---
 
 ## Plan
 
-A **plan** is a possible scheduling outcome for a target period. A plan consists of zero or more **sessions**
+A **plan** is a possible scheduling outcome for a date range. A plan consists of zero or more **sessions**
 and has exactly one **score**.
 
 - A **session** regards a specific **activity** and is scheduled at a specific **time slot**. A session has one

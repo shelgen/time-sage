@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.repositories
 
-import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import java.io.File
 import java.time.Instant
@@ -9,12 +9,12 @@ import java.time.LocalDate
 class AvailabilitiesPeriodFileDao {
     private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
 
-    fun save(targetPeriod: TargetPeriod, tenant: Tenant, json: Json) {
-        fileDao.save(getPeriodFile(targetPeriod, tenant), json)
+    fun save(dateRange: DateRange, tenant: Tenant, json: Json) {
+        fileDao.save(getPeriodFile(dateRange, tenant), json)
     }
 
-    fun load(targetPeriod: TargetPeriod, tenant: Tenant): Json? =
-        fileDao.load(getPeriodFile(targetPeriod, tenant))
+    fun load(dateRange: DateRange, tenant: Tenant): Json? =
+        fileDao.load(getPeriodFile(dateRange, tenant))
 
     fun loadAll(tenant: Tenant): List<Json> {
         val periodsDir = getPeriodsDir(tenant)
@@ -45,8 +45,8 @@ class AvailabilitiesPeriodFileDao {
         }
     }
 
-    private fun getPeriodFile(targetPeriod: TargetPeriod, tenant: Tenant): File =
-        File(getPeriodsDir(tenant), "${targetPeriod.fromInclusive}_${targetPeriod.toInclusive}.json")
+    private fun getPeriodFile(dateRange: DateRange, tenant: Tenant): File =
+        File(getPeriodsDir(tenant), "${dateRange.fromInclusive}_${dateRange.toInclusive}.json")
 
     private fun getPeriodsDir(tenant: Tenant): File =
         File(getTenantDir(tenant), "periods")

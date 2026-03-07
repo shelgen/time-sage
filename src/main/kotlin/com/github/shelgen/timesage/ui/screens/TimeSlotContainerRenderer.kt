@@ -1,8 +1,8 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.AvailabilityStatus
-import com.github.shelgen.timesage.domain.PlanningTargetPeriod
-import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.PlanningProcess
+import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
@@ -19,21 +19,21 @@ import java.time.Instant
 object TimeSlotContainerRenderer {
     fun renderTimeSlotContainers(
         weekTimeSlots: List<Instant>,
-        targetPeriod: TargetPeriod,
+        dateRange: DateRange,
         tenant: Tenant,
         toggleButtonFactory: (timeSlot: Instant) -> ToggleAvailabilityButton,
     ): List<Container> =
         weekTimeSlots.map {
             renderTimeSlotContainer(
                 it,
-                AvailabilitiesPeriodRepository.loadOrInitialize(targetPeriod, tenant),
+                AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant),
                 toggleButtonFactory
             )
         }
 
     private fun renderTimeSlotContainer(
         timeSlot: Instant,
-        data: PlanningTargetPeriod,
+        data: PlanningProcess,
         toggleButtonFactory: (timeSlot: Instant) -> ToggleAvailabilityButton,
     ) = Container.of(
         Section.of(
@@ -70,7 +70,7 @@ object TimeSlotContainerRenderer {
 
     abstract class ToggleAvailabilityButton(
         private val timeSlot: Instant,
-        override val screen: AbstractTargetPeriodScreen
+        override val screen: AbstractDateRangeScreen
     ) : ScreenButton {
         fun render() =
             Button.primary(CustomIdSerialization.serialize(this), Emoji.fromUnicode("U+2705"))
@@ -78,7 +78,7 @@ object TimeSlotContainerRenderer {
         override fun handle(event: ButtonInteractionEvent) {
             event.processAndRerender {
                 val userId = event.user.idLong
-                AvailabilitiesPeriodRepository.update(screen.targetPeriod, screen.tenant) { period ->
+                AvailabilitiesPeriodRepository.update(screen.dateRange, screen.tenant) { period ->
                     val old = period.availabilityResponses[userId]?.dates?.get(timeSlot)
                     val new = cycleAvailability(old)
                     logger.info("Updating availability at $timeSlot from $old to $new")
