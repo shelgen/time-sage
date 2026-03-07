@@ -1,0 +1,141 @@
+@startuml Time Sage Domain Model
+
+title Time Sage — Ubiquitous Language
+
+hide empty members
+hide circle
+
+package Time {
+  class Date
+  class "Day of Week"
+  class "Date Range"
+  class "Time Slot"
+  class "Time of Day"
+  class "Time Zone"
+  "Date" --|| "Day of Week"
+  "Time Slot" --|| "Date": "is at"
+  "Time Slot" --|| "Time of Day": "is at"
+  "Time Slot" --|| "Time Zone": "is in"
+  "Date Range" --|{ "Date": "represents consecutive"
+}
+
+package Discord {
+  class "Discord Message"
+  class "Discord Voice Channel"
+  class "Discord Channel"
+  class "Discord Text Channel Thread Channel" extends "Discord Channel"
+  class "Discord Text Channel" extends "Discord Channel"
+  class "Discord User"
+  class "Discord Server"
+  "Discord Message" --|| "Discord Channel": "exists in"
+  "Discord Text Channel Thread Channel" --|| "Discord Text Channel": "exists in"
+  "Discord Text Channel" --|| "Discord Server": "exists in"
+  "Discord Voice Channel" --|| "Discord Server": "exists in"
+  "Discord User" --|| "Discord Channel": "is a member of"
+}
+
+class Tenant
+Tenant ||--|| "Discord Text Channel": "is equivalent to"
+
+package Configuration as ConfigurationPackage {
+  class Configuration
+  class Activity {
+    Name
+    Maximum number of missing optional members
+  }
+  class Member {
+    optional (true/false)
+  }
+  class Localization
+  class Reminders {
+    Enabled
+    Number of days between reminders
+    Hour of day for reminders
+  }
+  class "Periodic Planning" {
+    Enabled
+    Number of days before period to start planning
+    Hour of day to start planning
+  }
+  class "Period Type" {
+    One of:
+    * Weekly
+    * Monthly
+  }
+  class "Time Slot Rule"
+  Configuration --|| Reminders
+  Configuration --|| "Periodic Planning"
+  Configuration --|| Localization
+  Configuration --o{ Activity
+  Configuration --o{ "Time Slot Rule"
+  Activity --|{ Member
+  "Periodic Planning" --|| "Period Type"
+}
+Member --|| "Discord User": "represents"
+Activity --o| "Discord Voice Channel": "refers to for event creation"
+Configuration ||--|| Tenant: "is scoped to"
+Localization --|| "Time Zone": "contains configured"
+Localization --|| "Day of Week": "contains for start of week"
+"Time Slot Rule" --|| "Day of Week": "applies to"
+"Time Slot Rule" --|| "Time of Day": "configures"
+"Time Slot Rule" --|| "Time Slot": "given a date, produces"
+
+package Plan as PlanPackage {
+  class Plan
+  class Score
+  class Session
+  class Participant {
+    If need be (true/false)
+  }
+
+  Plan --o{ Session
+  Plan --|| Score
+}
+Participant --|| Member: "refers to"
+Session --|| "Time Slot": "is at"
+Session --|| "Activity": "regards"
+Session --|{ Participant
+
+package Planning {
+  class "Planning Process"
+  class "Availability Response"
+  class "Response for Time Slot"
+  class Availability {
+    One of:
+    * Available
+    * Available if need be
+    * Unavailable
+  }
+  class "Session Limit"
+  class State {
+    One of:
+    * Collecting availabilites
+    * Locked
+    * Concluded
+  }
+  class Conclusion
+  class "Conclusion Message"
+  class "Availability Interface"
+  class "Availability Message" extends "Availability Interface"
+  class "Availability Thread" extends "Availability Interface"
+  "Planning Process" --|| State
+  "Planning Process" --|| "Availability Interface"
+  "Planning Process" --o{ "Availability Response"
+  "Planning Process" --|{ "Only if state = Locked or Concluded" Plan
+  "Planning Process" --|| "Only if state = Concluded" Conclusion
+  "Availability Response" --o| "Session Limit"
+  "Availability Response" --o{ "Response for Time Slot"
+  "Response for Time Slot" --|| Availability
+  Conclusion --|| "Conclusion Message"
+}
+"Planning Process" --|| Tenant: "exists only in scope of"
+"Availability Response" --|| "Member": "regards"
+"Response for Time Slot" --|| "Time Slot": "regards"
+"Planning Process" --|| "Date Range": "regards"
+"Availability Message" --|| "Discord Message": "refers to"
+"Availability Thread" --|{ "Discord Message": "refers to"
+"Availability Thread" --|| "Discord Text Channel Thread Channel": "refers to"
+"Conclusion Message" --|| "Discord Message": "refers to"
+Conclusion --|| Plan: "refers to"
+
+@enduml
