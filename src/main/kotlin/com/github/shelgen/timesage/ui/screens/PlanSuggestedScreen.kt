@@ -7,7 +7,7 @@ import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.replaceBotPinsWith
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -55,7 +55,7 @@ class PlanSuggestedScreen(
                 event.processAndAddPublicScreen(
                     onMessagePosted = { conclusionMessage ->
                         val availabilityMessage =
-                            AvailabilitiesPeriodRepository.update(
+                            PlanningProcessRepository.update(
                                 screen.dateRange,
                                 screen.tenant
                             ) { availabilitiesPeriod ->
@@ -67,9 +67,9 @@ class PlanSuggestedScreen(
                                 JDAHolder.jda.getThreadChannelById(availabilityMessage.threadChannelId)
                                     ?.manager?.setArchived(true)?.queue()
 
-                            is AvailabilityMessage.Composite ->
+                            is AvailabilityMessage.SingleMessage ->
                                 rerenderOtherScreen(
-                                    messageId = availabilityMessage.screenMessageId,
+                                    messageId = availabilityMessage.messageId,
                                     screen = AvailabilityMessageScreen(screen.dateRange, screen.tenant)
                                 )
 

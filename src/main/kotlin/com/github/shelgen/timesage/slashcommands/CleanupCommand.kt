@@ -2,7 +2,7 @@ package com.github.shelgen.timesage.slashcommands
 
 import com.github.shelgen.timesage.domain.AvailabilityMessage
 import com.github.shelgen.timesage.domain.Tenant
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageHistory
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -25,7 +25,7 @@ object CleanupCommand : AbstractSlashCommand(
         event.deferReply(true).queue { hook ->
             MDC.setContextMap(outerMdc)
             val channel = event.channel.asTextChannel()
-            val keepMessageIds = AvailabilitiesPeriodRepository.loadAll(tenant)
+            val keepMessageIds = PlanningProcessRepository.loadAll(tenant)
                 .flatMap { period ->
                     buildList {
                         when (val ref = period.availabilityMessage) {
@@ -34,7 +34,7 @@ object CleanupCommand : AbstractSlashCommand(
                                 ref.periodLevelScreenMessageId?.let { add(it) }
                                 addAll(ref.availabilityWeekScreenMessageIds.values)
                             }
-                            is AvailabilityMessage.Composite -> add(ref.screenMessageId)
+                            is AvailabilityMessage.SingleMessage -> add(ref.messageId)
                             null -> {}
                         }
                         period.conclusionMessageId?.let { add(it) }

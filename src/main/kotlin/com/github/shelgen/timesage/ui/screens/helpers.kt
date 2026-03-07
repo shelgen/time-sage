@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.Planner
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 
 fun getPlans(
     configuration: Configuration,
@@ -14,7 +14,7 @@ fun getPlans(
 ): List<Plan> = Planner(
     configuration = configuration,
     dateRange = dateRange,
-    availabilityResponses = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant).availabilityResponses
+    availabilityResponses = PlanningProcessRepository.loadOrInitialize(dateRange, tenant).availabilityResponses
 ).generatePossiblePlans()
 
 fun getPlan(

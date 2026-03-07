@@ -4,13 +4,13 @@ import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 
 class AvailabilityThreadStartScreen(val dateRange: DateRange, tenant: Tenant) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<TextDisplay> {
-        val dateRangeState = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant)
+        val dateRangeState = PlanningProcessRepository.loadOrInitialize(dateRange, tenant)
         return listOf(
             TextDisplay.of(
                 "## Availabilities for ${dateRange.toLocalizedString(configuration.localization)}\n" +

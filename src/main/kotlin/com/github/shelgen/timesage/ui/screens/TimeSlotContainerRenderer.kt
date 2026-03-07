@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.domain.PlanningProcess
 import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import com.github.shelgen.timesage.ui.DiscordFormatter.timestamp
 import net.dv8tion.jda.api.components.buttons.Button
@@ -26,7 +26,7 @@ object TimeSlotContainerRenderer {
         weekTimeSlots.map {
             renderTimeSlotContainer(
                 it,
-                AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant),
+                PlanningProcessRepository.loadOrInitialize(dateRange, tenant),
                 toggleButtonFactory
             )
         }
@@ -78,7 +78,7 @@ object TimeSlotContainerRenderer {
         override fun handle(event: ButtonInteractionEvent) {
             event.processAndRerender {
                 val userId = event.user.idLong
-                AvailabilitiesPeriodRepository.update(screen.dateRange, screen.tenant) { period ->
+                PlanningProcessRepository.update(screen.dateRange, screen.tenant) { period ->
                     val old = period.availabilityResponses[userId]?.dates?.get(timeSlot)
                     val new = cycleAvailability(old)
                     logger.info("Updating availability at $timeSlot from $old to $new")

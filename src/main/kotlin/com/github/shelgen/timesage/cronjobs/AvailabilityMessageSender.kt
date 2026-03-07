@@ -6,7 +6,7 @@ import com.github.shelgen.timesage.domain.DateRange
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.replaceBotPinsWith
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityMessageScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadPeriodLevelScreen
@@ -23,7 +23,7 @@ object AvailabilityMessageSender {
         }
 
         val dateRange = configuration.activePeriod()
-        val existing = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant)
+        val existing = PlanningProcessRepository.loadOrInitialize(dateRange, tenant)
         if (existing.availabilityMessage != null) {
             logger.info("Availability message for $dateRange has already been sent.")
             return
@@ -62,8 +62,8 @@ object AvailabilityMessageSender {
             }
         } else {
             channel.sendMessage(AvailabilityMessageScreen(dateRange, tenant).render()).queue { message ->
-                AvailabilitiesPeriodRepository.update(dateRange, tenant) {
-                    it.availabilityMessage = AvailabilityMessage.Composite(message.idLong)
+                PlanningProcessRepository.update(dateRange, tenant) {
+                    it.availabilityMessage = AvailabilityMessage.SingleMessage(message.idLong)
                 }
                 replaceBotPinsWith(message)
             }
@@ -81,7 +81,7 @@ object AvailabilityMessageSender {
         accumulatedIds: Map<DateRange, Long>,
     ) {
         if (weekChunkIndex >= weekChunks.size) {
-            AvailabilitiesPeriodRepository.update(dateRange, tenant) {
+            PlanningProcessRepository.update(dateRange, tenant) {
                 it.availabilityMessage = AvailabilityMessage.Thread(
                     threadStartScreenMessageId = headerMessageId,
                     threadChannelId = thread.idLong,

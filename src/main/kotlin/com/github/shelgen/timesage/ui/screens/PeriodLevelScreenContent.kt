@@ -5,7 +5,7 @@ import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.PlanningProcess
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.buttons.Button
@@ -23,7 +23,7 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
     private val tenant = screen.tenant
 
     fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val dateRangeState = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant)
+        val dateRangeState = PlanningProcessRepository.loadOrInitialize(dateRange, tenant)
         return renderMissingResponses(dateRangeState, configuration) +
                 renderLimits("Limits this ${dateRange.toLocalizedString(configuration.localization)}", dateRangeState)
     }
@@ -93,7 +93,7 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
         override fun handle(event: ButtonInteractionEvent) {
             event.processAndRerender {
                 val userId = event.user.idLong
-                AvailabilitiesPeriodRepository.update(screen.dateRange, screen.tenant) { period ->
+                PlanningProcessRepository.update(screen.dateRange, screen.tenant) { period ->
                     val old = period.availabilityResponses[userId]?.sessionLimit
                     val new = cycleLimit(old)
                     logger.info("Updating session limit for target period ${screen.dateRange} from $old to $new")

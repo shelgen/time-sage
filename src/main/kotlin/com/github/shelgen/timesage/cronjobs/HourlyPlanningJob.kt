@@ -6,7 +6,7 @@ import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.domain.AvailabilityMessage
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import com.github.shelgen.timesage.withTenantMDC
@@ -40,7 +40,7 @@ class HourlyPlanningJob : Job {
         val today = LocalDate.now(configuration.localization.timeZone.toZoneId())
         logger.info("Checking planning for period $period")
 
-        val data = AvailabilitiesPeriodRepository.loadOrInitialize(period, tenant)
+        val data = PlanningProcessRepository.loadOrInitialize(period, tenant)
 
         if (data.availabilityMessage == null) {
             AvailabilityMessageSender.postAvailabilityMessage(tenant)
@@ -75,8 +75,8 @@ class HourlyPlanningJob : Job {
         val messageUrl = when (val ref = data.availabilityMessage) {
             is AvailabilityMessage.Thread ->
                 "https://discord.com/channels/${tenant.guildId}/${ref.threadChannelId}"
-            is AvailabilityMessage.Composite ->
-                "https://discord.com/channels/${tenant.guildId}/${tenant.channelId}/${ref.screenMessageId}"
+            is AvailabilityMessage.SingleMessage ->
+                "https://discord.com/channels/${tenant.guildId}/${tenant.channelId}/${ref.messageId}"
             null -> return
         }
 
@@ -87,7 +87,7 @@ class HourlyPlanningJob : Job {
                         " Could you check it out? $messageUrl"
             ).build()
         ).queue()
-        AvailabilitiesPeriodRepository.update(period, tenant) {
+        PlanningProcessRepository.update(period, tenant) {
             it.lastReminderDate = today
         }
     }

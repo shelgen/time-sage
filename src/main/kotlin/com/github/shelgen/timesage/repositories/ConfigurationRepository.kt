@@ -50,8 +50,8 @@ object ConfigurationRepository {
     private fun ConfigurationFileDao.Json.Scheduling.toDomain() = Scheduling(
         type = type.toDomain(),
         timeSlotRules = timeSlotRulesPerDay.toDomain(),
-        numDaysInAdvanceToStartPlanning = daysBeforePeriod,
-        timeOfDayToStartPlanning = planningStartHour,
+        numDaysInAdvanceToStartPlanning = daysInAdvanceToStartPlanning,
+        timeOfDayToStartPlanning = startHourOfDay,
         reminderIntervalDays = reminderIntervalDays,
     )
 
@@ -74,12 +74,12 @@ object ConfigurationRepository {
         return Activity(
             id = id,
             name = name,
-            members = participants.toDomain(),
-            maxMissingOptionalMembers = this.maxMissingOptionalParticipants
+            members = members.toDomain(),
+            maxMissingOptionalMembers = this.maxMissingOptionalMembers
         )
     }
 
-    private fun ConfigurationFileDao.Json.Participants.toDomain(): List<ActivityMember> =
+    private fun ConfigurationFileDao.Json.Members.toDomain(): List<ActivityMember> =
         required.map { ActivityMember(userId = it, optional = false) } +
                 optional.map { ActivityMember(userId = it, optional = true) }
 
@@ -95,8 +95,8 @@ object ConfigurationRepository {
         type = type.toJson(),
         startDayOfWeek = startDayOfWeek,
         timeSlotRulesPerDay = timeSlotRules.toJson(),
-        daysBeforePeriod = numDaysInAdvanceToStartPlanning,
-        planningStartHour = timeOfDayToStartPlanning,
+        daysInAdvanceToStartPlanning = numDaysInAdvanceToStartPlanning,
+        startHourOfDay = timeOfDayToStartPlanning,
         reminderIntervalDays = reminderIntervalDays,
     )
 
@@ -118,11 +118,11 @@ object ConfigurationRepository {
     private fun Activity.toJson() = ConfigurationFileDao.Json.Activity(
         id = id,
         name = name,
-        participants = members.toJson(),
-        maxMissingOptionalParticipants = maxMissingOptionalMembers
+        members = members.toJson(),
+        maxMissingOptionalMembers = maxMissingOptionalMembers
     )
 
-    private fun List<ActivityMember>.toJson() = ConfigurationFileDao.Json.Participants(
+    private fun List<ActivityMember>.toJson() = ConfigurationFileDao.Json.Members(
         required = filterNot { it.optional }.map { it.userId }.toSortedSet(),
         optional = filter { it.optional }.map { it.userId }.toSortedSet(),
     )

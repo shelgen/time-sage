@@ -6,15 +6,15 @@ import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 
-class AvailabilitiesPeriodFileDao {
+class PlanningProcessFileDao {
     private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
 
     fun save(dateRange: DateRange, tenant: Tenant, json: Json) {
-        fileDao.save(getPeriodFile(dateRange, tenant), json)
+        fileDao.save(getPlanningProcessFile(dateRange, tenant), json)
     }
 
     fun load(dateRange: DateRange, tenant: Tenant): Json? =
-        fileDao.load(getPeriodFile(dateRange, tenant))
+        fileDao.load(getPlanningProcessFile(dateRange, tenant))
 
     fun loadAll(tenant: Tenant): List<Json> {
         val periodsDir = getPeriodsDir(tenant)
@@ -25,19 +25,19 @@ class AvailabilitiesPeriodFileDao {
     }
 
     data class Json(
-        val messageId: Long?,
-        val threadId: Long?,
-        val headerMessageId: Long?,
-        val sessionLimitAndUnavailableMessageId: Long?,
-        val availabilityMessageIds: Map<String, Long> = emptyMap(),
-        val responses: Map<Long, Response>,
+        val singleMessageId: Long?,
+        val threadChannelId: Long?,
+        val threadStartMessageId: Long?,
+        val periodLevelMessageId: Long?,
+        val weekMessageIds: Map<String, Long> = emptyMap(),
+        val availabilityResponses: Map<Long, AvailabilityResponse>,
         val concluded: Boolean = false,
         val conclusionMessageId: Long? = null,
         val lastReminderDate: LocalDate? = null,
     ) {
-        data class Response(
+        data class AvailabilityResponse(
             val sessionLimit: Int?,
-            val availability: Map<Instant, AvailabilityStatus>
+            val availabilities: Map<Instant, AvailabilityStatus>
         )
 
         enum class AvailabilityStatus {
@@ -45,7 +45,7 @@ class AvailabilitiesPeriodFileDao {
         }
     }
 
-    private fun getPeriodFile(dateRange: DateRange, tenant: Tenant): File =
+    private fun getPlanningProcessFile(dateRange: DateRange, tenant: Tenant): File =
         File(getPeriodsDir(tenant), "${dateRange.fromInclusive}_${dateRange.toInclusive}.json")
 
     private fun getPeriodsDir(tenant: Tenant): File =

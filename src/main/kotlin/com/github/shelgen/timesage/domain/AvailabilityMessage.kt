@@ -8,7 +8,7 @@ sealed interface AvailabilityMessage {
         val availabilityWeekScreenMessageIds: Map<DateRange, Long>,
     ) : AvailabilityMessage
 
-    data class Composite(
-        val screenMessageId: Long,
+    data class SingleMessage(
+        val messageId: Long,
     ) : AvailabilityMessage
 }

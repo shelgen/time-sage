@@ -29,11 +29,11 @@ class ConfigurationFileDao {
         data class Activity(
             val id: Int,
             val name: String,
-            val participants: Participants,
-            val maxMissingOptionalParticipants: Int
+            val members: Members,
+            val maxMissingOptionalMembers: Int
         )
 
-        data class Participants(
+        data class Members(
             val required: Set<Long>,
             val optional: Set<Long>
         )
@@ -42,8 +42,8 @@ class ConfigurationFileDao {
             val type: Type,
             val startDayOfWeek: DayOfWeek,
             val timeSlotRulesPerDay: TimeSlotRules,
-            val daysBeforePeriod: Int,
-            val planningStartHour: Int,
+            val daysInAdvanceToStartPlanning: Int,
+            val startHourOfDay: Int,
             val reminderIntervalDays: Int,
         ) {
             enum class Type { WEEKLY, MONTHLY }
