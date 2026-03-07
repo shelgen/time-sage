@@ -1,14 +1,14 @@
 package com.github.shelgen.timesage.domain
 
-sealed interface AvailabilityMessageOrThread {
-    data class AvailabilityThread(
+sealed interface AvailabilityMessage {
+    data class Thread(
         val threadStartScreenMessageId: Long,
         val threadChannelId: Long,
         val periodLevelScreenMessageId: Long?,
         val availabilityWeekScreenMessageIds: Map<DateRange, Long>,
-    ) : AvailabilityMessageOrThread
+    ) : AvailabilityMessage
 
-    data class AvailabilityMessage(
+    data class Composite(
         val screenMessageId: Long,
-    ) : AvailabilityMessageOrThread
+    ) : AvailabilityMessage
 }

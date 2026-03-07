@@ -4,7 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 open class PlanningTargetPeriod(
-    open val availabilityMessageOrThread: AvailabilityMessageOrThread?,
+    open val availabilityMessage: AvailabilityMessage?,
     open val availabilityResponses: AvailabilityResponses,
     open val conclusionMessageId: Long?,
     open val lastReminderDate: LocalDate?,
@@ -13,7 +13,7 @@ open class PlanningTargetPeriod(
 
     companion object {
         val DEFAULT = PlanningTargetPeriod(
-            availabilityMessageOrThread = null,
+            availabilityMessage = null,
             availabilityResponses = AvailabilityResponses.NONE,
             conclusionMessageId = null,
             lastReminderDate = null,
@@ -22,13 +22,13 @@ open class PlanningTargetPeriod(
 }
 
 class MutablePlanningTargetPeriod(
-    override var availabilityMessageOrThread: AvailabilityMessageOrThread?,
+    override var availabilityMessage: AvailabilityMessage?,
     override val availabilityResponses: MutableAvailabilityResponses,
     override var conclusionMessageId: Long?,
     override var lastReminderDate: LocalDate?,
-) : PlanningTargetPeriod(availabilityMessageOrThread, availabilityResponses, conclusionMessageId, lastReminderDate) {
+) : PlanningTargetPeriod(availabilityMessage, availabilityResponses, conclusionMessageId, lastReminderDate) {
     constructor(period: PlanningTargetPeriod) : this(
-        availabilityMessageOrThread = period.availabilityMessageOrThread,
+        availabilityMessage = period.availabilityMessage,
         availabilityResponses = MutableAvailabilityResponses(availabilityResponses = period.availabilityResponses),
         conclusionMessageId = period.conclusionMessageId,
         lastReminderDate = period.lastReminderDate,

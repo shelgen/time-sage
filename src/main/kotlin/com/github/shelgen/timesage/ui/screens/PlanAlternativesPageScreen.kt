@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.TargetPeriod
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.ui.AlternativePrinter
@@ -14,13 +14,13 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class PlanAlternativesPageScreen(
-    val dateRange: DateRange,
+    val targetPeriod: TargetPeriod,
     val fromInclusive: Int,
     val pageSize: Int,
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val allPlans = getPlans(configuration, dateRange, tenant)
+        val allPlans = getPlans(configuration, targetPeriod, tenant)
         val numberedPlansInPage =
             allPlans.drop(fromInclusive).take(pageSize)
                 .mapIndexed { index, plan -> fromInclusive + index + 1 to plan }
@@ -99,7 +99,7 @@ class PlanAlternativesPageScreen(
                 event.processAndAddPublicScreen {
                     PlanSuggestedScreen(
                         planNumber = planNumber,
-                        dateRange = screen.dateRange,
+                        targetPeriod = screen.targetPeriod,
                         suggestingUserId = event.user.idLong,
                         tenant = screen.tenant
                     )
@@ -117,7 +117,7 @@ class PlanAlternativesPageScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddEphemeralScreen {
                     PlanAlternativesPageScreen(
-                        dateRange = screen.dateRange,
+                        targetPeriod = screen.targetPeriod,
                         fromInclusive = screen.fromInclusive + screen.pageSize,
                         pageSize = nextSize,
                         tenant = screen.tenant
@@ -134,7 +134,7 @@ class PlanAlternativesPageScreen(
                 event.processAndAddPublicScreen {
                     PlanSuggestedScreen(
                         planNumber = 0,
-                        dateRange = screen.dateRange,
+                        targetPeriod = screen.targetPeriod,
                         suggestingUserId = event.user.idLong,
                         tenant = screen.tenant
                     )

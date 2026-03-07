@@ -15,8 +15,8 @@ fun createScheduledEventsForPlan(plan: Plan, guild: Guild, configuration: Config
         val activity = configuration.getActivity(session.activityId)
         val startTime: OffsetDateTime = session.timeSlot.atOffset(ZoneOffset.UTC)
 
-        val attending = session.attendees.filter { !it.ifNeedBe }.map { "<@${it.userId}>" }
-        val ifNeedBe = session.attendees.filter { it.ifNeedBe }.map { "<@${it.userId}>" }
+        val attending = session.participants.filter { !it.ifNeedBe }.map { "<@${it.userId}>" }
+        val ifNeedBe = session.participants.filter { it.ifNeedBe }.map { "<@${it.userId}>" }
         val description = buildString {
             if (attending.isNotEmpty()) appendLine("Attending: ${attending.joinToString()}")
             if (ifNeedBe.isNotEmpty()) append("If need be: ${ifNeedBe.joinToString()}")

@@ -2,22 +2,22 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Activity
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.TargetPeriod
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 
-class AvailabilityThreadStartScreen(val dateRange: DateRange, tenant: Tenant) : Screen(tenant) {
+class AvailabilityThreadStartScreen(val targetPeriod: TargetPeriod, tenant: Tenant) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<TextDisplay> {
-        val dateRangeState = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant)
+        val targetPeriodState = AvailabilitiesPeriodRepository.loadOrInitialize(targetPeriod, tenant)
         return listOf(
             TextDisplay.of(
-                "## Availabilities for ${dateRange.toLocalizedString(configuration.localization)}\n" +
-                        if (dateRangeState.concluded) {
+                "## Availabilities for ${targetPeriod.toLocalizedString(configuration.localization)}\n" +
+                        if (targetPeriodState.concluded) {
                             DiscordFormatter.bold(
-                                "✅ Planning for this ${dateRange.toLocalizedString(configuration.localization)} has been concluded" +
-                                        dateRangeState.conclusionMessageId?.let {
+                                "✅ Planning for this ${targetPeriod.toLocalizedString(configuration.localization)} has been concluded" +
+                                        targetPeriodState.conclusionMessageId?.let {
                                             "\nSee https://discord.com/channels/${tenant.guildId}/${tenant.channelId}/$it"
                                         }.orEmpty()
                             )

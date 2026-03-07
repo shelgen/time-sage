@@ -2,9 +2,9 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.createScheduledEventsForPlan
-import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
+import com.github.shelgen.timesage.domain.AvailabilityMessage
 import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.TargetPeriod
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
@@ -20,12 +20,12 @@ import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
 class PlanSuggestedScreen(
     val planNumber: Int,
-    val dateRange: DateRange,
+    val targetPeriod: TargetPeriod,
     val suggestingUserId: Long,
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val plan = getPlan(planNumber, dateRange, configuration, tenant)
+        val plan = getPlan(planNumber, targetPeriod, configuration, tenant)
         return if (plan.sessions.isEmpty()) {
             listOf(
                 TextDisplay.of(
@@ -54,31 +54,30 @@ class PlanSuggestedScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen(
                     onMessagePosted = { conclusionMessage ->
-                        val availabilityMessageOrThread =
+                        val availabilityMessage =
                             AvailabilitiesPeriodRepository.update(
-                                screen.dateRange,
+                                screen.targetPeriod,
                                 screen.tenant
                             ) { availabilitiesPeriod ->
-                                availabilitiesPeriod.concluded = true
                                 availabilitiesPeriod.conclusionMessageId = conclusionMessage.idLong
-                                availabilitiesPeriod.availabilityMessageOrThread
+                                availabilitiesPeriod.availabilityMessage
                             }
-                        when (availabilityMessageOrThread) {
-                            is AvailabilityMessageOrThread.AvailabilityThread ->
-                                JDAHolder.jda.getThreadChannelById(availabilityMessageOrThread.threadChannelId)
+                        when (availabilityMessage) {
+                            is AvailabilityMessage.Thread ->
+                                JDAHolder.jda.getThreadChannelById(availabilityMessage.threadChannelId)
                                     ?.manager?.setArchived(true)?.queue()
 
-                            is AvailabilityMessageOrThread.AvailabilityMessage ->
+                            is AvailabilityMessage.Composite ->
                                 rerenderOtherScreen(
-                                    messageId = availabilityMessageOrThread.screenMessageId,
-                                    screen = AvailabilityMessageScreen(screen.dateRange, screen.tenant)
+                                    messageId = availabilityMessage.screenMessageId,
+                                    screen = AvailabilityMessageScreen(screen.targetPeriod, screen.tenant)
                                 )
 
                             null -> {}
                         }
                         replaceBotPinsWith(conclusionMessage)
                         val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                        val plan = getPlan(screen.planNumber, screen.dateRange, configuration, screen.tenant)
+                        val plan = getPlan(screen.planNumber, screen.targetPeriod, configuration, screen.tenant)
                         if (plan.sessions.isNotEmpty()) {
                             JDAHolder.jda.getGuildById(screen.tenant.guildId)?.let { guild ->
                                 createScheduledEventsForPlan(plan, guild, configuration)
@@ -88,7 +87,7 @@ class PlanSuggestedScreen(
                 ) {
                     PlanConcludedWithScreen(
                         planNumber = screen.planNumber,
-                        dateRange = screen.dateRange,
+                        targetPeriod = screen.targetPeriod,
                         tenant = screen.tenant
                     )
                 }

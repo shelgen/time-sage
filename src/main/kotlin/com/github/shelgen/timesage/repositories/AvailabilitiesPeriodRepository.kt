@@ -7,19 +7,19 @@ import java.util.*
 object AvailabilitiesPeriodRepository {
     private val dao = AvailabilitiesPeriodFileDao()
 
-    fun loadOrInitialize(period: DateRange, tenant: Tenant): PlanningTargetPeriod =
-        dao.load(period, tenant)?.toDomain() ?: PlanningTargetPeriod.DEFAULT
+    fun loadOrInitialize(targetPeriod: TargetPeriod, tenant: Tenant): PlanningTargetPeriod =
+        dao.load(targetPeriod, tenant)?.toDomain() ?: PlanningTargetPeriod.DEFAULT
 
     @Synchronized
     fun <T> update(
-        period: DateRange,
+        targetPeriod: TargetPeriod,
         tenant: Tenant,
         modification: (period: MutablePlanningTargetPeriod) -> T
     ): T {
-        val existing = loadOrInitialize(period, tenant)
+        val existing = loadOrInitialize(targetPeriod, tenant)
         val mutable = MutablePlanningTargetPeriod(existing)
         val returnValue = modification(mutable)
-        dao.save(period, tenant, mutable.toJson())
+        dao.save(targetPeriod, tenant, mutable.toJson())
         return returnValue
     }
 
@@ -27,16 +27,15 @@ object AvailabilitiesPeriodRepository {
         dao.loadAll(tenant).map { it.toDomain() }
 
     private fun AvailabilitiesPeriodFileDao.Json.toDomain() = PlanningTargetPeriod(
-        availabilityMessageOrThread = toAvailabilityMessageOrThread(),
+        availabilityMessage = toAvailabilityMessage(),
         availabilityResponses = AvailabilityResponses(responses.map { (userId, r) -> userId to r.toDomain() }.toMap()),
-        concluded = concluded,
         conclusionMessageId = conclusionMessageId,
         lastReminderDate = lastReminderDate,
     )
 
-    private fun AvailabilitiesPeriodFileDao.Json.toAvailabilityMessageOrThread(): AvailabilityMessageOrThread? =
+    private fun AvailabilitiesPeriodFileDao.Json.toAvailabilityMessage(): AvailabilityMessage? =
         when {
-            threadId != null && headerMessageId != null -> AvailabilityMessageOrThread.AvailabilityThread(
+            threadId != null && headerMessageId != null -> AvailabilityMessage.Thread(
                 threadStartScreenMessageId = headerMessageId,
                 threadChannelId = threadId,
                 periodLevelScreenMessageId = sessionLimitAndUnavailableMessageId,
@@ -45,7 +44,7 @@ object AvailabilitiesPeriodRepository {
                     DateRange(LocalDate.parse(from), LocalDate.parse(to))
                 },
             )
-            messageId != null -> AvailabilityMessageOrThread.AvailabilityMessage(messageId)
+            messageId != null -> AvailabilityMessage.Composite(messageId)
             else -> null
         }
 
@@ -61,8 +60,8 @@ object AvailabilitiesPeriodRepository {
     }
 
     private fun MutablePlanningTargetPeriod.toJson(): AvailabilitiesPeriodFileDao.Json {
-        val thread = availabilityMessageOrThread as? AvailabilityMessageOrThread.AvailabilityThread
-        val message = availabilityMessageOrThread as? AvailabilityMessageOrThread.AvailabilityMessage
+        val thread = availabilityMessage as? AvailabilityMessage.Thread
+        val message = availabilityMessage as? AvailabilityMessage.Composite
         return AvailabilitiesPeriodFileDao.Json(
             messageId = message?.screenMessageId,
             threadId = thread?.threadChannelId,

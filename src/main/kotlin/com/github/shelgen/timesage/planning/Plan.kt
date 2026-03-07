@@ -1,15 +1,14 @@
 package com.github.shelgen.timesage.planning
 
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-data class Plan(val sessions: List<Session>) {
+data class Plan(val sessions: List<PlannedSession>) {
     val score: Score = Score(
-        missingOptionalAttendees = sessions.sumOf { it.missingOptionalCount },
-        ifNeedBeAttendees = sessions.sumOf { session -> session.attendees.count { it.ifNeedBe } },
+        missingOptionalParticipants = sessions.sumOf { it.missingOptionalCount },
+        ifNeedBeParticipants = sessions.sumOf { session -> session.participants.count { it.ifNeedBe } },
         numberOfSessions = sessions.size,
-        participantSessions = sessions.sumOf { it.attendees.size },
+        participantSessions = sessions.sumOf { it.participants.size },
         directlyFollowingDays = sessions.zipWithNext().count { (a, b) ->
             numDaysBetween(
                 latestDate = b.timeSlot.atOffset(ZoneOffset.UTC).toLocalDate(),
@@ -19,15 +18,15 @@ data class Plan(val sessions: List<Session>) {
     )
 
     data class Score(
-        val missingOptionalAttendees: Int,
-        val ifNeedBeAttendees: Int,
+        val missingOptionalParticipants: Int,
+        val ifNeedBeParticipants: Int,
         val numberOfSessions: Int,
         val participantSessions: Int,
         val directlyFollowingDays: Int
     ) : Comparable<Score> {
         private val comparator: Comparator<Score> = compareBy(
-            { it.missingOptionalAttendees },
-            { it.ifNeedBeAttendees },
+            { it.missingOptionalParticipants },
+            { it.ifNeedBeParticipants },
             { -it.numberOfSessions },
             { -it.participantSessions },
             { it.directlyFollowingDays }
@@ -37,10 +36,10 @@ data class Plan(val sessions: List<Session>) {
 
         fun toDisplayString(): String {
             val parts = buildList {
-                if (missingOptionalAttendees > 0)
-                    add("$missingOptionalAttendees missing")
-                if (ifNeedBeAttendees > 0)
-                    add("$ifNeedBeAttendees if-need-be")
+                if (missingOptionalParticipants > 0)
+                    add("$missingOptionalParticipants missing")
+                if (ifNeedBeParticipants > 0)
+                    add("$ifNeedBeParticipants if-need-be")
                 add(if (numberOfSessions == 1) "1 session" else "$numberOfSessions sessions")
                 add(if (participantSessions == 1) "1 participant" else "$participantSessions participants")
                 if (directlyFollowingDays > 0)
@@ -48,19 +47,6 @@ data class Plan(val sessions: List<Session>) {
             }
             return parts.joinToString(", ")
         }
-    }
-
-    data class Session(
-        val timeSlot: Instant,
-        val activityId: Int,
-        val attendees: Set<Attendee>,
-        val missingOptionalCount: Int
-    ) {
-        data class Attendee(val userId: Long, val ifNeedBe: Boolean)
-
-        private val attendeeUserIds: Set<Long> = attendees.map(Attendee::userId).toSet()
-
-        fun hasAttendee(userId: Long) = userId in attendeeUserIds
     }
 
     private fun numDaysBetween(latestDate: LocalDate, earliestDate: LocalDate) =

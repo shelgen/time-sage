@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.slashcommands
 
-import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
+import com.github.shelgen.timesage.domain.AvailabilityMessage
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import net.dv8tion.jda.api.entities.Message
@@ -28,13 +28,13 @@ object CleanupCommand : AbstractSlashCommand(
             val keepMessageIds = AvailabilitiesPeriodRepository.loadAll(tenant)
                 .flatMap { period ->
                     buildList {
-                        when (val ref = period.availabilityMessageOrThread) {
-                            is AvailabilityMessageOrThread.AvailabilityThread -> {
+                        when (val ref = period.availabilityMessage) {
+                            is AvailabilityMessage.Thread -> {
                                 add(ref.threadStartScreenMessageId)
                                 ref.periodLevelScreenMessageId?.let { add(it) }
                                 addAll(ref.availabilityWeekScreenMessageIds.values)
                             }
-                            is AvailabilityMessageOrThread.AvailabilityMessage -> add(ref.screenMessageId)
+                            is AvailabilityMessage.Composite -> add(ref.screenMessageId)
                             null -> {}
                         }
                         period.conclusionMessageId?.let { add(it) }

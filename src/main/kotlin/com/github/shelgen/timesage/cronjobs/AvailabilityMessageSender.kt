@@ -1,8 +1,9 @@
 package com.github.shelgen.timesage.cronjobs
 
 import com.github.shelgen.timesage.JDAHolder
-import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
+import com.github.shelgen.timesage.domain.AvailabilityMessage
 import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.TargetPeriod
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.replaceBotPinsWith
@@ -23,10 +24,10 @@ object AvailabilityMessageSender {
             return
         }
 
-        val dateRange = configuration.activePeriod()
-        val existing = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant)
-        if (existing.availabilityMessageOrThread != null) {
-            logger.info("Availability message for $dateRange has already been sent.")
+        val targetPeriod = configuration.activePeriod()
+        val existing = AvailabilitiesPeriodRepository.loadOrInitialize(targetPeriod, tenant)
+        if (existing.availabilityMessage != null) {
+            logger.info("Availability message for $targetPeriod has already been sent.")
             return
         }
 
@@ -35,22 +36,22 @@ object AvailabilityMessageSender {
             return
         }
 
-        logger.info("Sending availability message for $dateRange")
+        logger.info("Sending availability message for $targetPeriod")
 
         val timeSlots =
-            configuration.scheduling.timeSlotRules.getTimeSlots(dateRange, configuration.localization.timeZone)
+            configuration.scheduling.timeSlotRules.getTimeSlots(targetPeriod, configuration.localization.timeZone)
 
         if (timeSlots.size > 7) {
-            val chunks = dateRange.chunkedByWeek(configuration.localization.startDayOfWeek)
+            val chunks = targetPeriod.chunkedByWeek(configuration.localization.startDayOfWeek)
 
-            channel.sendMessage(AvailabilityThreadStartScreen(dateRange, tenant).render()).queue { headerMessage ->
-                headerMessage.createThreadChannel("${dateRange.toLocalizedString(configuration.localization)} availability")
+            channel.sendMessage(AvailabilityThreadStartScreen(targetPeriod, tenant).render()).queue { headerMessage ->
+                headerMessage.createThreadChannel("${targetPeriod.toLocalizedString(configuration.localization)} availability")
                     .queue { threadChannel ->
-                        threadChannel.sendMessage(AvailabilityThreadPeriodLevelScreen(dateRange, tenant).render())
+                        threadChannel.sendMessage(AvailabilityThreadPeriodLevelScreen(targetPeriod, tenant).render())
                             .queue { introMessage ->
                                 sendChunksAndPersist(
                                     thread = threadChannel,
-                                    dateRange = dateRange,
+                                    targetPeriod = targetPeriod,
                                     tenant = tenant,
                                     weekChunks = chunks,
                                     weekChunkIndex = 0,
@@ -62,9 +63,9 @@ object AvailabilityMessageSender {
                     }
             }
         } else {
-            channel.sendMessage(AvailabilityMessageScreen(dateRange, tenant).render()).queue { message ->
-                AvailabilitiesPeriodRepository.update(dateRange, tenant) {
-                    it.availabilityMessageOrThread = AvailabilityMessageOrThread.AvailabilityMessage(message.idLong)
+            channel.sendMessage(AvailabilityMessageScreen(targetPeriod, tenant).render()).queue { message ->
+                AvailabilitiesPeriodRepository.update(targetPeriod, tenant) {
+                    it.availabilityMessage = AvailabilityMessage.Composite(message.idLong)
                 }
                 replaceBotPinsWith(message)
             }
@@ -73,7 +74,7 @@ object AvailabilityMessageSender {
 
     private fun sendChunksAndPersist(
         thread: ThreadChannel,
-        dateRange: DateRange,
+        targetPeriod: TargetPeriod,
         tenant: Tenant,
         weekChunks: List<List<LocalDate>>,
         weekChunkIndex: Int,
@@ -82,8 +83,8 @@ object AvailabilityMessageSender {
         accumulatedIds: Map<DateRange, Long>,
     ) {
         if (weekChunkIndex >= weekChunks.size) {
-            AvailabilitiesPeriodRepository.update(dateRange, tenant) {
-                it.availabilityMessageOrThread = AvailabilityMessageOrThread.AvailabilityThread(
+            AvailabilitiesPeriodRepository.update(targetPeriod, tenant) {
+                it.availabilityMessage = AvailabilityMessage.Thread(
                     threadStartScreenMessageId = headerMessageId,
                     threadChannelId = thread.idLong,
                     periodLevelScreenMessageId = introMessageId,
@@ -99,13 +100,13 @@ object AvailabilityMessageSender {
         thread.sendMessage(
             AvailabilityThreadWeekScreen(
                 weekChunkIndex = weekChunkIndex,
-                dateRange = dateRange,
+                targetPeriod = targetPeriod,
                 tenant = tenant
             ).render()
         ).queue { chunkMessage ->
             sendChunksAndPersist(
                 thread = thread,
-                dateRange = dateRange,
+                targetPeriod = targetPeriod,
                 tenant = tenant,
                 weekChunks = weekChunks,
                 weekChunkIndex = weekChunkIndex + 1,

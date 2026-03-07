@@ -68,8 +68,8 @@ class PlannerTest {
         val session = plans.single().sessions.single()
         assertEquals(monday, session.timeSlot)
         assertEquals(1, session.activityId)
-        assertTrue(session.hasAttendee(alice))
-        assertTrue(session.hasAttendee(bob))
+        assertTrue(session.hasParticipant(alice))
+        assertTrue(session.hasParticipant(bob))
     }
 
     @Test
@@ -82,8 +82,8 @@ class PlannerTest {
 
         val session = planner(conf, responses).generatePossiblePlans().single().sessions.single()
 
-        assertFalse(session.attendees.first { it.userId == alice }.ifNeedBe)
-        assertTrue(session.attendees.first { it.userId == bob }.ifNeedBe)
+        assertFalse(session.participants.first { it.userId == alice }.ifNeedBe)
+        assertTrue(session.participants.first { it.userId == bob }.ifNeedBe)
     }
 
     @Test
@@ -98,8 +98,8 @@ class PlannerTest {
 
         assertEquals(1, plans.size)
         val session = plans.single().sessions.single()
-        assertTrue(session.hasAttendee(alice))
-        assertFalse(session.hasAttendee(bob))
+        assertTrue(session.hasParticipant(alice))
+        assertFalse(session.hasParticipant(bob))
     }
 
     @Test
@@ -114,7 +114,7 @@ class PlannerTest {
         val plans = planner(conf, responses).generatePossiblePlans()
 
         assertEquals(1, plans.size)
-        assertTrue(plans.single().sessions.single().hasAttendee(bob))
+        assertTrue(plans.single().sessions.single().hasParticipant(bob))
     }
 
     @Test
@@ -130,7 +130,7 @@ class PlannerTest {
         val plans = planner(conf, responses).generatePossiblePlans()
 
         assertEquals(1, plans.size)
-        assertTrue(plans.single().sessions.single().hasAttendee(bob))
+        assertTrue(plans.single().sessions.single().hasParticipant(bob))
     }
 
     @Test
@@ -277,17 +277,17 @@ class PlannerTest {
     @Test
     fun `Score ordering - missing first, then if-need-be, then more sessions, then more participants, then fewer consecutive days`() {
         // s1: 0 missing, 0 if-need-be, 2 sessions, 6 participants, 0 following → best
-        val s1 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
+        val s1 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
         // s2: 0 missing, 0 if-need-be, 2 sessions, 6 participants, 1 following → worse than s1
-        val s2 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 1)
+        val s2 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 1)
         // s3: 0 missing, 0 if-need-be, 2 sessions, 4 participants, 0 following → fewer participants than s1
-        val s3 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 0, numberOfSessions = 2, participantSessions = 4, directlyFollowingDays = 0)
+        val s3 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 0, numberOfSessions = 2, participantSessions = 4, directlyFollowingDays = 0)
         // s4: 0 missing, 0 if-need-be, 1 session, 3 participants, 0 following → fewer sessions
-        val s4 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 0, numberOfSessions = 1, participantSessions = 3, directlyFollowingDays = 0)
+        val s4 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 0, numberOfSessions = 1, participantSessions = 3, directlyFollowingDays = 0)
         // s5: 0 missing, 1 if-need-be, 2 sessions, 6 participants, 0 following → has if-need-be
-        val s5 = Plan.Score(missingOptionalAttendees = 0, ifNeedBeAttendees = 1, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
+        val s5 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 1, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
         // s6: 1 missing, 0 if-need-be, 2 sessions, 6 participants, 0 following → has missing → worst
-        val s6 = Plan.Score(missingOptionalAttendees = 1, ifNeedBeAttendees = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
+        val s6 = Plan.Score(missingOptionalParticipants = 1, ifNeedBeParticipants = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
 
         assertEquals(listOf(s1, s2, s3, s4, s5, s6), listOf(s6, s4, s2, s5, s3, s1).sorted())
     }
@@ -297,7 +297,7 @@ class PlannerTest {
     private fun planner(
         configuration: Configuration,
         availabilityResponses: AvailabilityResponses = AvailabilityResponses.NONE,
-    ) = Planner(configuration = configuration, dateRange = DateRange.weekFrom(weekStart), availabilityResponses = availabilityResponses)
+    ) = Planner(configuration = configuration, targetPeriod = DateRange.weekFrom(weekStart), availabilityResponses = availabilityResponses)
 
     private fun config(
         vararg activities: Activity,

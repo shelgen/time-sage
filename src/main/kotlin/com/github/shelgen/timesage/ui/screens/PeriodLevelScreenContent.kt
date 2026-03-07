@@ -15,17 +15,17 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
+class PeriodLevelScreenContent<T : AbstractTargetPeriodScreen>(
     val screen: T,
     val buttonFactory: () -> ToggleSessionLimitButton<T>
 ) {
-    private val dateRange = screen.dateRange
+    private val targetPeriod = screen.targetPeriod
     private val tenant = screen.tenant
 
     fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val dateRangeState = AvailabilitiesPeriodRepository.loadOrInitialize(dateRange, tenant)
-        return renderMissingResponses(dateRangeState, configuration) +
-                renderLimits("Limits this ${dateRange.toLocalizedString(configuration.localization)}", dateRangeState)
+        val targetPeriodState = AvailabilitiesPeriodRepository.loadOrInitialize(targetPeriod, tenant)
+        return renderMissingResponses(targetPeriodState, configuration) +
+                renderLimits("Limits this ${targetPeriod.toLocalizedString(configuration.localization)}", targetPeriodState)
     }
 
     private fun renderMissingResponses(data: PlanningTargetPeriod, configuration: Configuration) =
@@ -86,17 +86,17 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
             )
         )
 
-    abstract class ToggleSessionLimitButton<T : AbstractDateRangeScreen>(override val screen: T) : ScreenButton {
+    abstract class ToggleSessionLimitButton<T : AbstractTargetPeriodScreen>(override val screen: T) : ScreenButton {
         fun render() =
             Button.secondary(CustomIdSerialization.serialize(this), Emoji.fromUnicode("U+1F6AB"))
 
         override fun handle(event: ButtonInteractionEvent) {
             event.processAndRerender {
                 val userId = event.user.idLong
-                AvailabilitiesPeriodRepository.update(screen.dateRange, screen.tenant) { period ->
+                AvailabilitiesPeriodRepository.update(screen.targetPeriod, screen.tenant) { period ->
                     val old = period.availabilityResponses[userId]?.sessionLimit
                     val new = cycleLimit(old)
-                    logger.info("Updating session limit for date range ${screen.dateRange} from $old to $new")
+                    logger.info("Updating session limit for target period ${screen.targetPeriod} from $old to $new")
                     period.setUserSessionLimit(userId, new)
                 }
             }

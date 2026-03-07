@@ -2,7 +2,7 @@ package com.github.shelgen.timesage.cronjobs
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.Activity
-import com.github.shelgen.timesage.domain.AvailabilityMessageOrThread
+import com.github.shelgen.timesage.domain.AvailabilityMessage
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.logger
@@ -42,7 +42,7 @@ class HourlyPlanningJob : Job {
 
         val data = AvailabilitiesPeriodRepository.loadOrInitialize(period, tenant)
 
-        if (data.availabilityMessageOrThread == null) {
+        if (data.availabilityMessage == null) {
             AvailabilityMessageSender.postAvailabilityMessage(tenant)
             return
         }
@@ -72,10 +72,10 @@ class HourlyPlanningJob : Job {
         if (unansweredParticipants.isEmpty()) return
 
         logger.info("Sending reminder for period $period")
-        val messageUrl = when (val ref = data.availabilityMessageOrThread) {
-            is AvailabilityMessageOrThread.AvailabilityThread ->
+        val messageUrl = when (val ref = data.availabilityMessage) {
+            is AvailabilityMessage.Thread ->
                 "https://discord.com/channels/${tenant.guildId}/${ref.threadChannelId}"
-            is AvailabilityMessageOrThread.AvailabilityMessage ->
+            is AvailabilityMessage.Composite ->
                 "https://discord.com/channels/${tenant.guildId}/${tenant.channelId}/${ref.screenMessageId}"
             null -> return
         }

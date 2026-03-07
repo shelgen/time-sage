@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui
 
 import com.github.shelgen.timesage.domain.*
 import com.github.shelgen.timesage.planning.Plan
+import com.github.shelgen.timesage.planning.PlannedSession
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
@@ -147,12 +148,12 @@ class AlternativePrinterTest {
     private fun session(
         timeSlot: Instant,
         activityId: Int,
-        vararg attendees: Pair<Long, Boolean>,
+        vararg participants: Pair<Long, Boolean>,
         missingOptionalCount: Int = 0,
-    ) = Plan.Session(
+    ) = PlannedSession(
         timeSlot = timeSlot,
         activityId = activityId,
-        attendees = attendees.map { (userId, ifNeedBe) -> Plan.Session.Attendee(userId, ifNeedBe) }.toSet(),
+        participants = participants.map { (userId, ifNeedBe) -> PlannedSession.Participant(userId, ifNeedBe) }.toSet(),
         missingOptionalCount = missingOptionalCount,
     )
 }
