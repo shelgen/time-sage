@@ -13,7 +13,6 @@ import com.github.shelgen.timesage.ui.screens.AvailabilityThreadPeriodLevelScree
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadStartScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadWeekScreen
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
-import java.time.LocalDate
 
 object AvailabilityMessageSender {
     fun postAvailabilityMessage(tenant: Tenant) {
@@ -75,7 +74,7 @@ object AvailabilityMessageSender {
         thread: ThreadChannel,
         dateRange: DateRange,
         tenant: Tenant,
-        weekChunks: List<List<LocalDate>>,
+        weekChunks: List<DateRange>,
         weekChunkIndex: Int,
         headerMessageId: Long,
         introMessageId: Long,
@@ -95,7 +94,6 @@ object AvailabilityMessageSender {
         }
 
         val weekChunk = weekChunks[weekChunkIndex]
-        val chunkPeriod = DateRange(weekChunk.first(), weekChunk.last())
         thread.sendMessage(
             AvailabilityThreadWeekScreen(
                 weekChunkIndex = weekChunkIndex,
@@ -111,7 +109,7 @@ object AvailabilityMessageSender {
                 weekChunkIndex = weekChunkIndex + 1,
                 headerMessageId = headerMessageId,
                 introMessageId = introMessageId,
-                accumulatedIds = accumulatedIds + (chunkPeriod to chunkMessage.idLong),
+                accumulatedIds = accumulatedIds + (weekChunk to chunkMessage.idLong),
             )
         }
     }

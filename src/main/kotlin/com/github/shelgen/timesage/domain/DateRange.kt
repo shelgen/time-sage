@@ -9,7 +9,7 @@ import java.util.*
 data class DateRange(
     val fromInclusive: LocalDate,
     val toInclusive: LocalDate
-) {
+): ClosedRange<LocalDate> by fromInclusive..toInclusive {
     fun dates(): List<LocalDate> = fromInclusive.datesUntil(toInclusive.plusDays(1)).toList()
 
     override fun toString() = "$fromInclusive through $toInclusive"
@@ -32,17 +32,19 @@ data class DateRange(
      * Splits the dates of this date range into week chunks, each starting on [startDayOfWeek].
      * The first and last chunk may be partial weeks.
      */
-    fun chunkedByWeek(startDayOfWeek: DayOfWeek): List<List<LocalDate>> {
-        val result = mutableListOf<MutableList<LocalDate>>()
-        var current = mutableListOf<LocalDate>()
+    fun chunkedByWeek(startDayOfWeek: DayOfWeek): List<DateRange> {
+        val result = mutableListOf<DateRange>()
+        var chunkStart: LocalDate? = null
+        var chunkEnd: LocalDate? = null
         for (date in dates()) {
-            if (date.dayOfWeek == startDayOfWeek && current.isNotEmpty()) {
-                result.add(current)
-                current = mutableListOf()
+            if (date.dayOfWeek == startDayOfWeek && chunkStart != null) {
+                result.add(DateRange(chunkStart, chunkEnd!!))
+                chunkStart = null
             }
-            current.add(date)
+            if (chunkStart == null) chunkStart = date
+            chunkEnd = date
         }
-        if (current.isNotEmpty()) result.add(current)
+        if (chunkStart != null) result.add(DateRange(chunkStart, chunkEnd!!))
         return result
     }
 

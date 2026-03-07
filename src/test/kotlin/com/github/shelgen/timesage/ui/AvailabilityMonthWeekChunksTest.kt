@@ -14,11 +14,11 @@ class AvailabilityMonthWeekChunksTest {
         val chunks = DateRange.from(YearMonth.of(2026, 3)).chunkedByWeek(DayOfWeek.THURSDAY)
 
         assertEquals(5, chunks.size)
-        assertEquals(listOf(1, 2, 3, 4).map { LocalDate.of(2026, 3, it) }, chunks[0])
-        assertEquals((5..11).map { LocalDate.of(2026, 3, it) }, chunks[1])
-        assertEquals((12..18).map { LocalDate.of(2026, 3, it) }, chunks[2])
-        assertEquals((19..25).map { LocalDate.of(2026, 3, it) }, chunks[3])
-        assertEquals((26..31).map { LocalDate.of(2026, 3, it) }, chunks[4])
+        assertEquals(DateRange(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 4)), chunks[0])
+        assertEquals(DateRange(LocalDate.of(2026, 3, 5), LocalDate.of(2026, 3, 11)), chunks[1])
+        assertEquals(DateRange(LocalDate.of(2026, 3, 12), LocalDate.of(2026, 3, 18)), chunks[2])
+        assertEquals(DateRange(LocalDate.of(2026, 3, 19), LocalDate.of(2026, 3, 25)), chunks[3])
+        assertEquals(DateRange(LocalDate.of(2026, 3, 26), LocalDate.of(2026, 3, 31)), chunks[4])
     }
 
     @Test
@@ -27,8 +27,8 @@ class AvailabilityMonthWeekChunksTest {
         val chunks = DateRange.from(YearMonth.of(2021, 3)).chunkedByWeek(DayOfWeek.MONDAY)
 
         assertEquals(5, chunks.size)
-        assertEquals((1..7).map { LocalDate.of(2021, 3, it) }, chunks[0])
-        assertEquals((8..14).map { LocalDate.of(2021, 3, it) }, chunks[1])
+        assertEquals(DateRange(LocalDate.of(2021, 3, 1), LocalDate.of(2021, 3, 7)), chunks[0])
+        assertEquals(DateRange(LocalDate.of(2021, 3, 8), LocalDate.of(2021, 3, 14)), chunks[1])
     }
 
     @Test
@@ -37,10 +37,10 @@ class AvailabilityMonthWeekChunksTest {
         val chunks = DateRange.from(YearMonth.of(2026, 2)).chunkedByWeek(DayOfWeek.MONDAY)
 
         // First chunk: Feb 1 (Sunday only, before the first Monday Feb 2)
-        assertEquals(listOf(LocalDate.of(2026, 2, 1)), chunks[0])
+        assertEquals(DateRange(LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 1)), chunks[0])
         // Second: Feb 2–8
-        assertEquals((2..8).map { LocalDate.of(2026, 2, it) }, chunks[1])
+        assertEquals(DateRange(LocalDate.of(2026, 2, 2), LocalDate.of(2026, 2, 8)), chunks[1])
         // Last: Feb 23–28
-        assertEquals((23..28).map { LocalDate.of(2026, 2, it) }, chunks.last())
+        assertEquals(DateRange(LocalDate.of(2026, 2, 23), LocalDate.of(2026, 2, 28)), chunks.last())
     }
 }

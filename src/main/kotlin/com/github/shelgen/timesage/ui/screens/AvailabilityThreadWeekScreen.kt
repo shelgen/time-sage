@@ -14,7 +14,7 @@ class AvailabilityThreadWeekScreen(
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         val weekChunk =
             dateRange.chunkedByWeek(configuration.localization.startDayOfWeek)
-                .getOrElse(weekChunkIndex) { emptyList() }
+                .getOrElse(weekChunkIndex) { return@renderComponents emptyList() }
         val allTimeSlots =
             configuration.scheduling.timeSlotRules.getTimeSlots(dateRange, configuration.localization.timeZone)
         val weekTimeSlots = allTimeSlots.filter { slot ->
