@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.domain
 
 import java.time.DayOfWeek
-import java.util.TimeZone
+import java.util.*
 
 open class Localization(
     open val timeZone: TimeZone,

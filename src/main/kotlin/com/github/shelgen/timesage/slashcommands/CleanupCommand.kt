@@ -5,8 +5,8 @@ import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageHistory
-import net.dv8tion.jda.api.interactions.InteractionHook
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
+import net.dv8tion.jda.api.interactions.InteractionHook
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 

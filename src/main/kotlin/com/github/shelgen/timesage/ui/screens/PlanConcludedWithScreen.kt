@@ -1,6 +1,10 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.*
+import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.domain.ActivityMember
+import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.PlannedSession
 import com.github.shelgen.timesage.ui.AlternativePrinter

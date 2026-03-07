@@ -1,9 +1,9 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.domain.Activity
-import com.github.shelgen.timesage.domain.PlanningTargetPeriod
-import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.ActivityMember
+import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.PlanningTargetPeriod
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter

@@ -1,6 +1,14 @@
 package com.github.shelgen.timesage.repositories
 
-import com.github.shelgen.timesage.domain.*
+import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.domain.ActivityMember
+import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.Localization
+import com.github.shelgen.timesage.domain.MutableConfiguration
+import com.github.shelgen.timesage.domain.Scheduling
+import com.github.shelgen.timesage.domain.SchedulingType
+import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.domain.TimeSlotRules
 import java.time.DayOfWeek
 import java.util.*
 

@@ -2,9 +2,9 @@ package com.github.shelgen.timesage.cronjobs
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.domain.AvailabilityMessage
 import com.github.shelgen.timesage.domain.Tenant
-import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository

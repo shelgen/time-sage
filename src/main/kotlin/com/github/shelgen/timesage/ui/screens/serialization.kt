@@ -9,7 +9,11 @@ import java.util.*
 import kotlin.random.Random
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
-import kotlin.reflect.full.*
+import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.full.superclasses
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.typeOf

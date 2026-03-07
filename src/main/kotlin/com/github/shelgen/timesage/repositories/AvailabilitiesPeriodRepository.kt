@@ -1,6 +1,15 @@
 package com.github.shelgen.timesage.repositories
 
-import com.github.shelgen.timesage.domain.*
+import com.github.shelgen.timesage.domain.AvailabilityMessage
+import com.github.shelgen.timesage.domain.AvailabilityResponse
+import com.github.shelgen.timesage.domain.AvailabilityResponseDate
+import com.github.shelgen.timesage.domain.AvailabilityResponses
+import com.github.shelgen.timesage.domain.AvailabilityStatus
+import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.MutablePlanningTargetPeriod
+import com.github.shelgen.timesage.domain.PlanningTargetPeriod
+import com.github.shelgen.timesage.domain.TargetPeriod
+import com.github.shelgen.timesage.domain.Tenant
 import java.time.LocalDate
 import java.util.*
 

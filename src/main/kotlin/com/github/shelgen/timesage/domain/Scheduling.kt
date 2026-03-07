@@ -1,9 +1,5 @@
 package com.github.shelgen.timesage.domain
 
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.YearMonth
-
 open class Scheduling(
     open val type: SchedulingType,
     open val timeSlotRules: TimeSlotRules,

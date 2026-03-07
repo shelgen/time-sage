@@ -2,7 +2,11 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.cronjobs.AvailabilityMessageSender
-import com.github.shelgen.timesage.domain.*
+import com.github.shelgen.timesage.domain.ActivityMember
+import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.SchedulingType
+import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.domain.TimeSlotRules
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent

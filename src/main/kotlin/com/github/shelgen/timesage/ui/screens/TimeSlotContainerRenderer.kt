@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.PlanningTargetPeriod
 import com.github.shelgen.timesage.domain.AvailabilityStatus
+import com.github.shelgen.timesage.domain.PlanningTargetPeriod
 import com.github.shelgen.timesage.domain.TargetPeriod
 import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.logger

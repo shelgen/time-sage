@@ -1,7 +1,20 @@
 package com.github.shelgen.timesage.planning
 
-import com.github.shelgen.timesage.domain.*
-import org.junit.jupiter.api.Assertions.*
+import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.domain.ActivityMember
+import com.github.shelgen.timesage.domain.AvailabilityResponse
+import com.github.shelgen.timesage.domain.AvailabilityResponseDate
+import com.github.shelgen.timesage.domain.AvailabilityResponses
+import com.github.shelgen.timesage.domain.AvailabilityStatus
+import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.domain.Localization
+import com.github.shelgen.timesage.domain.Scheduling
+import com.github.shelgen.timesage.domain.SchedulingType
+import com.github.shelgen.timesage.domain.TimeSlotRules
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
 import java.time.Instant

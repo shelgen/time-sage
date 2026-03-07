@@ -1,10 +1,10 @@
 package com.github.shelgen.timesage.planning
 
 import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.domain.AvailabilityResponses
 import com.github.shelgen.timesage.domain.AvailabilityStatus
 import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.TargetPeriod
-import com.github.shelgen.timesage.domain.AvailabilityResponses
 import com.github.shelgen.timesage.logger
 import java.time.Instant
 

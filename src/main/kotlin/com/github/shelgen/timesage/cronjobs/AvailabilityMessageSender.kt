@@ -10,9 +10,9 @@ import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.AvailabilitiesPeriodRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.screens.AvailabilityMessageScreen
-import com.github.shelgen.timesage.ui.screens.AvailabilityThreadWeekScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadPeriodLevelScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadStartScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityThreadWeekScreen
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import java.time.LocalDate
 

@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui
 
-import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.domain.ActivityMember
+import com.github.shelgen.timesage.domain.Configuration
 import com.github.shelgen.timesage.planning.Plan
 import com.github.shelgen.timesage.planning.PlannedSession
 
