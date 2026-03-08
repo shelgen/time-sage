@@ -27,5 +27,5 @@ data class AvailabilityThread(
     val weekMessages: Map<DateRange, DiscordMessageId>,
 ) : AvailabilityInterface {
     override fun toLink(tenant: Tenant) =
-        "https://discord.com/channels/${tenant.server}/${threadChannel.id}"
+        "https://discord.com/channels/${tenant.server}/${threadChannel.id}/${periodLevelMessage.id}"
 }
