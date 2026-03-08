@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui
 
 import java.time.Instant
 
+@Suppress("unused")
 object DiscordFormatter {
     fun bold(text: String) = "**$text**"
     fun italics(text: String) = "*$text*"

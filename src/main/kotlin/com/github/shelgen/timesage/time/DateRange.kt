@@ -24,13 +24,6 @@ data class DateRange(
             else -> "$fromInclusive through $toInclusive"
         }
 
-    fun toUnit(localization: Localization) =
-        when {
-            isANamedMonth() -> "month"
-            isAWeek(localization) -> "week"
-            else -> "period"
-        }
-
     /**
      * Splits the dates of this date range into week chunks, each starting on [startDayOfWeek].
      * The first and last chunk may be partial weeks.

@@ -4,6 +4,7 @@ import com.github.shelgen.timesage.Tenant
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.slf4j.MDC
 
+@Suppress("unused")
 object ScheduleCommand : AbstractSlashCommand(
     name = "tsschedule",
     description = "Attempt to schedule next period's sessions",

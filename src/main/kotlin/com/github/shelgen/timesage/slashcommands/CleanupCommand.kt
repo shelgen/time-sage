@@ -33,7 +33,7 @@ object CleanupCommand : AbstractSlashCommand(
                         when (val availabilityInterface = planningProcess.availabilityInterface) {
                             is AvailabilityThread -> {
                                 add(availabilityInterface.threadStartMessage)
-                                availabilityInterface.periodLevelMessage?.let { add(it) }
+                                add(availabilityInterface.periodLevelMessage)
                                 addAll(availabilityInterface.weekMessages.values)
                             }
                             is AvailabilityMessage -> add(availabilityInterface.message)
