@@ -12,11 +12,11 @@ import java.util.*
 import kotlin.random.Random
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
+import kotlin.reflect.full.allSuperclasses
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.isSubtypeOf
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
-import kotlin.reflect.full.superclasses
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.typeOf
@@ -108,8 +108,6 @@ object CustomIdSerialization {
 
             typeOf<DateRange>() -> (fieldValue as DateRange).serialize()
 
-            typeOf<ActivityId>() -> (fieldValue as ActivityId).value.toString()
-
             typeOf<PlanId>() -> {
                 val uuid = (fieldValue as PlanId).value
                 val bytes = ByteBuffer.allocate(16)
@@ -164,7 +162,7 @@ object SerialIdGeneration {
         "${getTypeLetter(klass)}_${generate(klass.simpleName!!)}"
 
     private fun getTypeLetter(klass: KClass<out ScreenComponent<*>>): Char =
-        klass.superclasses
+        klass.allSuperclasses
             .first { it in ScreenComponent::class.sealedSubclasses }
             .simpleName!!
             .removePrefix("Screen")
