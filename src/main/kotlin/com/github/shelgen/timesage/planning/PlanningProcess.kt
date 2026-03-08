@@ -34,6 +34,8 @@ open class PlanningProcess(
             .sortedBy(DiscordUserId::id)
             .toList()
 
+    fun isLocked(): Boolean = state in setOf(State.LOCKED, State.CONCLUDED)
+
     companion object {
         fun new(
             dateRange: DateRange,
@@ -64,7 +66,17 @@ class MutablePlanningProcess(
     override val sentReminders: MutableList<SentReminder>,
     override var conclusion: Conclusion?,
     override var planAlternatives: List<Plan>,
-) : PlanningProcess(dateRange, tenant, timeSlots, state, availabilityInterface, availabilityResponses, sentReminders, conclusion, planAlternatives) {
+) : PlanningProcess(
+    dateRange,
+    tenant,
+    timeSlots,
+    state,
+    availabilityInterface,
+    availabilityResponses,
+    sentReminders,
+    conclusion,
+    planAlternatives
+) {
     constructor(immutable: PlanningProcess) : this(
         tenant = immutable.tenant,
         dateRange = immutable.dateRange,

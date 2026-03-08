@@ -34,15 +34,15 @@ object TimeSlotContainerRenderer {
 
     private fun renderTimeSlotContainer(
         timeSlot: Instant,
-        data: PlanningProcess,
+        planningProcess: PlanningProcess,
         toggleButtonFactory: (timeSlot: Instant) -> ToggleAvailabilityButton,
     ) = Container.of(
         Section.of(
             toggleButtonFactory(timeSlot).render()
-                .let { if (data.state != PlanningProcess.State.COLLECTING_AVAILABILITIES) it.asDisabled() else it },
+                .let { if (planningProcess.isLocked()) it.asDisabled() else it },
             TextDisplay.of(
                 "### ${DiscordFormatter.timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
-                        data.availabilityResponses
+                        planningProcess.availabilityResponses
                             .asSequence()
                             .filter { (_, response) -> response.sessionLimit != 0 }
                             .mapNotNull { (userId, response) ->

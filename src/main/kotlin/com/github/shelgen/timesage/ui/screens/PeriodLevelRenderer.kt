@@ -33,7 +33,7 @@ object PeriodLevelRenderer {
         return renderMissingResponses(dateRangeState, configuration) +
                 renderSessionLimits(
                     title = "Limits this ${dateRange.toLocalizedString(configuration.localization)}",
-                    data = dateRangeState,
+                    planningProcess = dateRangeState,
                     globalSessionLimit = configuration.sessionLimit,
                     buttonFactory = toggleSessionLimitButtonFactory
                 ) +
@@ -59,19 +59,19 @@ object PeriodLevelRenderer {
 
     private fun renderSessionLimits(
         title: String,
-        data: PlanningProcess,
+        planningProcess: PlanningProcess,
         globalSessionLimit: Int,
         buttonFactory: () -> ToggleSessionLimitButton<*>,
     ) = listOf(
         Container.of(
             Section.of(
                 buttonFactory().render()
-                    .let { if (data.state != PlanningProcess.State.COLLECTING_AVAILABILITIES) it.asDisabled() else it },
+                    .let { if (planningProcess.isLocked()) it.asDisabled() else it },
                 TextDisplay.of(
                     "### $title\n" +
                             ((1 until globalSessionLimit).map { limit ->
                                 val label = if (limit == 1) "Only one session" else "Only $limit sessions"
-                                data.availabilityResponses
+                                planningProcess.availabilityResponses
                                     .asSequence()
                                     .filter { (_, response) -> response.sessionLimit == limit }
                                     .map { (userId, _) -> userId }
@@ -84,7 +84,7 @@ object PeriodLevelRenderer {
                                         separator = "\n"
                                     ).orEmpty()
                             } + listOf(
-                                data.availabilityResponses
+                                planningProcess.availabilityResponses
                                     .asSequence()
                                     .filter { (_, response) -> response.sessionLimit == 0 }
                                     .map { (userId, _) -> userId }
