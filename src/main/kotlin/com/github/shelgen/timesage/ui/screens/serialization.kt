@@ -2,7 +2,9 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.ActivityId
+import com.github.shelgen.timesage.plan.PlanId
 import com.github.shelgen.timesage.time.DateRange
+import java.nio.ByteBuffer
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -108,6 +110,15 @@ object CustomIdSerialization {
 
             typeOf<ActivityId>() -> (fieldValue as ActivityId).value.toString()
 
+            typeOf<PlanId>() -> {
+                val uuid = (fieldValue as PlanId).value
+                val bytes = ByteBuffer.allocate(16)
+                    .putLong(uuid.mostSignificantBits)
+                    .putLong(uuid.leastSignificantBits)
+                    .array()
+                Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+            }
+
             else -> error("Serialization of field of type $fieldType not supported")
         }
 
@@ -121,6 +132,11 @@ object CustomIdSerialization {
             typeOf<Long>() -> serializedValue.toLong()
             typeOf<DateRange>() -> DateRange.deserialize(serializedValue)
             typeOf<ActivityId>() -> ActivityId(serializedValue.toInt())
+            typeOf<PlanId>() -> {
+                val bytes = Base64.getUrlDecoder().decode(serializedValue)
+                val buffer = ByteBuffer.wrap(bytes)
+                PlanId(UUID(buffer.getLong(), buffer.getLong()))
+            }
 
             else -> error("Deserialization of field of type $fieldType not supported")
         }

@@ -3,6 +3,7 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.plan.Plan
+import com.github.shelgen.timesage.plan.PlanId
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -39,7 +40,6 @@ class PlanAlternativesPageScreen(
             renderAlternatives(numberedPlansInPage, configuration),
             renderBottomActionRow(pageSize.coerceAtMost(allPlans.size - (fromInclusive + pageSize)))
         ).flatten()
-
     }
 
     private fun renderHeader(alternativeNumberedPlans: List<Pair<Int, Plan>>, totalNumAlternatives: Int) =
@@ -65,8 +65,7 @@ class PlanAlternativesPageScreen(
         Container.of(
             Section.of(
                 Buttons.SuggestAlternative(
-                    planNumber = alternativeNumber,
-                    alternativeHashcode = plan.hashCode(),
+                    planId = plan.id,
                     screen = this@PlanAlternativesPageScreen
                 ).render(),
                 TextDisplay.of(AlternativePrinter(configuration).printAlternative(alternativeNumber, plan))
@@ -88,8 +87,7 @@ class PlanAlternativesPageScreen(
 
     class Buttons {
         class SuggestAlternative(
-            val planNumber: Int,
-            val alternativeHashcode: Int,
+            val planId: PlanId,
             override val screen: PlanAlternativesPageScreen
         ) : ScreenButton {
             fun render() =
@@ -98,7 +96,7 @@ class PlanAlternativesPageScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanSuggestedScreen(
-                        planNumber = planNumber,
+                        planId = planId,
                         dateRange = screen.dateRange,
                         suggestingUserId = event.user.idLong,
                         tenant = screen.tenant
@@ -133,7 +131,7 @@ class PlanAlternativesPageScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen {
                     PlanSuggestedScreen(
-                        planNumber = 0,
+                        planId = NO_SESSION_PLAN_ID,
                         dateRange = screen.dateRange,
                         suggestingUserId = event.user.idLong,
                         tenant = screen.tenant
