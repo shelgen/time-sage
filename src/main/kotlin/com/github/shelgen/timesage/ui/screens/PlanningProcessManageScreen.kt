@@ -1,5 +1,6 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.planning.Planner
@@ -36,10 +37,11 @@ class PlanningProcessManageScreen(
             } ?: "No reminders sent yet."),
         ) + when (process.state) {
             PlanningProcess.State.COLLECTING_AVAILABILITIES ->
-                listOf(ActionRow.of(Buttons.LockAndPickPlan(this).render()))
+                listOf(ActionRow.of(Buttons.Lock(this).render()))
             PlanningProcess.State.LOCKED ->
-                listOf(ActionRow.of(Buttons.PickPlans(this).render(), Buttons.Unlock(this).render()))
-            PlanningProcess.State.CONCLUDED -> emptyList()
+                listOf(ActionRow.of(Buttons.PickPlan(this).render(), Buttons.Unlock(this).render()))
+            PlanningProcess.State.CONCLUDED ->
+                listOf(ActionRow.of(Buttons.UndoConclusion(this).render()))
         }
     }
 
@@ -50,11 +52,11 @@ class PlanningProcessManageScreen(
     }
 
     class Buttons {
-        class LockAndPickPlan(override val screen: PlanningProcessManageScreen) : ScreenButton {
-            fun render() = Button.primary(CustomIdSerialization.serialize(this), "Lock and pick plan")
+        class Lock(override val screen: PlanningProcessManageScreen) : ScreenButton {
+            fun render() = Button.primary(CustomIdSerialization.serialize(this), "Lock and generate plans")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo {
+                event.processAndRerender {
                     val tenant = screen.tenant
                     val dateRange = screen.dateRange
                     val configuration = ConfigurationRepository.loadOrInitialize(tenant)
@@ -65,18 +67,12 @@ class PlanningProcessManageScreen(
                         planningProcess.planAlternatives = plans
                     }
                     rerenderAvailabilityInterface(planningProcess, configuration)
-                    PlanAlternativesPageScreen(
-                        dateRange = dateRange,
-                        fromInclusive = 0,
-                        pageSize = 3,
-                        tenant = tenant
-                    )
                 }
             }
         }
 
-        class PickPlans(override val screen: PlanningProcessManageScreen) : ScreenButton {
-            fun render() = Button.primary(CustomIdSerialization.serialize(this), "Pick plans...")
+        class PickPlan(override val screen: PlanningProcessManageScreen) : ScreenButton {
+            fun render() = Button.primary(CustomIdSerialization.serialize(this), "Pick plan...")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
@@ -104,6 +100,28 @@ class PlanningProcessManageScreen(
                         mutable.planAlternatives = mutableListOf()
                     }
                     rerenderAvailabilityInterface(planningProcess, configuration)
+                }
+            }
+        }
+
+        class UndoConclusion(override val screen: PlanningProcessManageScreen) : ScreenButton {
+            fun render() = Button.secondary(CustomIdSerialization.serialize(this), "Undo conclusion")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndRerender {
+                    val tenant = screen.tenant
+                    val dateRange = screen.dateRange
+                    val configuration = ConfigurationRepository.loadOrInitialize(tenant)
+                    val planningProcess = PlanningProcessRepository.load(dateRange, tenant)!!
+                    val conclusionMessageId = planningProcess.conclusion?.message
+                    PlanningProcessRepository.update(planningProcess) { mutable ->
+                        mutable.state = PlanningProcess.State.LOCKED
+                        mutable.conclusion = null
+                    }
+                    rerenderAvailabilityInterface(planningProcess, configuration)
+                    if (conclusionMessageId != null) {
+                        JDAHolder.getTextChannel(tenant).deleteMessageById(conclusionMessageId.id).queue()
+                    }
                 }
             }
         }
