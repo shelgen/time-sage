@@ -108,6 +108,8 @@ object CustomIdSerialization {
 
             typeOf<DateRange>() -> (fieldValue as DateRange).serialize()
 
+            typeOf<ActivityId>() -> (fieldValue as ActivityId).value.toString()
+
             typeOf<PlanId>() -> {
                 val uuid = (fieldValue as PlanId).value
                 val bytes = ByteBuffer.allocate(16)
