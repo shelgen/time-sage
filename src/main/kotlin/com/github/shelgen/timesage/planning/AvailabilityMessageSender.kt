@@ -63,15 +63,16 @@ object AvailabilityMessageSender {
             logger.info("Sending availability message...")
             channel.sendMessage(AvailabilityMessageScreen(dateRange, tenant).render()).queue { message ->
                 logger.info("Saving new planning process...")
+                val discordMessageId = DiscordMessageId(message.idLong)
                 PlanningProcessRepository.saveNew(
                     PlanningProcess.new(
                         dateRange = dateRange,
                         tenant = tenant,
-                        availabilityInterface = AvailabilityMessage(Instant.now(), DiscordMessageId(message.idLong))
+                        availabilityInterface = AvailabilityMessage(Instant.now(), discordMessageId)
                     )
                 )
                 logger.info("Updating pinned messages...")
-                replaceBotPinsWith(message)
+                replaceBotPinsWith(discordMessageId, tenant)
             }
         }
     }
@@ -103,6 +104,7 @@ object AvailabilityMessageSender {
             )
             logger.info("Locking thread...")
             thread.manager.setLocked(true).queue()
+            replaceBotPinsWith(threadStartMessageId, tenant)
             return
         }
 

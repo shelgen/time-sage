@@ -6,9 +6,9 @@ import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.createScheduledEventsForPlan
 import com.github.shelgen.timesage.discord.DiscordMessageId
 import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.plan.PlanId
 import com.github.shelgen.timesage.planning.Conclusion
 import com.github.shelgen.timesage.planning.PlanningProcess
-import com.github.shelgen.timesage.plan.PlanId
 import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
@@ -61,15 +61,16 @@ class PlanSuggestedScreen(
                         val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
                         val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                         val plan = getPlan(screen.planId, screen.dateRange, screen.tenant)
+                        val conclusionMessageId = DiscordMessageId(conclusionMessage.idLong)
                         PlanningProcessRepository.update(planningProcess) { availabilitiesPeriod ->
                             availabilitiesPeriod.conclusion = Conclusion(
-                                message = DiscordMessageId(conclusionMessage.idLong),
+                                message = conclusionMessageId,
                                 plan = plan.id
                             )
                             availabilitiesPeriod.state = PlanningProcess.State.CONCLUDED
                         }
                         rerenderAvailabilityInterface(planningProcess, configuration)
-                        replaceBotPinsWith(conclusionMessage)
+                        replaceBotPinsWith(conclusionMessageId, screen.tenant)
                         if (plan.sessions.isNotEmpty()) {
                             JDAHolder.jda.getGuildById(screen.tenant.server.id)?.let { guild ->
                                 createScheduledEventsForPlan(plan, guild, configuration)

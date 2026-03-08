@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage
 
-import com.github.shelgen.timesage.discord.DiscordTextChannelId
+import com.github.shelgen.timesage.discord.DiscordMessageId
 import com.github.shelgen.timesage.discord.DiscordThreadChannelId
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
@@ -35,15 +35,15 @@ object JDAHolder {
             ?: error("Error getting thread channel for $threadChannel")
 }
 
-fun replaceBotPinsWith(message: Message) {
-    val channel = message.channel.asTextChannel()
+fun replaceBotPinsWith(message: DiscordMessageId, tenant: Tenant) {
+    val channel = JDAHolder.getTextChannel(tenant)
     val botPinnedMessages = mutableListOf<Message>()
     channel.retrievePinnedMessages().forEachAsync { pinned ->
         if (pinned.message.author.idLong == JDAHolder.jda.selfUser.idLong) {
             botPinnedMessages.add(pinned.message)
         }
         true
-    }.thenRun { unpinSequentiallyThenPin(botPinnedMessages, channel, message.idLong) }
+    }.thenRun { unpinSequentiallyThenPin(botPinnedMessages, channel, message.id) }
 }
 
 private fun unpinSequentiallyThenPin(
