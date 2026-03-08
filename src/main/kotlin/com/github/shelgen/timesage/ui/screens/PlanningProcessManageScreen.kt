@@ -38,7 +38,7 @@ class PlanningProcessManageScreen(
             PlanningProcess.State.COLLECTING_AVAILABILITIES ->
                 listOf(ActionRow.of(Buttons.LockAndPickPlan(this).render()))
             PlanningProcess.State.LOCKED ->
-                listOf(ActionRow.of(Buttons.PickPlans(this).render()))
+                listOf(ActionRow.of(Buttons.PickPlans(this).render(), Buttons.Unlock(this).render()))
             PlanningProcess.State.CONCLUDED -> emptyList()
         }
     }
@@ -86,6 +86,24 @@ class PlanningProcessManageScreen(
                         pageSize = 3,
                         tenant = screen.tenant
                     )
+                }
+            }
+        }
+
+        class Unlock(override val screen: PlanningProcessManageScreen) : ScreenButton {
+            fun render() = Button.secondary(CustomIdSerialization.serialize(this), "Unlock")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndRerender {
+                    val tenant = screen.tenant
+                    val dateRange = screen.dateRange
+                    val configuration = ConfigurationRepository.loadOrInitialize(tenant)
+                    val planningProcess = PlanningProcessRepository.load(dateRange, tenant)!!
+                    PlanningProcessRepository.update(planningProcess) { mutable ->
+                        mutable.state = PlanningProcess.State.COLLECTING_AVAILABILITIES
+                        mutable.planAlternatives = mutableListOf()
+                    }
+                    rerenderAvailabilityInterface(planningProcess, configuration)
                 }
             }
         }
