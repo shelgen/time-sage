@@ -148,7 +148,7 @@ class PlanningProcessManageScreen(
                 .create(CustomIdSerialization.serialize(this), "Delete planning process")
                 .addComponents(
                     Label.of(
-                        "Are you sure? All collected responses will also be deleted.",
+                        "Are you sure? Responses will also be deleted.",
                         StringSelectMenu.create("confirm")
                             .setMinValues(1)
                             .setMaxValues(1)
