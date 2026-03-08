@@ -76,7 +76,7 @@ class PlanningProcessesScreen(tenant: Tenant) : Screen(tenant) {
             val label: String,
             override val screen: PlanningProcessesScreen,
         ) : ScreenButton {
-            fun render() = Button.secondary(CustomIdSerialization.serialize(this), label)
+            fun render() = Button.primary(CustomIdSerialization.serialize(this), label)
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
