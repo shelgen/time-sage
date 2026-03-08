@@ -8,6 +8,7 @@ import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.plan.Participant
 import com.github.shelgen.timesage.plan.Plan
 import com.github.shelgen.timesage.plan.PlanId
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -21,8 +22,9 @@ class PlanConcludedWithScreen(
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val plan = getPlan(planId, dateRange, tenant)
-        val displayNumber = getPlanDisplayNumber(planId, dateRange, tenant)
+        val planningProcess = PlanningProcessRepository.load(dateRange, tenant) ?: return planningProcessNotFound()
+        val plan = getPlan(planId, planningProcess)
+        val displayNumber = getPlanDisplayNumber(planId, planningProcess)
         return listOf(TextDisplay.of("## Plan for ${dateRange.toLocalizedString(configuration.localization)}:")) +
                 if (plan.sessions.isEmpty()) {
                     TextDisplay.of("No sessions this period.")

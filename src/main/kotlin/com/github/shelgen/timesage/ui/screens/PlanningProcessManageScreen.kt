@@ -27,22 +27,22 @@ class PlanningProcessManageScreen(
     tenant: Tenant,
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val process = PlanningProcessRepository.load(dateRange, tenant)
-            ?: return listOf(TextDisplay.of("Error: Planning process not found."))
+        val planningProcess = PlanningProcessRepository.load(dateRange, tenant)
+            ?: return planningProcessNotFound()
 
-        val availabilityLink = process.availabilityInterface.toLink(tenant)
+        val availabilityLink = planningProcess.availabilityInterface.toLink(tenant)
 
         return listOf(
             TextDisplay.of("## Planning: ${dateRange.toLocalizedString(configuration.localization)}"),
             TextDisplay.of(availabilityLink),
-            TextDisplay.of("Currently ${DiscordFormatter.bold(process.state.toDisplayString())}"),
-            TextDisplay.of(process.conclusion?.let {
+            TextDisplay.of("Currently ${DiscordFormatter.bold(planningProcess.state.toDisplayString())}"),
+            TextDisplay.of(planningProcess.conclusion?.let {
                 "Conclusion: https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${it.message.id}"
             } ?: "No conclusion yet."),
-            TextDisplay.of(process.sentReminders.lastOrNull()?.let {
+            TextDisplay.of(planningProcess.sentReminders.lastOrNull()?.let {
                 "Last reminder sent: ${configuration.localization.dateOf(it.sentAt)}"
             } ?: "No reminders sent yet."),
-        ) + when (process.state) {
+        ) + when (planningProcess.state) {
             PlanningProcess.State.COLLECTING_AVAILABILITIES ->
                 listOf(ActionRow.of(Buttons.Lock(this).render(), Buttons.Delete(this).render()))
             PlanningProcess.State.LOCKED ->

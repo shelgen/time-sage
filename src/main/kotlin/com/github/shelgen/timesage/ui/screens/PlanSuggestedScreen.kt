@@ -27,7 +27,8 @@ class PlanSuggestedScreen(
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val plan = getPlan(planId, dateRange, tenant)
+        val planningProcess = PlanningProcessRepository.load(dateRange, tenant) ?: return planningProcessNotFound()
+        val plan = getPlan(planId, planningProcess)
         return if (plan.sessions.isEmpty()) {
             listOf(
                 TextDisplay.of(
@@ -35,7 +36,7 @@ class PlanSuggestedScreen(
                 ),
             )
         } else {
-            val displayNumber = getPlanDisplayNumber(planId, dateRange, tenant)
+            val displayNumber = getPlanDisplayNumber(planId, planningProcess)
             listOf(
                 TextDisplay.of(
                     "## ${DiscordUserId(suggestingUserId).toMention()} suggests this plan:"
@@ -59,7 +60,7 @@ class PlanSuggestedScreen(
                     onMessagePosted = { conclusionMessage ->
                         val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
                         val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                        val plan = getPlan(screen.planId, screen.dateRange, screen.tenant)
+                        val plan = getPlan(screen.planId, planningProcess)
                         val conclusionMessageId = DiscordMessageId(conclusionMessage.idLong)
                         PlanningProcessRepository.update(planningProcess) { availabilitiesPeriod ->
                             availabilitiesPeriod.conclusion = Conclusion(

@@ -22,7 +22,7 @@ class PreviewAlternativesScreen(
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
         val planningProcess = PlanningProcessRepository.load(dateRange, tenant)
-            ?: return listOf(TextDisplay.of("Error: planning process not found."))
+            ?: return planningProcessNotFound()
 
         val planner = Planner(configuration, planningProcess)
 

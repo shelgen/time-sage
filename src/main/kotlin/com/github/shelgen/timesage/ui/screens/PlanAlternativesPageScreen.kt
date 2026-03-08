@@ -4,6 +4,7 @@ import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.plan.Plan
 import com.github.shelgen.timesage.plan.PlanId
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -21,7 +22,8 @@ class PlanAlternativesPageScreen(
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val allPlans = getPlans(dateRange, tenant)
+        val planningProcess = PlanningProcessRepository.load(dateRange, tenant) ?: return planningProcessNotFound()
+        val allPlans = planningProcess.planAlternatives
         val numberedPlansInPage =
             allPlans.drop(fromInclusive).take(pageSize)
                 .mapIndexed { index, plan -> fromInclusive + index + 1 to plan }
