@@ -10,12 +10,8 @@ package Time {
   class "Day of Week"
   class "Date Range"
   class "Time Slot"
-  class "Time of Day"
   class "Time Zone"
   "Date" --|| "Day of Week"
-  "Time Slot" --|| "Date": "is at"
-  "Time Slot" --|| "Time of Day": "is at"
-  "Time Slot" --|| "Time Zone": "is in"
   "Date Range" --|{ "Date": "represents consecutive"
 }
 
@@ -38,7 +34,9 @@ class Tenant
 Tenant ||--|| "Discord Text Channel": "is equivalent to"
 
 package Configuration as ConfigurationPackage {
-  class Configuration
+  class Configuration {
+    Session limit
+  }
   class Activity {
     Name
     Maximum number of missing optional members
@@ -57,7 +55,7 @@ package Configuration as ConfigurationPackage {
     Number of days before period to start planning
     Hour of day to start planning
   }
-  class "Period Type" {
+  class Interval {
     One of:
     * Weekly
     * Monthly
@@ -69,16 +67,13 @@ package Configuration as ConfigurationPackage {
   Configuration --o{ Activity
   Configuration --o{ "Time Slot Rule"
   Activity --|{ Member
-  "Periodic Planning" --|| "Period Type"
+  "Periodic Planning" --|| Interval
 }
 Member --|| "Discord User": "represents"
 Activity --o| "Discord Voice Channel": "refers to for event creation"
 Configuration ||--|| Tenant: "is scoped to"
 Localization --|| "Time Zone": "contains configured"
 Localization --|| "Day of Week": "contains for start of week"
-"Time Slot Rule" --|| "Day of Week": "applies to"
-"Time Slot Rule" --|| "Time of Day": "configures"
-"Time Slot Rule" --|| "Time Slot": "given a date, produces"
 
 package Plan as PlanPackage {
   class Plan
@@ -91,51 +86,51 @@ package Plan as PlanPackage {
   Plan --o{ Session
   Plan --|| Score
 }
-Participant --|| Member: "refers to"
+Participant --|| "Discord User": "is"
 Session --|| "Time Slot": "is at"
-Session --|| "Activity": "regards"
+Session --|| Activity: "regards"
 Session --|{ Participant
 
 package Planning {
   class "Planning Process"
-  class "Availability Response"
-  class "Response for Time Slot"
+  class "Availability Response" {
+    Session limit
+  }
   class Availability {
     One of:
     * Available
     * Available if need be
     * Unavailable
   }
-  class "Session Limit"
+  class "Sent Reminder"
   class State {
     One of:
-    * Collecting availabilites
+    * Collecting availabilities
     * Locked
     * Concluded
   }
   class Conclusion
-  class "Conclusion Message"
   class "Availability Interface"
   class "Availability Message" extends "Availability Interface"
   class "Availability Thread" extends "Availability Interface"
   "Planning Process" --|| State
   "Planning Process" --|| "Availability Interface"
   "Planning Process" --o{ "Availability Response"
-  "Planning Process" --|{ "Only if state = Locked or Concluded" Plan
-  "Planning Process" --|| "Only if state = Concluded" Conclusion
-  "Availability Response" --o| "Session Limit"
-  "Availability Response" --o{ "Response for Time Slot"
-  "Response for Time Slot" --|| Availability
-  Conclusion --|| "Conclusion Message"
+  "Planning Process" --o{ "Sent Reminder"
+  "Planning Process" --o{ "Exists only if state = Locked or Concluded" Plan
+  "Planning Process" --o| "Exists only if state = Concluded" Conclusion
+  "Availability Response" --o{ "Time Slot": "records availability for"
+  "Availability Response" --o{ Availability: "per time slot"
 }
 "Planning Process" --|| Tenant: "exists only in scope of"
-"Availability Response" --|| "Member": "regards"
-"Response for Time Slot" --|| "Time Slot": "regards"
 "Planning Process" --|| "Date Range": "regards"
+"Availability Response" --|| "Discord User": "regards"
 "Availability Message" --|| "Discord Message": "refers to"
 "Availability Thread" --|{ "Discord Message": "refers to"
 "Availability Thread" --|| "Discord Text Channel Thread Channel": "refers to"
-"Conclusion Message" --|| "Discord Message": "refers to"
+"Availability Thread" --o{ "Date Range": "has message per"
+"Sent Reminder" --|| "Discord Message": "refers to"
+Conclusion --|| "Discord Message": "refers to"
 Conclusion --|| Plan: "refers to"
 
 @enduml
