@@ -1,12 +1,12 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.configuration.Activity
 import com.github.shelgen.timesage.domain.ActivityMember
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DateRange
-import com.github.shelgen.timesage.domain.Tenant
-import com.github.shelgen.timesage.planning.Plan
-import com.github.shelgen.timesage.planning.PlannedSession
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.plan.Plan
+import com.github.shelgen.timesage.plan.Session
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -50,8 +50,8 @@ class PlanConcludedWithScreen(
             .map(ActivityMember::userId)
             .minus(
                 plan.sessions
-                    .flatMap(PlannedSession::participants)
-                    .map(PlannedSession.Participant::userId)
+                    .flatMap(Session::participation)
+                    .map(Session.Participant::userId)
                     .toSet()
             )
             .sorted()

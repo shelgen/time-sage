@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.slashcommands
 
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.ui.screens.ConfigurationMainScreen
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import org.slf4j.MDC

@@ -1,14 +1,15 @@
 package com.github.shelgen.timesage.repositories
 
-import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.configuration.Activity
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.configuration.Localization
+import com.github.shelgen.timesage.configuration.MutableConfiguration
 import com.github.shelgen.timesage.domain.ActivityMember
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.Localization
-import com.github.shelgen.timesage.domain.MutableConfiguration
 import com.github.shelgen.timesage.domain.Scheduling
 import com.github.shelgen.timesage.domain.SchedulingType
-import com.github.shelgen.timesage.domain.Tenant
 import com.github.shelgen.timesage.domain.TimeSlotRules
+import com.github.shelgen.timesage.repositories.ConfigurationRepository.toJson
 import java.time.DayOfWeek
 import java.util.*
 
@@ -33,6 +34,8 @@ object ConfigurationRepository {
     }
 
     fun findAllTenants() = getAllTenants()
+
+    fun all(): Sequence<Configuration> = getAllTenants().map { loadOrInitialize(it) }.asSequence()
 
     private fun ConfigurationFileDao.Json.toDomain(tenant: Tenant): Configuration {
         return Configuration(
@@ -75,7 +78,7 @@ object ConfigurationRepository {
             id = id,
             name = name,
             members = members.toDomain(),
-            maxMissingOptionalMembers = this.maxMissingOptionalMembers
+            maxNumMissingOptionalMembers = this.maxMissingOptionalMembers
         )
     }
 
@@ -119,7 +122,7 @@ object ConfigurationRepository {
         id = id,
         name = name,
         members = members.toJson(),
-        maxMissingOptionalMembers = maxMissingOptionalMembers
+        maxMissingOptionalMembers = maxNumMissingOptionalMembers
     )
 
     private fun List<ActivityMember>.toJson() = ConfigurationFileDao.Json.Members(

@@ -1,11 +1,10 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
-import com.github.shelgen.timesage.cronjobs.AvailabilityMessageSender
 import com.github.shelgen.timesage.domain.ActivityMember
-import com.github.shelgen.timesage.domain.Configuration
+import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.domain.SchedulingType
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.domain.TimeSlotRules
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -38,8 +37,8 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
         return listOf(
             TextDisplay.of("# Time Sage configuration"),
             TextDisplay.of(
-                "${DiscordFormatter.mentionChannel(tenant.channelId)} in " +
-                        JDAHolder.jda.getGuildById(tenant.guildId)?.name
+                "${DiscordFormatter.mentionChannel(tenant.channel)} in " +
+                        JDAHolder.jda.getGuildById(tenant.server)?.name
             ),
             TextDisplay.of("-# All configuration is specific for this channel in this server."),
             Section.of(
@@ -55,7 +54,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                 TextDisplay.of(
                     "${DiscordFormatter.bold("Voice channel for scheduled events")}: " +
                             (configuration.voiceChannelId?.let { id ->
-                                JDAHolder.jda.getGuildById(tenant.guildId)
+                                JDAHolder.jda.getGuildById(tenant.server)
                                     ?.voiceChannelCache?.getElementById(id)?.name
                                     ?.let { "#$it" } ?: "Unknown channel"
                             } ?: "Not set")
@@ -134,7 +133,6 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndRerender {
                     ConfigurationRepository.update(screen.tenant) { it.enabled = true }
-                    AvailabilityMessageSender.postAvailabilityMessage(screen.tenant)
                 }
             }
         }
@@ -489,9 +487,9 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                     ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         val activity = configuration.addNewActivity()
                         activity.name = event.getValue("name")!!.asString
-                        activity.setOptionalParticipants(event.getValue("optionalParticipants")!!.asLongList)
-                        activity.setRequiredParticipants(event.getValue("requiredParticipants")!!.asLongList)
-                        activity.maxMissingOptionalMembers =
+                        activity.setOptionalMembers(event.getValue("optionalParticipants")!!.asLongList)
+                        activity.setRequiredMembers(event.getValue("requiredParticipants")!!.asLongList)
+                        activity.maxNumMissingOptionalMembers =
                             event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
                     }
                 }
@@ -543,7 +541,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 .setMinValues(1)
                                 .setMaxValues(1)
                                 .addOptions((0..4).map(Int::toString).map { SelectOption.of(it, it) })
-                                .setDefaultValues(configuration.getActivity(activityId).maxMissingOptionalMembers.toString())
+                                .setDefaultValues(configuration.getActivity(activityId).maxNumMissingOptionalMembers.toString())
                                 .build()
                         )
                     )
@@ -554,9 +552,9 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                     ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         val activity = configuration.getActivity(activityId = activityId)
                         activity.name = event.getValue("name")!!.asString
-                        activity.setOptionalParticipants(event.getValue("optionalParticipants")!!.asLongList)
-                        activity.setRequiredParticipants(event.getValue("requiredParticipants")!!.asLongList)
-                        activity.maxMissingOptionalMembers =
+                        activity.setOptionalMembers(event.getValue("optionalParticipants")!!.asLongList)
+                        activity.setRequiredMembers(event.getValue("requiredParticipants")!!.asLongList)
+                        activity.maxNumMissingOptionalMembers =
                             event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
                     }
                 }

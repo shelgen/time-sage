@@ -1,5 +1,7 @@
 package com.github.shelgen.timesage.domain
 
+import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.configuration.getTimeSlots
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.FieldSource

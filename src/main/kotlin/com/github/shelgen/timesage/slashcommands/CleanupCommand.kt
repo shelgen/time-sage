@@ -1,7 +1,9 @@
 package com.github.shelgen.timesage.slashcommands
 
-import com.github.shelgen.timesage.domain.AvailabilityMessage
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.planning.AvailabilityMessage
+import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.discord.DiscordMessageId
+import com.github.shelgen.timesage.planning.AvailabilityThread
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.MessageHistory
@@ -26,18 +28,17 @@ object CleanupCommand : AbstractSlashCommand(
             MDC.setContextMap(outerMdc)
             val channel = event.channel.asTextChannel()
             val keepMessageIds = PlanningProcessRepository.loadAll(tenant)
-                .flatMap { period ->
+                .flatMap { planningProcess ->
                     buildList {
-                        when (val ref = period.availabilityMessage) {
-                            is AvailabilityMessage.Thread -> {
-                                add(ref.threadStartScreenMessageId)
-                                ref.periodLevelScreenMessageId?.let { add(it) }
-                                addAll(ref.availabilityWeekScreenMessageIds.values)
+                        when (val availabilityInterface = planningProcess.availabilityInterface) {
+                            is AvailabilityThread -> {
+                                add(availabilityInterface.threadStartMessage)
+                                availabilityInterface.periodLevelMessage?.let { add(it) }
+                                addAll(availabilityInterface.weekMessages.values)
                             }
-                            is AvailabilityMessage.SingleMessage -> add(ref.messageId)
-                            null -> {}
+                            is AvailabilityMessage -> add(availabilityInterface.message)
                         }
-                        period.conclusionMessageId?.let { add(it) }
+                        planningProcess.conclusion?.let { add(it.message) }
                     }
                 }
                 .toSet()
@@ -59,7 +60,7 @@ object CleanupCommand : AbstractSlashCommand(
 
 private fun processPage(
     history: MessageHistory,
-    keepMessageIds: Set<Long>,
+    keepMessageIds: Set<DiscordMessageId>,
     selfId: Long,
     hook: InteractionHook,
     totalRead: Int,
@@ -87,7 +88,7 @@ private fun processPage(
             if (msg.author.idLong != selfId) {
                 logger.info("Ignoring message ${msg.id} from another user")
                 false
-            } else if (msg.idLong in keepMessageIds) {
+            } else if (DiscordMessageId(msg.idLong) in keepMessageIds) {
                 logger.info("Keeping message ${msg.id} (availability or conclusion)")
                 false
             } else {
@@ -114,7 +115,7 @@ private fun processPage(
 private fun deleteSequentially(
     toDelete: List<Message>,
     history: MessageHistory,
-    keepMessageIds: Set<Long>,
+    keepMessageIds: Set<DiscordMessageId>,
     selfId: Long,
     hook: InteractionHook,
     totalRead: Int,

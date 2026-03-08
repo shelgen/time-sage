@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.repositories
 
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.Tenant
 import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalTime

@@ -10,10 +10,10 @@ object CronJobScheduling {
         val scheduler: Scheduler = StdSchedulerFactory.getDefaultScheduler().also(Scheduler::start)
 
         scheduler.scheduleJob(
-            JobBuilder.newJob(HourlyPlanningJob::class.java).build(),
+            JobBuilder.newJob(HourlyJob::class.java).build(),
             TriggerBuilder.newTrigger()
                 .startNow()
-                .withSchedule(HourlyPlanningJob.CRON_SCHEDULE)
+                .withSchedule(HourlyJob.CRON_SCHEDULE)
                 .build()
         )
     }

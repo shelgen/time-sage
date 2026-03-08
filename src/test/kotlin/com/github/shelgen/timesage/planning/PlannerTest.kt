@@ -1,17 +1,16 @@
 package com.github.shelgen.timesage.planning
 
-import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.configuration.Activity
 import com.github.shelgen.timesage.domain.ActivityMember
-import com.github.shelgen.timesage.domain.AvailabilityResponse
 import com.github.shelgen.timesage.domain.AvailabilityResponseDate
-import com.github.shelgen.timesage.domain.AvailabilityResponses
 import com.github.shelgen.timesage.domain.AvailabilityStatus
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DateRange
-import com.github.shelgen.timesage.domain.Localization
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.configuration.Localization
 import com.github.shelgen.timesage.domain.Scheduling
 import com.github.shelgen.timesage.domain.SchedulingType
 import com.github.shelgen.timesage.domain.TimeSlotRules
+import com.github.shelgen.timesage.plan.Plan
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -95,8 +94,8 @@ class PlannerTest {
 
         val session = planner(conf, responses).generatePossiblePlans().single().sessions.single()
 
-        assertFalse(session.participants.first { it.userId == alice }.ifNeedBe)
-        assertTrue(session.participants.first { it.userId == bob }.ifNeedBe)
+        assertFalse(session.participation.first { it.userId == alice }.ifNeedBe)
+        assertTrue(session.participation.first { it.userId == bob }.ifNeedBe)
     }
 
     @Test
@@ -334,7 +333,7 @@ class PlannerTest {
             id = id,
             name = "Activity $id",
             members = participants.map { (userId, optional) -> ActivityMember(userId, optional) },
-            maxMissingOptionalMembers = maxMissing,
+            maxNumMissingOptionalMembers = maxMissing,
         )
 
     private fun responses(vararg pairs: Pair<Long, AvailabilityResponse>) = AvailabilityResponses(pairs.toMap())

@@ -1,14 +1,14 @@
 package com.github.shelgen.timesage.ui
 
-import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.configuration.Activity
 import com.github.shelgen.timesage.domain.ActivityMember
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.Localization
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.configuration.Localization
 import com.github.shelgen.timesage.domain.Scheduling
 import com.github.shelgen.timesage.domain.SchedulingType
 import com.github.shelgen.timesage.domain.TimeSlotRules
-import com.github.shelgen.timesage.planning.Plan
-import com.github.shelgen.timesage.planning.PlannedSession
+import com.github.shelgen.timesage.plan.Plan
+import com.github.shelgen.timesage.plan.Session
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
@@ -46,7 +46,7 @@ class AlternativePrinterTest {
                         ActivityMember(jeanGrey, optional = false),
                         ActivityMember(wolverine, optional = true),
                     ),
-                    maxMissingOptionalMembers = 1,
+                    maxNumMissingOptionalMembers = 1,
                 ),
                 Activity(
                     id = 2,
@@ -55,7 +55,7 @@ class AlternativePrinterTest {
                         ActivityMember(storm, optional = false),
                         ActivityMember(rogue, optional = false),
                     ),
-                    maxMissingOptionalMembers = 0,
+                    maxNumMissingOptionalMembers = 0,
                 ),
             ),
             voiceChannelId = null,
@@ -156,10 +156,10 @@ class AlternativePrinterTest {
         activityId: Int,
         vararg participants: Pair<Long, Boolean>,
         missingOptionalCount: Int = 0,
-    ) = PlannedSession(
+    ) = Session(
         timeSlot = timeSlot,
         activityId = activityId,
-        participants = participants.map { (userId, ifNeedBe) -> PlannedSession.Participant(userId, ifNeedBe) }.toSet(),
+        participation = participants.map { (userId, ifNeedBe) -> Session.Participant(userId, ifNeedBe) }.toSet(),
         missingOptionalCount = missingOptionalCount,
     )
 }

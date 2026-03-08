@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.slashcommands
 
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.screens.PlanAlternativesPageScreen
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
@@ -14,6 +14,7 @@ object ScheduleCommand : AbstractSlashCommand(
         val outerMdc = MDC.getCopyOfContextMap()
         event.deferReply(true).queue {
             MDC.setContextMap(outerMdc)
+            /* TODO: Something exciting is coming here!
             val configuration = ConfigurationRepository.loadOrInitialize(tenant)
             val dateRange = configuration.activePeriod()
             val screen = PlanAlternativesPageScreen(
@@ -23,6 +24,7 @@ object ScheduleCommand : AbstractSlashCommand(
                 tenant = tenant
             )
             it.sendMessage(screen.render()).queue()
+             */
             MDC.clear()
         }
     }

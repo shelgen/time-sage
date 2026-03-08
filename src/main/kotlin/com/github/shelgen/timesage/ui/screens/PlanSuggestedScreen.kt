@@ -2,10 +2,10 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.createScheduledEventsForPlan
-import com.github.shelgen.timesage.domain.AvailabilityMessage
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DateRange
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.planning.AvailabilityMessage
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
@@ -79,7 +79,7 @@ class PlanSuggestedScreen(
                         val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                         val plan = getPlan(screen.planNumber, screen.dateRange, configuration, screen.tenant)
                         if (plan.sessions.isNotEmpty()) {
-                            JDAHolder.jda.getGuildById(screen.tenant.guildId)?.let { guild ->
+                            JDAHolder.jda.getGuildById(screen.tenant.server)?.let { guild ->
                                 createScheduledEventsForPlan(plan, guild, configuration)
                             }
                         }

@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.repositories
 
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.Tenant
 import java.io.File
 
 val SERVERS_DIR = File("time-sage/servers")
@@ -12,12 +12,12 @@ fun getChannelsDir(guildId: Long): File =
     File(getServerDir(guildId), "channels")
 
 fun getTenantDir(tenant: Tenant): File =
-    File(getChannelsDir(tenant.guildId), tenant.channelId.toString())
+    File(getChannelsDir(tenant.server), tenant.channel.toString())
 
 fun getAllTenants(): List<Tenant> =
     SERVERS_DIR.findAllLongSubfolderNames().flatMap { guildId ->
         getChannelsDir(guildId).findAllLongSubfolderNames().map { channelId ->
-            Tenant(guildId = guildId, channelId = channelId)
+            Tenant(server = guildId, channel = channelId)
         }
     }
 

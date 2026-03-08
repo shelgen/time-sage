@@ -1,7 +1,8 @@
 package com.github.shelgen.timesage
 
 import com.github.shelgen.timesage.cronjobs.CronJobScheduling
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.discord.DiscordServerId
+import com.github.shelgen.timesage.discord.DiscordTextChannelId
 import com.github.shelgen.timesage.slashcommands.AbstractSlashCommand
 import com.github.shelgen.timesage.ui.screens.CustomIdSerialization
 import com.github.shelgen.timesage.ui.screens.ScreenButton
@@ -140,5 +141,5 @@ class TimeSage : ListenerAdapter() {
     }
 
     private fun Interaction.toTenant(): Tenant =
-        Tenant(guildId = guild!!.idLong, channelId = channel!!.idLong)
+        Tenant(server = DiscordServerId(guild!!.idLong), channel = DiscordTextChannelId(channel!!.idLong))
 }

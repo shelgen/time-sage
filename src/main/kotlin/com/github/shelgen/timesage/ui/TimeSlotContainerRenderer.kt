@@ -1,13 +1,13 @@
-package com.github.shelgen.timesage.ui.screens
+package com.github.shelgen.timesage.ui
 
-import com.github.shelgen.timesage.domain.AvailabilityStatus
-import com.github.shelgen.timesage.domain.PlanningProcess
-import com.github.shelgen.timesage.domain.DateRange
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.logger
+import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
-import com.github.shelgen.timesage.ui.DiscordFormatter
-import com.github.shelgen.timesage.ui.DiscordFormatter.timestamp
+import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.ui.screens.AbstractDateRangeScreen
+import com.github.shelgen.timesage.ui.screens.CustomIdSerialization
+import com.github.shelgen.timesage.ui.screens.ScreenButton
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.section.Section
@@ -15,6 +15,7 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.time.Instant
+import kotlin.collections.get
 
 object TimeSlotContainerRenderer {
     fun renderTimeSlotContainers(
@@ -40,7 +41,7 @@ object TimeSlotContainerRenderer {
             toggleButtonFactory(timeSlot).render()
                 .let { if (data.concluded) it.asDisabled() else it },
             TextDisplay.of(
-                "### ${timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
+                "### ${DiscordFormatter.timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
                         data.availabilityResponses.map
                             .asSequence()
                             .filter { (_, response) -> response.sessionLimit != 0 }
@@ -82,7 +83,7 @@ object TimeSlotContainerRenderer {
                     val old = period.availabilityResponses[userId]?.dates?.get(timeSlot)
                     val new = cycleAvailability(old)
                     logger.info("Updating availability at $timeSlot from $old to $new")
-                    period.setUserTimeSlotAvailability(userId, timeSlot, new)
+                    period.setAvailability(userId, timeSlot, new)
                 }
             }
         }

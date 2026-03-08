@@ -1,9 +1,9 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.Activity
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.DateRange
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.configuration.Activity
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
@@ -18,7 +18,7 @@ class AvailabilityThreadStartScreen(val dateRange: DateRange, tenant: Tenant) : 
                             DiscordFormatter.bold(
                                 "✅ Planning for this ${dateRange.toLocalizedString(configuration.localization)} has been concluded" +
                                         dateRangeState.conclusionMessageId?.let {
-                                            "\nSee https://discord.com/channels/${tenant.guildId}/${tenant.channelId}/$it"
+                                            "\nSee https://discord.com/channels/${tenant.server}/${tenant.channel}/$it"
                                         }.orEmpty()
                             )
                         } else {

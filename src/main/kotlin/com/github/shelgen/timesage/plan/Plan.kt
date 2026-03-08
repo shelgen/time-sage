@@ -1,14 +1,21 @@
-package com.github.shelgen.timesage.planning
+package com.github.shelgen.timesage.plan
 
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.UUID
 
-data class Plan(val sessions: List<PlannedSession>) {
+@JvmInline
+value class PlanId(val value: UUID)
+
+data class Plan(
+    val id: PlanId,
+    val sessions: List<Session>
+) {
     val score: Score = Score(
-        missingOptionalParticipants = sessions.sumOf { it.missingOptionalCount },
-        ifNeedBeParticipants = sessions.sumOf { session -> session.participants.count { it.ifNeedBe } },
+        missingOptionalParticipants = sessions.sumOf(Session::missingOptionalCount),
+        ifNeedBeParticipants = sessions.sumOf(Session::countIfNeedBes),
         numberOfSessions = sessions.size,
-        participantSessions = sessions.sumOf { it.participants.size },
+        participantSessions = sessions.sumOf(Session::countParticipants),
         directlyFollowingDays = sessions.zipWithNext().count { (a, b) ->
             numDaysBetween(
                 latestDate = b.timeSlot.atOffset(ZoneOffset.UTC).toLocalDate(),

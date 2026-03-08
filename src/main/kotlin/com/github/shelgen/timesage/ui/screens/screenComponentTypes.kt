@@ -1,8 +1,8 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.entities.Message
@@ -105,7 +105,7 @@ sealed interface ScreenComponent<EVENT : Event> {
     }
 
     fun rerenderOtherScreen(messageId: Long, screen: Screen) {
-        JDAHolder.jda.getTextChannelById(this.screen.tenant.channelId)
+        JDAHolder.jda.getTextChannelById(this.screen.tenant.channel)
             ?.editMessageById(messageId, screen.renderEdit())
             ?.queue()
     }

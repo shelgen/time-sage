@@ -1,7 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow

@@ -1,10 +1,11 @@
-package com.github.shelgen.timesage.domain
+package com.github.shelgen.timesage.time
 
+import com.github.shelgen.timesage.configuration.Localization
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.Locale
 
 data class DateRange(
     val fromInclusive: LocalDate,

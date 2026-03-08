@@ -1,6 +1,6 @@
 package com.github.shelgen.timesage.ui
 
-import com.github.shelgen.timesage.domain.DateRange
+import com.github.shelgen.timesage.time.DateRange
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek

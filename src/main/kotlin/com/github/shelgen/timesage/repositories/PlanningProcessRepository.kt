@@ -1,22 +1,26 @@
 package com.github.shelgen.timesage.repositories
 
-import com.github.shelgen.timesage.domain.AvailabilityMessage
-import com.github.shelgen.timesage.domain.AvailabilityResponse
+import com.github.shelgen.timesage.planning.AvailabilityMessage
+import com.github.shelgen.timesage.planning.AvailabilityResponse
 import com.github.shelgen.timesage.domain.AvailabilityResponseDate
-import com.github.shelgen.timesage.domain.AvailabilityResponses
+import com.github.shelgen.timesage.planning.AvailabilityResponses
 import com.github.shelgen.timesage.domain.AvailabilityStatus
-import com.github.shelgen.timesage.domain.DateRange
-import com.github.shelgen.timesage.domain.MutablePlanningProcess
-import com.github.shelgen.timesage.domain.PlanningProcess
-import com.github.shelgen.timesage.domain.Tenant
+import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.planning.MutablePlanningProcess
+import com.github.shelgen.timesage.planning.PlanningProcess
+import com.github.shelgen.timesage.Tenant
 import java.time.LocalDate
 import java.util.*
 
 object PlanningProcessRepository {
     private val dao = PlanningProcessFileDao()
 
-    fun loadOrInitialize(dateRange: DateRange, tenant: Tenant): PlanningProcess =
-        dao.load(dateRange, tenant)?.toDomain() ?: PlanningProcess.DEFAULT
+    fun load(dateRange: DateRange, tenant: Tenant): PlanningProcess? =
+        dao.load(dateRange, tenant)?.toDomain()
+
+    fun saveNew(planningProcess: PlanningProcess) {
+        dao.save(planningProcess.dateRange, planningProcess.tenant, planningProcess.toJson())
+    }
 
     @Synchronized
     fun <T> update(
@@ -67,7 +71,7 @@ object PlanningProcessRepository {
         PlanningProcessFileDao.Json.AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.UNAVAILABLE
     }
 
-    private fun MutablePlanningProcess.toJson(): PlanningProcessFileDao.Json {
+    private fun PlanningProcess.toJson(): PlanningProcessFileDao.Json {
         val thread = availabilityMessage as? AvailabilityMessage.Thread
         val singleMessage = availabilityMessage as? AvailabilityMessage.SingleMessage
         return PlanningProcessFileDao.Json(

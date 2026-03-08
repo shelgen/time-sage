@@ -17,6 +17,10 @@ object JDAHolder {
         logger.info("Waiting for JDA to be ready")
         build.awaitReady()
     }
+
+    fun getTextChannel(tenant: Tenant): TextChannel =
+        jda.getTextChannelById(tenant.channel.id)
+            ?: error("Error getting text channel for $tenant")
 }
 
 fun replaceBotPinsWith(message: Message) {

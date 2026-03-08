@@ -1,9 +1,9 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.domain.Activity
+import com.github.shelgen.timesage.configuration.Activity
 import com.github.shelgen.timesage.domain.ActivityMember
-import com.github.shelgen.timesage.domain.Configuration
-import com.github.shelgen.timesage.domain.PlanningProcess
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -97,7 +97,7 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
                     val old = period.availabilityResponses[userId]?.sessionLimit
                     val new = cycleLimit(old)
                     logger.info("Updating session limit for target period ${screen.dateRange} from $old to $new")
-                    period.setUserSessionLimit(userId, new)
+                    period.setSessionLimit(userId, new)
                 }
             }
         }
