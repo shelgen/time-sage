@@ -176,4 +176,19 @@ sealed interface ScreenModal : ScreenComponent<ModalInteractionEvent> {
             }
         }
     }
+
+    fun ModalInteractionEvent.processAndNavigateTo(processor: (interactionHook: InteractionHook) -> Screen) {
+        val outerMdc = MDC.getCopyOfContextMap()
+        deferEdit().queue { interactionHook ->
+            MDC.setContextMap(outerMdc)
+            try {
+                val newScreen = processor(interactionHook)
+                interactionHook.editOriginal(newScreen.renderEdit()).queue()
+            } catch (e: Exception) {
+                logger.error("Error in modal processAndNavigateTo (screen=${screen::class.simpleName})", e)
+            } finally {
+                MDC.clear()
+            }
+        }
+    }
 }

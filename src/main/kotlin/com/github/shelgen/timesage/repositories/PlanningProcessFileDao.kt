@@ -14,6 +14,10 @@ class PlanningProcessFileDao {
         fileDao.save(getPlanningProcessFile(dateRange, tenant), json)
     }
 
+    fun delete(dateRange: DateRange, tenant: Tenant) {
+        fileDao.delete(getPlanningProcessFile(dateRange, tenant))
+    }
+
     fun load(dateRange: DateRange, tenant: Tenant): Json? =
         fileDao.load(getPlanningProcessFile(dateRange, tenant))
 

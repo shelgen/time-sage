@@ -28,6 +28,12 @@ class CachedJsonFileDao<T>(private val jsonClass: Class<T>) {
         cache.invalidate(file.absolutePath)
     }
 
+    @Synchronized
+    fun delete(file: File) {
+        file.delete()
+        cache.invalidate(file.absolutePath)
+    }
+
     fun load(file: File): T? =
         cache.get(file.absolutePath)
 

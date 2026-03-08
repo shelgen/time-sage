@@ -47,6 +47,10 @@ object PlanningProcessRepository {
     fun loadAll(tenant: Tenant): List<PlanningProcess> =
         dao.loadAll(tenant).map { it.toDomain() }
 
+    fun delete(planningProcess: PlanningProcess) {
+        dao.delete(planningProcess.dateRange, planningProcess.tenant)
+    }
+
     private fun PlanningProcessFileDao.Json.toDomain() = PlanningProcess(
         tenant = tenant.toDomain(),
         dateRange = DateRange.deserialize(dateRange),

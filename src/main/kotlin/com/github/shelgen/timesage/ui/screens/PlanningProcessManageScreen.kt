@@ -3,6 +3,8 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.planning.AvailabilityMessage
+import com.github.shelgen.timesage.planning.AvailabilityThread
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
@@ -12,8 +14,13 @@ import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
+import net.dv8tion.jda.api.components.label.Label
+import net.dv8tion.jda.api.components.selections.SelectOption
+import net.dv8tion.jda.api.components.selections.StringSelectMenu
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import net.dv8tion.jda.api.modals.Modal
 
 class PlanningProcessManageScreen(
     val dateRange: DateRange,
@@ -37,11 +44,11 @@ class PlanningProcessManageScreen(
             } ?: "No reminders sent yet."),
         ) + when (process.state) {
             PlanningProcess.State.COLLECTING_AVAILABILITIES ->
-                listOf(ActionRow.of(Buttons.Lock(this).render()))
+                listOf(ActionRow.of(Buttons.Lock(this).render(), Buttons.Delete(this).render()))
             PlanningProcess.State.LOCKED ->
-                listOf(ActionRow.of(Buttons.PickPlan(this).render(), Buttons.Unlock(this).render()))
+                listOf(ActionRow.of(Buttons.PickPlan(this).render(), Buttons.Unlock(this).render(), Buttons.Delete(this).render()))
             PlanningProcess.State.CONCLUDED ->
-                listOf(ActionRow.of(Buttons.UndoConclusion(this).render()))
+                listOf(ActionRow.of(Buttons.UndoConclusion(this).render(), Buttons.Delete(this).render()))
         }
     }
 
@@ -123,6 +130,64 @@ class PlanningProcessManageScreen(
                     if (conclusionMessageId != null) {
                         JDAHolder.getTextChannel(tenant).deleteMessageById(conclusionMessageId.id).queue()
                     }
+                }
+            }
+        }
+        class Delete(override val screen: PlanningProcessManageScreen) : ScreenButton {
+            fun render() = Button.danger(CustomIdSerialization.serialize(this), "Delete")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.replyModal(Modals.ConfirmDelete(screen).render()).queue()
+            }
+        }
+    }
+
+    class Modals {
+        class ConfirmDelete(override val screen: PlanningProcessManageScreen) : ScreenModal {
+            fun render() = Modal
+                .create(CustomIdSerialization.serialize(this), "Delete planning process")
+                .addComponents(
+                    Label.of(
+                        "Are you sure? All collected responses will also be deleted.",
+                        StringSelectMenu.create("confirm")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                            .addOptions(
+                                SelectOption.of("No", "no"),
+                                SelectOption.of("Yes", "yes"),
+                            )
+                            .setDefaultValues("no")
+                            .build()
+                    )
+                )
+                .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                val confirmed = event.getValue("confirm")!!.asStringList.first() == "yes"
+                if (!confirmed) {
+                    event.processAndRerender { }
+                    return
+                }
+                event.processAndNavigateTo {
+                    val tenant = screen.tenant
+                    val dateRange = screen.dateRange
+                    val planningProcess = PlanningProcessRepository.load(dateRange, tenant)!!
+                    val textChannel = JDAHolder.getTextChannel(tenant)
+                    planningProcess.sentReminders.forEach { reminder ->
+                        textChannel.deleteMessageById(reminder.message.id).queue()
+                    }
+                    planningProcess.conclusion?.let { conclusion ->
+                        textChannel.deleteMessageById(conclusion.message.id).queue()
+                    }
+                    when (val ai = planningProcess.availabilityInterface) {
+                        is AvailabilityMessage -> textChannel.deleteMessageById(ai.message.id).queue()
+                        is AvailabilityThread -> {
+                            JDAHolder.getThreadChannel(ai.threadChannel).delete().queue()
+                            textChannel.deleteMessageById(ai.threadStartMessage.id).queue()
+                        }
+                    }
+                    PlanningProcessRepository.delete(planningProcess)
+                    PlanningProcessesScreen(tenant)
                 }
             }
         }
