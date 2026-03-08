@@ -54,6 +54,7 @@ object PlanningProcessRepository {
     private fun PlanningProcessFileDao.Json.toDomain() = PlanningProcess(
         tenant = tenant.toDomain(),
         dateRange = DateRange.deserialize(dateRange),
+        timeSlots = timeSlots,
         state = state.toDomain(),
         availabilityInterface = availabilityInterface.toDomain(),
         availabilityResponses = availabilityResponses
@@ -120,6 +121,7 @@ object PlanningProcessRepository {
     private fun PlanningProcess.toJson() = PlanningProcessFileDao.Json(
         tenant = tenant.toJson(),
         dateRange = dateRange.serialize(),
+        timeSlots = timeSlots,
         state = state.toJson(),
         availabilityInterface = availabilityInterface.toJson(),
         availabilityResponses = availabilityResponses

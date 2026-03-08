@@ -14,6 +14,7 @@ import com.github.shelgen.timesage.discord.DiscordTextChannelId
 import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.plan.Plan
 import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.time.TimeSlot
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -299,14 +300,21 @@ class PlannerTest {
         availabilityResponses: Map<DiscordUserId, AvailabilityResponse> = emptyMap(),
     ) = Planner(
         configuration = configuration,
-        planningProcess = planningProcess(availabilityResponses)
+        planningProcess = planningProcess(
+            availabilityResponses = availabilityResponses,
+            timeSlots = configuration.produceTimeSlots(DateRange.weekFrom(weekStart)),
+        )
     )
 
-    private fun planningProcess(availabilityResponses: Map<DiscordUserId, AvailabilityResponse>): PlanningProcess {
+    private fun planningProcess(
+        availabilityResponses: Map<DiscordUserId, AvailabilityResponse>,
+        timeSlots: List<TimeSlot>,
+    ): PlanningProcess {
         val tenant = Tenant(DiscordServerId(0L), DiscordTextChannelId(0L))
         return PlanningProcess(
             dateRange = DateRange.weekFrom(weekStart),
             tenant = tenant,
+            timeSlots = timeSlots,
             state = PlanningProcess.State.COLLECTING_AVAILABILITIES,
             availabilityInterface = AvailabilityMessage(
                 postedAt = Instant.EPOCH,

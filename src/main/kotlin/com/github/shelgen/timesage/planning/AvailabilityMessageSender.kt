@@ -8,6 +8,7 @@ import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.time.TimeSlot
 import com.github.shelgen.timesage.ui.screens.AvailabilityMessageScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadPeriodLevelScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadStartScreen
@@ -49,6 +50,7 @@ object AvailabilityMessageSender {
                                     thread = threadChannel,
                                     dateRange = dateRange,
                                     tenant = tenant,
+                                    timeSlots = timeSlots,
                                     weekChunks = chunks,
                                     weekChunkIndex = 0,
                                     threadStartMessageId = DiscordMessageId(headerMessage.idLong),
@@ -69,6 +71,7 @@ object AvailabilityMessageSender {
                     PlanningProcess.new(
                         dateRange = dateRange,
                         tenant = tenant,
+                        timeSlots = timeSlots,
                         availabilityInterface = availabilityInterface
                     )
                 )
@@ -81,6 +84,7 @@ object AvailabilityMessageSender {
         thread: ThreadChannel,
         dateRange: DateRange,
         tenant: Tenant,
+        timeSlots: List<TimeSlot>,
         weekChunks: List<DateRange>,
         weekChunkIndex: Int,
         threadStartMessageId: DiscordMessageId,
@@ -100,6 +104,7 @@ object AvailabilityMessageSender {
                 PlanningProcess.new(
                     dateRange = dateRange,
                     tenant = tenant,
+                    timeSlots = timeSlots,
                     availabilityInterface = availabilityInterface
                 )
             )
@@ -122,6 +127,7 @@ object AvailabilityMessageSender {
                 thread = thread,
                 dateRange = dateRange,
                 tenant = tenant,
+                timeSlots = timeSlots,
                 weekChunks = weekChunks,
                 weekChunkIndex = weekChunkIndex + 1,
                 threadStartMessageId = threadStartMessageId,

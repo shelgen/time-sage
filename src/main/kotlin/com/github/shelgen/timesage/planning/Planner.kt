@@ -17,8 +17,7 @@ class Planner(
 ) {
     fun generatePossiblePlans(): List<Plan> {
         logger.info("Generating possible plans for ${planningProcess.dateRange}")
-        val timeSlots = configuration.produceTimeSlots(planningProcess.dateRange)
-        return buildSessions(sessions = emptyList(), remainingTimeSlots = timeSlots)
+        return buildSessions(sessions = emptyList(), remainingTimeSlots = planningProcess.timeSlots)
             .distinct()
             .filter { it.isNotEmpty() }
             .filterNot { isSuboptimalForAParticipant(it) }

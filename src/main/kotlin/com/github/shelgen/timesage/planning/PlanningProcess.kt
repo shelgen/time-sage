@@ -12,6 +12,7 @@ import com.github.shelgen.timesage.time.TimeSlot
 open class PlanningProcess(
     val dateRange: DateRange,
     val tenant: Tenant,
+    val timeSlots: List<TimeSlot>,
     open val state: State,
     open val availabilityInterface: AvailabilityInterface,
     open val availabilityResponses: Map<DiscordUserId, AvailabilityResponse>,
@@ -34,10 +35,16 @@ open class PlanningProcess(
             .toList()
 
     companion object {
-        fun new(dateRange: DateRange, tenant: Tenant, availabilityInterface: AvailabilityInterface): PlanningProcess =
+        fun new(
+            dateRange: DateRange,
+            tenant: Tenant,
+            timeSlots: List<TimeSlot>,
+            availabilityInterface: AvailabilityInterface,
+        ): PlanningProcess =
             PlanningProcess(
                 dateRange = dateRange,
                 tenant = tenant,
+                timeSlots = timeSlots,
                 state = State.COLLECTING_AVAILABILITIES,
                 availabilityInterface = availabilityInterface,
                 availabilityResponses = emptyMap(),
@@ -51,16 +58,18 @@ open class PlanningProcess(
 class MutablePlanningProcess(
     tenant: Tenant,
     dateRange: DateRange,
+    timeSlots: List<TimeSlot>,
     override var state: State,
     override val availabilityInterface: AvailabilityInterface,
     override val availabilityResponses: MutableMap<DiscordUserId, MutableAvailabilityResponse>,
     override val sentReminders: MutableList<SentReminder>,
     override var conclusion: Conclusion?,
     override var planAlternatives: List<Plan>,
-) : PlanningProcess(dateRange, tenant, state, availabilityInterface, availabilityResponses, sentReminders, conclusion, planAlternatives) {
+) : PlanningProcess(dateRange, tenant, timeSlots, state, availabilityInterface, availabilityResponses, sentReminders, conclusion, planAlternatives) {
     constructor(immutable: PlanningProcess) : this(
         tenant = immutable.tenant,
         dateRange = immutable.dateRange,
+        timeSlots = immutable.timeSlots,
         state = immutable.state,
         availabilityInterface = immutable.availabilityInterface,
         availabilityResponses = immutable.availabilityResponses

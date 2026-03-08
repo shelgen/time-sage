@@ -32,6 +32,7 @@ class PlanningProcessFileDao {
     data class Json(
         val tenant: Tenant,
         val dateRange: String,
+        val timeSlots: List<Instant>,
         val state: State,
         val availabilityInterface: AvailabilityInterface,
         val availabilityResponses: Map<Long, AvailabilityResponse>,

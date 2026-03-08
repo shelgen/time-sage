@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import java.time.Instant
@@ -15,11 +16,13 @@ class AvailabilityThreadWeekScreen(
         val weekChunk =
             dateRange.chunkedByWeek(configuration.localization.startDayOfWeek)
                 .getOrElse(weekChunkIndex) { return@renderComponents emptyList() }
-        val weekTimeSlots = configuration.produceTimeSlots(dateRange).filter { slot ->
+        val planningProcess = PlanningProcessRepository.load(dateRange, configuration.tenant)
+            ?: error("Planning process for $dateRange in ${configuration.tenant} does not exist!")
+        val weekTimeSlots = planningProcess.timeSlots.filter { slot ->
             configuration.localization.dateOf(slot) in weekChunk
         }
         return TimeSlotContainerRenderer.renderTimeSlotContainers(
-            weekTimeSlots = weekTimeSlots,
+            timeSlots = weekTimeSlots,
             dateRange = dateRange,
             tenant = tenant
         ) { timeSlot -> Buttons.ToggleTimeSlotAvailability(timeSlot, this) }

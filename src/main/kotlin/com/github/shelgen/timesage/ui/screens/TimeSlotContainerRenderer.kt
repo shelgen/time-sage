@@ -18,12 +18,12 @@ import java.time.Instant
 
 object TimeSlotContainerRenderer {
     fun renderTimeSlotContainers(
-        weekTimeSlots: List<Instant>,
+        timeSlots: List<Instant>,
         dateRange: DateRange,
         tenant: Tenant,
         toggleButtonFactory: (timeSlot: Instant) -> ToggleAvailabilityButton,
     ): List<Container> =
-        weekTimeSlots.map {
+        timeSlots.map {
             renderTimeSlotContainer(
                 it,
                 PlanningProcessRepository.load(dateRange, tenant)!!,
