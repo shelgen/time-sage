@@ -8,7 +8,9 @@ import com.github.shelgen.timesage.configuration.Interval
 import com.github.shelgen.timesage.configuration.Member
 import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.discord.DiscordVoiceChannelId
+import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
@@ -564,6 +566,10 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                         activity.voiceChannel =
                             event.getValue("voiceChannel")!!.asLongList.firstOrNull()?.let(::DiscordVoiceChannelId)
                     }
+                    val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
+                    PlanningProcessRepository.loadAll(screen.tenant)
+                        .filter { it.state == PlanningProcess.State.COLLECTING_AVAILABILITIES }
+                        .forEach { rerenderAvailabilityInterface(it, configuration) }
                 }
             }
         }
@@ -646,6 +652,10 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                         activity.voiceChannel =
                             event.getValue("voiceChannel")!!.asLongList.firstOrNull()?.let(::DiscordVoiceChannelId)
                     }
+                    val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
+                    PlanningProcessRepository.loadAll(screen.tenant)
+                        .filter { it.state == PlanningProcess.State.COLLECTING_AVAILABILITIES }
+                        .forEach { rerenderAvailabilityInterface(it, configuration) }
                 }
             }
         }
