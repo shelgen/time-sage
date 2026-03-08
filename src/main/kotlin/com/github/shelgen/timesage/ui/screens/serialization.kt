@@ -21,6 +21,16 @@ import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.typeOf
 
+private fun KClass<*>.allSealedSubclassesInternal(): List<KClass<*>> =
+    sealedSubclasses.flatMap { subclass ->
+        if (subclass.isSealed) listOf(subclass) + subclass.allSealedSubclassesInternal()
+        else listOf(subclass)
+    }
+
+@Suppress("UNCHECKED_CAST")
+fun <T : Any> KClass<T>.allSealedSubclasses(): List<KClass<out T>> =
+    (this as KClass<*>).allSealedSubclassesInternal() as List<KClass<out T>>
+
 /*
  Serializes and deserializes screen component to/from a Discord custom ID.
  The format is as follows: <abbrevated screen class name>{param1,...,paramN}|<abbrevated component class name>{param1,...,paramN}|<random value>
@@ -60,7 +70,7 @@ object CustomIdSerialization {
 
         val (screenSerialId, serializedScreenFieldsString) = screenPart.removeSuffix("}").split('{', limit = 2)
         val serializedScreenFields = serializedScreenFieldsString.split(',')
-        val screenClass = Screen::class.sealedSubclasses
+        val screenClass = Screen::class.allSealedSubclasses()
             .find { SerialIdGeneration.forScreen(it) == screenSerialId }
             ?: error("Could not find screen class for serialId $screenSerialId")
 

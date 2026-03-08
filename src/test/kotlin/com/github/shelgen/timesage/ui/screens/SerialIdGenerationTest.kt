@@ -8,7 +8,7 @@ class SerialIdGenerationTest {
     @Test
     fun `no collision of screen serial IDs`() {
         val map = mutableMapOf<String, KClass<*>>()
-        Screen::class.sealedSubclasses.forEach { screenClass ->
+        Screen::class.allSealedSubclasses().forEach { screenClass ->
             val serialId = SerialIdGeneration.forScreen(screenClass)
             println("$serialId ($screenClass)")
             assertFalse(map.containsKey(serialId)) {
@@ -20,7 +20,7 @@ class SerialIdGenerationTest {
 
     @Test
     fun `no collision of component serial IDs within a screen`() {
-        Screen::class.sealedSubclasses.forEach { screenClass ->
+        Screen::class.allSealedSubclasses().forEach { screenClass ->
             println("--- Screen $screenClass ---")
             val map = mutableMapOf<String, KClass<*>>()
             CustomIdSerialization.getScreenComponents(screenClass)

@@ -9,6 +9,7 @@ import com.github.shelgen.timesage.ui.screens.ScreenButton
 import com.github.shelgen.timesage.ui.screens.ScreenEntitySelectMenu
 import com.github.shelgen.timesage.ui.screens.ScreenModal
 import com.github.shelgen.timesage.ui.screens.ScreenStringSelectMenu
+import com.github.shelgen.timesage.ui.screens.allSealedSubclasses
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -25,7 +26,7 @@ class TimeSage : ListenerAdapter() {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     private val slashCommands: List<AbstractSlashCommand> =
-        AbstractSlashCommand::class.sealedSubclasses.map { it.objectInstance!! }
+        AbstractSlashCommand::class.allSealedSubclasses().map { it.objectInstance!! }
 
     fun start() {
         setUpCommands()
