@@ -4,8 +4,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.*
 
-@JvmInline
-value class PlanId(val value: UUID)
+data class PlanId(val value: UUID)
 
 data class Plan(
     val id: PlanId,

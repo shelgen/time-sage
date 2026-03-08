@@ -3,8 +3,7 @@ package com.github.shelgen.timesage.configuration
 import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.discord.DiscordVoiceChannelId
 
-@JvmInline
-value class ActivityId(val value: Int)
+data class ActivityId(val value: Int)
 
 open class Activity(
     val id: ActivityId,
