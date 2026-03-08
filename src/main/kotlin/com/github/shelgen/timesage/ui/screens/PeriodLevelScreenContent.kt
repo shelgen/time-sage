@@ -1,10 +1,11 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.configuration.Activity
-import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.configuration.Configuration
-import com.github.shelgen.timesage.planning.PlanningProcess
+import com.github.shelgen.timesage.configuration.Member
+import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.logger
+import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -23,7 +24,8 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
     private val tenant = screen.tenant
 
     fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val dateRangeState = PlanningProcessRepository.loadOrInitialize(dateRange, tenant)
+        val dateRangeState = PlanningProcessRepository.load(dateRange, tenant)
+            ?: error("Planning process for $dateRange in $tenant does not exist!")
         return renderMissingResponses(dateRangeState, configuration) +
                 renderLimits("Limits this ${dateRange.toLocalizedString(configuration.localization)}", dateRangeState)
     }
@@ -32,15 +34,15 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
         listOfNotNull(
             configuration.activities
                 .flatMap(Activity::members)
-                .map(ActivityMember::userId)
+                .map(Member::user)
                 .filter { data.availabilityResponses[it] == null }
                 .distinct()
-                .sorted()
-                .takeUnless(List<Long>::isEmpty)
+                .sortedBy(DiscordUserId::id)
+                .takeUnless(List<DiscordUserId>::isEmpty)
                 ?.joinToString(
                     prefix = "### Missing responses\n",
                     separator = "\n"
-                ) { userId -> DiscordFormatter.mentionUser(userId) }
+                ) { userId -> userId.toMention() }
                 ?.let(TextDisplay::of)
                 ?.let { Container.of(it).withAccentColor(0xFFB6C1) }
         )
@@ -50,34 +52,32 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
             Container.of(
                 Section.of(
                     buttonFactory().render()
-                        .let { if (data.concluded) it.asDisabled() else it },
+                        .let { if (data.state == PlanningProcess.State.CONCLUDED) it.asDisabled() else it },
                     TextDisplay.of(
                         "### $title\n" +
                                 listOf(
-                                    data.availabilityResponses.map
+                                    data.availabilityResponses
                                         .asSequence()
-                                        .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
-                                        .filter { (_, sessionLimit) -> sessionLimit == 1 }
+                                        .filter { (_, response) -> response.sessionLimit == 1 }
                                         .map { (userId, _) -> userId }
-                                        .sorted()
+                                        .sortedBy(DiscordUserId::id)
                                         .toList()
                                         .takeUnless { it.isEmpty() }
                                         ?.joinToString(
                                             prefix = DiscordFormatter.bold("Only one session") + "\n",
-                                            transform = DiscordFormatter::mentionUser,
+                                            transform = DiscordUserId::toMention,
                                             separator = "\n"
                                         ).orEmpty(),
-                                    data.availabilityResponses.map
+                                    data.availabilityResponses
                                         .asSequence()
-                                        .mapNotNull { (userId, response) -> response.sessionLimit?.let { userId to it } }
-                                        .filter { (_, sessionLimit) -> sessionLimit == 0 }
+                                        .filter { (_, response) -> response.sessionLimit == 0 }
                                         .map { (userId, _) -> userId }
-                                        .sorted()
+                                        .sortedBy(DiscordUserId::id)
                                         .toList()
                                         .takeUnless { it.isEmpty() }
                                         ?.joinToString(
                                             prefix = DiscordFormatter.bold("Can't make it at all") + "\n",
-                                            transform = DiscordFormatter::mentionUser,
+                                            transform = DiscordUserId::toMention,
                                             separator = "\n"
                                         ).orEmpty()
                                 ).joinToString(separator = "\n\n")
@@ -92,8 +92,10 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
 
         override fun handle(event: ButtonInteractionEvent) {
             event.processAndRerender {
-                val userId = event.user.idLong
-                PlanningProcessRepository.update(screen.dateRange, screen.tenant) { period ->
+                val userId = DiscordUserId(event.user.idLong)
+                val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)
+                    ?: error("Couldn't find matching planning process for interaction!")
+                PlanningProcessRepository.update(planningProcess) { period ->
                     val old = period.availabilityResponses[userId]?.sessionLimit
                     val new = cycleLimit(old)
                     logger.info("Updating session limit for target period ${screen.dateRange} from $old to $new")

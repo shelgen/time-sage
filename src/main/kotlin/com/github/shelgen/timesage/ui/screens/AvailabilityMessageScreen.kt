@@ -1,9 +1,8 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.time.DateRange
-import com.github.shelgen.timesage.Tenant
-import com.github.shelgen.timesage.ui.TimeSlotContainerRenderer
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import java.time.Instant
 

@@ -1,8 +1,8 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.ActivityId
+import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent

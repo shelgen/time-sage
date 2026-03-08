@@ -1,8 +1,8 @@
 package com.github.shelgen.timesage.plan
 
-import com.github.shelgen.timesage.time.TimeSlot
 import com.github.shelgen.timesage.configuration.ActivityId
 import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.time.TimeSlot
 
 data class Session(
     val timeSlot: TimeSlot,

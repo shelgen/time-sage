@@ -1,19 +1,26 @@
 package com.github.shelgen.timesage.ui
 
+import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Activity
-import com.github.shelgen.timesage.domain.ActivityMember
+import com.github.shelgen.timesage.configuration.ActivityId
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.configuration.Localization
-import com.github.shelgen.timesage.domain.Scheduling
-import com.github.shelgen.timesage.domain.SchedulingType
-import com.github.shelgen.timesage.domain.TimeSlotRules
+import com.github.shelgen.timesage.configuration.Member
+import com.github.shelgen.timesage.configuration.PeriodicPlanning
+import com.github.shelgen.timesage.configuration.Reminders
+import com.github.shelgen.timesage.discord.DiscordServerId
+import com.github.shelgen.timesage.discord.DiscordTextChannelId
+import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.plan.Participant
 import com.github.shelgen.timesage.plan.Plan
+import com.github.shelgen.timesage.plan.PlanId
 import com.github.shelgen.timesage.plan.Session
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalTime.of
+import java.util.*
 import java.util.TimeZone.getTimeZone
 
 class AlternativePrinterTest {
@@ -28,37 +35,34 @@ class AlternativePrinterTest {
 
     private val printer = AlternativePrinter(
         Configuration(
-            enabled = true,
+            tenant = Tenant(DiscordServerId(0), DiscordTextChannelId(0)),
             localization = Localization(timeZone = getTimeZone("UTC"), startDayOfWeek = DayOfWeek.MONDAY),
-            scheduling = Scheduling(
-                type = SchedulingType.WEEKLY,
-                timeSlotRules = TimeSlotRules.of(DayOfWeek.MONDAY to of(18, 0)),
-                numDaysInAdvanceToStartPlanning = 5,
-                timeOfDayToStartPlanning = 17,
-                reminderIntervalDays = 1,
-            ),
             activities = listOf(
                 Activity(
-                    id = 1,
+                    id = ActivityId(1),
                     name = "Save the World",
                     members = listOf(
-                        ActivityMember(cyclops, optional = false),
-                        ActivityMember(jeanGrey, optional = false),
-                        ActivityMember(wolverine, optional = true),
+                        Member(DiscordUserId(cyclops), optional = false),
+                        Member(DiscordUserId(jeanGrey), optional = false),
+                        Member(DiscordUserId(wolverine), optional = true),
                     ),
                     maxNumMissingOptionalMembers = 1,
+                    voiceChannel = null,
                 ),
                 Activity(
-                    id = 2,
+                    id = ActivityId(2),
                     name = "Prevent Mutant Extinction",
                     members = listOf(
-                        ActivityMember(storm, optional = false),
-                        ActivityMember(rogue, optional = false),
+                        Member(DiscordUserId(storm), optional = false),
+                        Member(DiscordUserId(rogue), optional = false),
                     ),
                     maxNumMissingOptionalMembers = 0,
+                    voiceChannel = null,
                 ),
             ),
-            voiceChannelId = null,
+            timeSlotRules = mapOf(DayOfWeek.MONDAY to of(18, 0)),
+            reminders = Reminders.DEFAULT,
+            periodicPlanning = PeriodicPlanning.DEFAULT,
         )
     )
 
@@ -66,7 +70,7 @@ class AlternativePrinterTest {
     fun `single session with all participants available`() {
         val output = printer.printAlternative(
             alternativeNumber = 1,
-            plan = Plan(listOf(session(monday, 1, cyclops to false, jeanGrey to false, wolverine to false)))
+            plan = plan(session(monday, 1, cyclops to false, jeanGrey to false, wolverine to false))
         )
         assertEquals(
             "-# Alternative 1 (1 session, 3 participants)\n" +
@@ -82,7 +86,7 @@ class AlternativePrinterTest {
     fun `if-need-be attendee shown in italics`() {
         val output = printer.printAlternative(
             alternativeNumber = 1,
-            plan = Plan(listOf(session(monday, 1, cyclops to false, jeanGrey to false, wolverine to true)))
+            plan = plan(session(monday, 1, cyclops to false, jeanGrey to false, wolverine to true))
         )
         assertEquals(
             "-# Alternative 1 (1 if-need-be, 1 session, 3 participants)\n" +
@@ -98,7 +102,7 @@ class AlternativePrinterTest {
     fun `absent optional participant shown as strikethrough with score showing missing`() {
         val output = printer.printAlternative(
             alternativeNumber = 1,
-            plan = Plan(listOf(session(monday, 1, cyclops to false, jeanGrey to false, missingOptionalCount = 1)))
+            plan = plan(session(monday, 1, cyclops to false, jeanGrey to false, missingOptionalCount = 1))
         )
         assertEquals(
             "-# Alternative 1 (1 missing, 1 session, 2 participants)\n" +
@@ -114,7 +118,7 @@ class AlternativePrinterTest {
     fun `all three attendance states in one session`() {
         val output = printer.printAlternative(
             alternativeNumber = 2,
-            plan = Plan(listOf(session(monday, 1, cyclops to false, jeanGrey to true, missingOptionalCount = 1)))
+            plan = plan(session(monday, 1, cyclops to false, jeanGrey to true, missingOptionalCount = 1))
         )
         assertEquals(
             "-# Alternative 2 (1 missing, 1 if-need-be, 1 session, 2 participants)\n" +
@@ -130,11 +134,9 @@ class AlternativePrinterTest {
     fun `two sessions on consecutive days includes directly following day in score`() {
         val output = printer.printAlternative(
             alternativeNumber = 1,
-            plan = Plan(
-                listOf(
-                    session(monday, 1, cyclops to false, jeanGrey to false, wolverine to false),
-                    session(tuesday, 2, storm to false, rogue to false),
-                )
+            plan = plan(
+                session(monday, 1, cyclops to false, jeanGrey to false, wolverine to false),
+                session(tuesday, 2, storm to false, rogue to false),
             )
         )
         assertEquals(
@@ -151,6 +153,11 @@ class AlternativePrinterTest {
         )
     }
 
+    private fun plan(vararg sessions: Session) = Plan(
+        id = PlanId(UUID.randomUUID()),
+        sessions = sessions.toList()
+    )
+
     private fun session(
         timeSlot: Instant,
         activityId: Int,
@@ -158,8 +165,8 @@ class AlternativePrinterTest {
         missingOptionalCount: Int = 0,
     ) = Session(
         timeSlot = timeSlot,
-        activityId = activityId,
-        participation = participants.map { (userId, ifNeedBe) -> Session.Participant(userId, ifNeedBe) }.toSet(),
+        activityId = ActivityId(activityId),
+        participants = participants.map { (userId, ifNeedBe) -> Participant(DiscordUserId(userId), ifNeedBe) }.toSet(),
         missingOptionalCount = missingOptionalCount,
     )
 }

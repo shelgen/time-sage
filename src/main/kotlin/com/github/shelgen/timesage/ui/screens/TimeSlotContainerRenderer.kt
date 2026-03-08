@@ -1,13 +1,13 @@
-package com.github.shelgen.timesage.ui
+package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.logger
+import com.github.shelgen.timesage.planning.Availability
 import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
-import com.github.shelgen.timesage.ui.screens.AbstractDateRangeScreen
-import com.github.shelgen.timesage.ui.screens.CustomIdSerialization
-import com.github.shelgen.timesage.ui.screens.ScreenButton
+import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.section.Section
@@ -15,7 +15,6 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 import java.time.Instant
-import kotlin.collections.get
 
 object TimeSlotContainerRenderer {
     fun renderTimeSlotContainers(
@@ -27,7 +26,7 @@ object TimeSlotContainerRenderer {
         weekTimeSlots.map {
             renderTimeSlotContainer(
                 it,
-                PlanningProcessRepository.loadOrInitialize(dateRange, tenant),
+                PlanningProcessRepository.load(dateRange, tenant)!!,
                 toggleButtonFactory
             )
         }
@@ -39,29 +38,29 @@ object TimeSlotContainerRenderer {
     ) = Container.of(
         Section.of(
             toggleButtonFactory(timeSlot).render()
-                .let { if (data.concluded) it.asDisabled() else it },
+                .let { if (data.state == PlanningProcess.State.CONCLUDED) it.asDisabled() else it },
             TextDisplay.of(
                 "### ${DiscordFormatter.timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
-                        data.availabilityResponses.map
+                        data.availabilityResponses
                             .asSequence()
                             .filter { (_, response) -> response.sessionLimit != 0 }
                             .mapNotNull { (userId, response) ->
-                                response.dates[timeSlot]?.let { userId to it }
+                                response[timeSlot]?.let { userId to it }
                             }
                             .filter { (_, availability) ->
                                 availability in setOf(
-                                    AvailabilityStatus.AVAILABLE,
-                                    AvailabilityStatus.IF_NEED_BE
+                                    Availability.AVAILABLE,
+                                    Availability.IF_NEED_BE
                                 )
                             }
                             .toList()
-                            .sortedBy { (userId, _) -> userId }
+                            .sortedBy { (userId, _) -> userId.id }
                             .takeUnless { it.isEmpty() }
                             ?.joinToString(separator = "\n") { (userId, availability) ->
-                                if (availability == AvailabilityStatus.IF_NEED_BE) {
-                                    DiscordFormatter.italics("${DiscordFormatter.mentionUser(userId)} (if need be)")
+                                if (availability == Availability.IF_NEED_BE) {
+                                    DiscordFormatter.italics("${userId.toMention()} (if need be)")
                                 } else {
-                                    DiscordFormatter.bold(DiscordFormatter.mentionUser(userId))
+                                    DiscordFormatter.bold(userId.toMention())
                                 }
                             }
                             .orEmpty()
@@ -78,9 +77,10 @@ object TimeSlotContainerRenderer {
 
         override fun handle(event: ButtonInteractionEvent) {
             event.processAndRerender {
-                val userId = event.user.idLong
-                PlanningProcessRepository.update(screen.dateRange, screen.tenant) { period ->
-                    val old = period.availabilityResponses[userId]?.dates?.get(timeSlot)
+                val userId = DiscordUserId(event.user.idLong)
+                val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
+                PlanningProcessRepository.update(planningProcess) { period ->
+                    val old = period.availabilityResponses[userId]?.get(timeSlot)
                     val new = cycleAvailability(old)
                     logger.info("Updating availability at $timeSlot from $old to $new")
                     period.setAvailability(userId, timeSlot, new)
@@ -89,10 +89,10 @@ object TimeSlotContainerRenderer {
         }
     }
 
-    private fun cycleAvailability(current: AvailabilityStatus?) = when (current) {
-        null -> AvailabilityStatus.AVAILABLE
-        AvailabilityStatus.AVAILABLE -> AvailabilityStatus.IF_NEED_BE
-        AvailabilityStatus.IF_NEED_BE -> AvailabilityStatus.UNAVAILABLE
-        AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.AVAILABLE
+    private fun cycleAvailability(current: Availability?) = when (current) {
+        null -> Availability.AVAILABLE
+        Availability.AVAILABLE -> Availability.IF_NEED_BE
+        Availability.IF_NEED_BE -> Availability.UNAVAILABLE
+        Availability.UNAVAILABLE -> Availability.AVAILABLE
     }
 }

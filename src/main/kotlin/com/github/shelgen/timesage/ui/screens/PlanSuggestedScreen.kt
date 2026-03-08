@@ -1,16 +1,20 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
-import com.github.shelgen.timesage.createScheduledEventsForPlan
-import com.github.shelgen.timesage.planning.AvailabilityMessage
-import com.github.shelgen.timesage.configuration.Configuration
-import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.createScheduledEventsForPlan
+import com.github.shelgen.timesage.discord.DiscordMessageId
+import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.planning.AvailabilityMessage
+import com.github.shelgen.timesage.planning.AvailabilityThread
+import com.github.shelgen.timesage.planning.Conclusion
+import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.replaceBotPinsWith
-import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
+import com.github.shelgen.timesage.repositories.PlanningProcessRepository
+import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.AlternativePrinter
-import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
 import net.dv8tion.jda.api.components.buttons.Button
@@ -29,13 +33,13 @@ class PlanSuggestedScreen(
         return if (plan.sessions.isEmpty()) {
             listOf(
                 TextDisplay.of(
-                    "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests no session this period."
+                    "## ${DiscordUserId(suggestingUserId).toMention()} suggests no session this period."
                 ),
             )
         } else {
             listOf(
                 TextDisplay.of(
-                    "## ${DiscordFormatter.mentionUser(suggestingUserId)} suggests this plan:"
+                    "## ${DiscordUserId(suggestingUserId).toMention()} suggests this plan:"
                 ),
                 Container.of(
                     TextDisplay.of(AlternativePrinter(configuration).printAlternative(planNumber, plan))
@@ -54,32 +58,31 @@ class PlanSuggestedScreen(
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndAddPublicScreen(
                     onMessagePosted = { conclusionMessage ->
-                        val availabilityMessage =
-                            PlanningProcessRepository.update(
-                                screen.dateRange,
-                                screen.tenant
-                            ) { availabilitiesPeriod ->
-                                availabilitiesPeriod.conclusionMessageId = conclusionMessage.idLong
-                                availabilitiesPeriod.availabilityMessage
-                            }
-                        when (availabilityMessage) {
-                            is AvailabilityMessage.Thread ->
-                                JDAHolder.jda.getThreadChannelById(availabilityMessage.threadChannelId)
-                                    ?.manager?.setArchived(true)?.queue()
-
-                            is AvailabilityMessage.SingleMessage ->
-                                rerenderOtherScreen(
-                                    messageId = availabilityMessage.messageId,
-                                    screen = AvailabilityMessageScreen(screen.dateRange, screen.tenant)
-                                )
-
-                            null -> {}
-                        }
-                        replaceBotPinsWith(conclusionMessage)
+                        val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
+                        val availabilityInterface = planningProcess.availabilityInterface
                         val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                         val plan = getPlan(screen.planNumber, screen.dateRange, configuration, screen.tenant)
+                        PlanningProcessRepository.update(planningProcess) { availabilitiesPeriod ->
+                            availabilitiesPeriod.conclusion = Conclusion(
+                                message = DiscordMessageId(conclusionMessage.idLong),
+                                plan = plan.id
+                            )
+                            availabilitiesPeriod.state = PlanningProcess.State.CONCLUDED
+                        }
+                        when (availabilityInterface) {
+                            is AvailabilityThread ->
+                                JDAHolder.jda.getThreadChannelById(availabilityInterface.threadChannel.id)
+                                    ?.manager?.setArchived(true)?.queue()
+
+                            is AvailabilityMessage ->
+                                rerenderOtherScreen(
+                                    messageId = availabilityInterface.message.id,
+                                    screen = AvailabilityMessageScreen(screen.dateRange, screen.tenant)
+                                )
+                        }
+                        replaceBotPinsWith(conclusionMessage)
                         if (plan.sessions.isNotEmpty()) {
-                            JDAHolder.jda.getGuildById(screen.tenant.server)?.let { guild ->
+                            JDAHolder.jda.getGuildById(screen.tenant.server.id)?.let { guild ->
                                 createScheduledEventsForPlan(plan, guild, configuration)
                             }
                         }

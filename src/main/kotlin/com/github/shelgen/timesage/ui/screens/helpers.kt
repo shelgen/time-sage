@@ -25,7 +25,7 @@ fun getPlan(
     configuration: Configuration,
     tenant: Tenant
 ): Plan = if (planNumber == 0) {
-    Plan(id = PlanId(UUID.fromString("00000000-0000-0000-0000-000000000000")), emptyList())
+    Plan(id = PlanId(UUID.fromString("00000000-0000-0000-0000-000000000000")), sessions = emptyList())
 } else {
     getPlans(configuration, dateRange, tenant)[planNumber - 1]
 }

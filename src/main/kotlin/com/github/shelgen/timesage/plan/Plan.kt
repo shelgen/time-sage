@@ -2,7 +2,7 @@ package com.github.shelgen.timesage.plan
 
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 
 @JvmInline
 value class PlanId(val value: UUID)

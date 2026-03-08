@@ -1,8 +1,8 @@
 package com.github.shelgen.timesage.slashcommands
 
-import com.github.shelgen.timesage.planning.AvailabilityMessage
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.discord.DiscordMessageId
+import com.github.shelgen.timesage.planning.AvailabilityMessage
 import com.github.shelgen.timesage.planning.AvailabilityThread
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import net.dv8tion.jda.api.entities.Message

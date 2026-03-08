@@ -2,8 +2,8 @@ package com.github.shelgen.timesage.repositories
 
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.time.DateRange
 import java.io.File
 import java.time.Instant
 

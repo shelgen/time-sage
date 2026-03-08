@@ -1,7 +1,8 @@
 package com.github.shelgen.timesage.ui
 
-import com.github.shelgen.timesage.domain.ActivityMember
 import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.configuration.Member
+import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.plan.Plan
 import com.github.shelgen.timesage.plan.Session
 
@@ -25,20 +26,21 @@ class AlternativePrinter(private val configuration: Configuration) {
 
     private fun Session.printParticipants() =
         configuration.getActivity(activityId).members
-            .map(ActivityMember::userId)
-            .sorted()
+            .map(Member::user)
+            .sortedBy(DiscordUserId::id)
             .joinToString(
                 separator = "\n",
                 postfix = "\n"
-            ) { userId ->
-                participation.firstOrNull { it.userId == userId }
-                    ?.let { (_, ifNeedBe) ->
-                        if (ifNeedBe) {
-                            DiscordFormatter.italics(DiscordFormatter.mentionUser(userId) + " (if need be)")
-                        } else {
-                            DiscordFormatter.mentionUser(userId)
-                        }
+            ) { user ->
+                val participant = participants.firstOrNull { it.user == user }
+                if (participant != null) {
+                    if (participant.ifNeedBe) {
+                        DiscordFormatter.italics(user.toMention() + " (if need be)")
+                    } else {
+                        user.toMention()
                     }
-                    ?: (DiscordFormatter.strikethrough(DiscordFormatter.mentionUser(userId)) + " (unavailable)")
+                } else {
+                    DiscordFormatter.strikethrough(user.toMention()) + " (unavailable)"
+                }
             }
 }

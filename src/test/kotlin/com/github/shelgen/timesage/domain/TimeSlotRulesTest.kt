@@ -1,7 +1,13 @@
 package com.github.shelgen.timesage.domain
 
+import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.configuration.Localization
+import com.github.shelgen.timesage.configuration.PeriodicPlanning
+import com.github.shelgen.timesage.configuration.Reminders
+import com.github.shelgen.timesage.discord.DiscordServerId
+import com.github.shelgen.timesage.discord.DiscordTextChannelId
 import com.github.shelgen.timesage.time.DateRange
-import com.github.shelgen.timesage.configuration.getTimeSlots
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.FieldSource
@@ -14,61 +20,71 @@ import java.util.*
 class TimeSlotRulesTest {
     companion object {
         private val time = LocalTime.parse("12:34")
+        private val dummyTenant = Tenant(DiscordServerId(0), DiscordTextChannelId(0))
+
+        private fun configWith(rules: Map<DayOfWeek, LocalTime>) = Configuration(
+            tenant = dummyTenant,
+            localization = Localization(timeZone = TimeZone.getTimeZone("UTC"), startDayOfWeek = DayOfWeek.MONDAY),
+            activities = emptyList(),
+            timeSlotRules = rules,
+            reminders = Reminders.DEFAULT,
+            periodicPlanning = PeriodicPlanning.DEFAULT,
+        )
 
         @Suppress("unused")
         val parameters = listOf(
             Parameters(
                 description = "only mondays",
-                rules = TimeSlotRules.of(DayOfWeek.MONDAY to time),
+                rules = mapOf(DayOfWeek.MONDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
                 expectedInstants = listOf("2025-08-04T12:34:00Z", "2025-08-11T12:34:00Z")
             ),
             Parameters(
                 description = "only tuesdays",
-                rules = TimeSlotRules.of(DayOfWeek.TUESDAY to time),
+                rules = mapOf(DayOfWeek.TUESDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
                 expectedInstants = listOf("2025-08-05T12:34:00Z", "2025-08-12T12:34:00Z")
             ),
             Parameters(
                 description = "only wednesdays",
-                rules = TimeSlotRules.of(DayOfWeek.WEDNESDAY to time),
+                rules = mapOf(DayOfWeek.WEDNESDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
                 expectedInstants = listOf("2025-08-06T12:34:00Z", "2025-08-13T12:34:00Z")
             ),
             Parameters(
                 description = "only thursdays",
-                rules = TimeSlotRules.of(DayOfWeek.THURSDAY to time),
+                rules = mapOf(DayOfWeek.THURSDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
                 expectedInstants = listOf("2025-08-07T12:34:00Z", "2025-08-14T12:34:00Z")
             ),
             Parameters(
                 description = "only fridays",
-                rules = TimeSlotRules.of(DayOfWeek.FRIDAY to time),
+                rules = mapOf(DayOfWeek.FRIDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
                 expectedInstants = listOf("2025-08-08T12:34:00Z", "2025-08-15T12:34:00Z")
             ),
             Parameters(
                 description = "only saturdays",
-                rules = TimeSlotRules.of(DayOfWeek.SATURDAY to time),
+                rules = mapOf(DayOfWeek.SATURDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
                 expectedInstants = listOf("2025-08-09T12:34:00Z", "2025-08-16T12:34:00Z")
             ),
             Parameters(
                 description = "only sundays",
-                rules = TimeSlotRules.of(DayOfWeek.SUNDAY to time),
+                rules = mapOf(DayOfWeek.SUNDAY to time),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
                 expectedInstants = listOf("2025-08-10T12:34:00Z", "2025-08-17T12:34:00Z")
             ),
             Parameters(
                 description = "weekdays only",
-                rules = TimeSlotRules.of(
+                rules = mapOf(
                     DayOfWeek.MONDAY to time,
                     DayOfWeek.TUESDAY to time,
                     DayOfWeek.WEDNESDAY to time,
@@ -92,7 +108,7 @@ class TimeSlotRulesTest {
             ),
             Parameters(
                 description = "weekends only",
-                rules = TimeSlotRules.of(
+                rules = mapOf(
                     DayOfWeek.SATURDAY to time,
                     DayOfWeek.SUNDAY to time,
                 ),
@@ -107,14 +123,14 @@ class TimeSlotRulesTest {
             ),
             Parameters(
                 description = "every day",
-                rules = TimeSlotRules(
-                    mondays = time,
-                    tuesdays = time,
-                    wednesdays = time,
-                    thursdays = time,
-                    fridays = time,
-                    saturdays = time,
-                    sundays = time,
+                rules = mapOf(
+                    DayOfWeek.MONDAY to time,
+                    DayOfWeek.TUESDAY to time,
+                    DayOfWeek.WEDNESDAY to time,
+                    DayOfWeek.THURSDAY to time,
+                    DayOfWeek.FRIDAY to time,
+                    DayOfWeek.SATURDAY to time,
+                    DayOfWeek.SUNDAY to time,
                 ),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-17",
@@ -137,14 +153,9 @@ class TimeSlotRulesTest {
             ),
             Parameters(
                 description = "mixed times per day",
-                rules = TimeSlotRules(
-                    mondays = LocalTime.parse("18:00"),
-                    tuesdays = null,
-                    wednesdays = LocalTime.parse("20:00"),
-                    thursdays = null,
-                    fridays = null,
-                    saturdays = null,
-                    sundays = null,
+                rules = mapOf(
+                    DayOfWeek.MONDAY to LocalTime.parse("18:00"),
+                    DayOfWeek.WEDNESDAY to LocalTime.parse("20:00"),
                 ),
                 fromDate = "2025-08-04",
                 toDate = "2025-08-10",
@@ -156,19 +167,14 @@ class TimeSlotRulesTest {
     @ParameterizedTest(name = "{0}")
     @FieldSource("parameters")
     fun `returns correct time slots`(parameters: Parameters) {
-        // Given:
         val dateRange = DateRange(LocalDate.parse(parameters.fromDate), LocalDate.parse(parameters.toDate))
-
-        // When:
-        val timeSlots = parameters.rules.getTimeSlots(dateRange, TimeZone.getTimeZone("UTC"))
-
-        // Then:
+        val timeSlots = configWith(parameters.rules).produceTimeSlots(dateRange)
         assertEquals(parameters.expectedInstants.map(Instant::parse), timeSlots)
     }
 
     data class Parameters(
         val description: String,
-        val rules: TimeSlotRules,
+        val rules: Map<DayOfWeek, LocalTime>,
         val fromDate: String,
         val toDate: String,
         val expectedInstants: List<String>
