@@ -19,9 +19,8 @@ a specific Discord server. Nothing that happens for one tenant can affect anothe
 
 - A **date** falls on exactly one **day of week**.
 - A **date range** is a contiguous sequence of dates with an inclusive start and end date.
-- A **time of day** is a clock time (hour and minute), independent of any specific date.
-- A **time zone** determines how a point in time maps to a date and time of day.
-- A **time slot** is a specific point in time, defined by a **date**, a **time of day**, and a **time zone**.
+- A **time zone** determines how a point in time maps to a date and clock time.
+- A **time slot** is a specific point in time (an instant on the global timeline).
 
 ---
 
@@ -44,13 +43,14 @@ Nothing that happens for one tenant can affect another.
 
 ## Configuration
 
-A **configuration** is scoped to exactly one **tenant** and governs how Time Sage behaves for that tenant.
+A **configuration** is scoped to exactly one **tenant** and governs how Time Sage behaves for that tenant. A
+configuration has a **session limit** — the maximum number of sessions to plan for the date range.
 
 - **Localization** captures the tenant's **time zone** and the configured first **day of week**.
 - **Periodic planning** specifies whether Time Sage automatically initiates a planning process, how many days
   before the start of the next period to do so, and the **hour of day** to trigger it. It also specifies the
-  **period type**.
-- A **period type** determines the shape of a date range. It is either **weekly** (a 7-day week starting on
+  **interval**.
+- An **interval** determines the shape of a date range for periodic planning. It is either **weekly** (a 7-day week starting on
   the configured first day of week) or **monthly** (a calendar month).
 - **Reminders** specifies whether Time Sage sends reminders to members who have not yet responded, and how many
   days apart and at what hour of day those reminders are sent.
@@ -60,7 +60,7 @@ A **configuration** is scoped to exactly one **tenant** and governs how Time Sag
   how many optional members may be absent while still forming a valid session.
 - A **member** belongs to exactly one activity and represents a **Discord user** who may participate in that
   activity. A member is either **required** or **optional**.
-- A **time slot rule** applies to a specific **day of week** and configures a **time of day**. Given a date, a
+- A **time slot rule** applies to a specific **day of week** and configures a clock time. Given a date, a
   time slot rule produces the **time slot** for that date. A configuration may have at most one time slot rule
   per day of week.
 
@@ -76,8 +76,10 @@ always in exactly one of the following states:
 - **Concluded** — a plan has been selected and the planning process is complete.
 
 A planning process has exactly one **availability interface**, zero or more **availability responses** (one per
-member), one or more **plans** (only when Locked or Concluded), and exactly one **conclusion** (only when
-Concluded).
+Discord user), zero or more **plans** (only when Locked or Concluded), zero or one **conclusion** (only when
+Concluded), and zero or more **sent reminders**.
+
+A **sent reminder** records when a reminder Discord message was sent to prompt members who have not yet responded.
 
 ---
 
@@ -95,16 +97,14 @@ An **availability interface** is posted in the tenant's text channel to collect 
 
 ## Availability Response
 
-An **availability response** belongs to a single **member** and records that member's input for the planning
+An **availability response** regards a single **Discord user** and records that user's input for the planning
 process.
 
-- A **response for a time slot** records the member's **availability** for a specific **time slot**. Availability
-  is one of:
-  - **Available** — the member can attend.
-  - **Available if need be** — the member can attend but prefers not to.
-  - **Unavailable** — the member cannot attend.
-- A **session limit** is an optional part of an availability response, capping the number of sessions the member
-  wishes to attend in the date range.
+- A **session limit** caps the number of sessions the user wishes to attend in the date range.
+- One **availability** per **time slot** in the planning process. Availability is one of:
+  - **Available** — the user can attend.
+  - **Available if need be** — the user can attend but prefers not to.
+  - **Unavailable** — the user cannot attend.
 
 ---
 
@@ -115,7 +115,7 @@ and has exactly one **score**.
 
 - A **session** regards a specific **activity** and is scheduled at a specific **time slot**. A session has one
   or more **participants**.
-- A **participant** refers to a **member** who is included in a session. A participant's availability was either
+- A **participant** is a **Discord user** included in a session. A participant's availability was either
   *available* or *available if need be* — the latter is captured as the participant's **if need be** flag.
 - A **score** reflects the quality of a plan. Plans are ranked: fewer missing optional participants is better;
   then fewer *if need be* participants; then more sessions; then more total participant-sessions; then fewer
@@ -125,7 +125,6 @@ and has exactly one **score**.
 
 ## Conclusion
 
-A **conclusion** marks the end of a planning process. It refers to the **plan** that was selected. A conclusion
-has exactly one **conclusion message** — a **Discord message** posted to the tenant's text channel that
-summarises the concluded plan.
+A **conclusion** marks the end of a planning process. It refers to the **plan** that was selected and has a
+**Discord message** posted to the tenant's text channel that summarises the concluded plan.
 
