@@ -14,7 +14,7 @@ fun getChannelsDir(server: DiscordServerId): File =
     File(getServerDir(server), "channels")
 
 fun getTenantDir(tenant: Tenant): File =
-    File(getChannelsDir(tenant.server), tenant.textChannel.toString())
+    File(getChannelsDir(tenant.server), tenant.textChannel.id.toString())
 
 fun getAllTenants(): List<Tenant> =
     SERVERS_DIR.findAllLongSubfolderNames().map(::DiscordServerId).flatMap { server ->
