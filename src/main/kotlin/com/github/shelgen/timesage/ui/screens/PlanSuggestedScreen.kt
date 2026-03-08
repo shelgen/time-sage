@@ -29,7 +29,7 @@ class PlanSuggestedScreen(
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val plan = getPlan(planNumber, dateRange, configuration, tenant)
+        val plan = getPlan(planNumber, dateRange, tenant)
         return if (plan.sessions.isEmpty()) {
             listOf(
                 TextDisplay.of(
@@ -61,7 +61,7 @@ class PlanSuggestedScreen(
                         val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
                         val availabilityInterface = planningProcess.availabilityInterface
                         val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                        val plan = getPlan(screen.planNumber, screen.dateRange, configuration, screen.tenant)
+                        val plan = getPlan(screen.planNumber, screen.dateRange, screen.tenant)
                         PlanningProcessRepository.update(planningProcess) { availabilitiesPeriod ->
                             availabilitiesPeriod.conclusion = Conclusion(
                                 message = DiscordMessageId(conclusionMessage.idLong),
@@ -69,17 +69,7 @@ class PlanSuggestedScreen(
                             )
                             availabilitiesPeriod.state = PlanningProcess.State.CONCLUDED
                         }
-                        when (availabilityInterface) {
-                            is AvailabilityThread ->
-                                JDAHolder.jda.getThreadChannelById(availabilityInterface.threadChannel.id)
-                                    ?.manager?.setArchived(true)?.queue()
-
-                            is AvailabilityMessage ->
-                                rerenderOtherScreen(
-                                    messageId = availabilityInterface.message.id,
-                                    screen = AvailabilityMessageScreen(screen.dateRange, screen.tenant)
-                                )
-                        }
+                        rerenderAvailabilityInterface(planningProcess, configuration)
                         replaceBotPinsWith(conclusionMessage)
                         if (plan.sessions.isNotEmpty()) {
                             JDAHolder.jda.getGuildById(screen.tenant.server.id)?.let { guild ->

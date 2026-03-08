@@ -33,6 +33,7 @@ class PlanningProcessFileDao {
         val availabilityResponses: Map<Long, AvailabilityResponse>,
         val sentReminders: List<SentReminder>,
         val conclusion: Conclusion?,
+        val planAlternatives: List<Plan>?,
     ) {
         data class Tenant(
             val serverId: Long,
@@ -82,6 +83,23 @@ class PlanningProcessFileDao {
         data class Conclusion(
             val messageId: Long,
             val planId: String,
+        )
+
+        data class Plan(
+            val id: String,
+            val sessions: List<Session>,
+        )
+
+        data class Session(
+            val timeSlot: Instant,
+            val activityId: Int,
+            val participants: List<Participant>,
+            val missingOptionalCount: Int,
+        )
+
+        data class Participant(
+            val userId: Long,
+            val ifNeedBe: Boolean,
         )
     }
 

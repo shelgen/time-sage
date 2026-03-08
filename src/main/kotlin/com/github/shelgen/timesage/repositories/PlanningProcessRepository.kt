@@ -1,12 +1,16 @@
 package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.configuration.ActivityId
 import com.github.shelgen.timesage.discord.DiscordMessageId
 import com.github.shelgen.timesage.discord.DiscordServerId
 import com.github.shelgen.timesage.discord.DiscordTextChannelId
 import com.github.shelgen.timesage.discord.DiscordThreadChannelId
 import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.plan.Participant
+import com.github.shelgen.timesage.plan.Plan
 import com.github.shelgen.timesage.plan.PlanId
+import com.github.shelgen.timesage.plan.Session
 import com.github.shelgen.timesage.planning.Availability
 import com.github.shelgen.timesage.planning.AvailabilityInterface
 import com.github.shelgen.timesage.planning.AvailabilityMessage
@@ -53,6 +57,7 @@ object PlanningProcessRepository {
             .toMap(),
         sentReminders = sentReminders.map { it.toDomain() },
         conclusion = conclusion?.toDomain(),
+        planAlternatives = planAlternatives?.map { it.toDomain() } ?: emptyList(),
     )
 
     private fun PlanningProcessFileDao.Json.Tenant.toDomain() =
@@ -118,6 +123,7 @@ object PlanningProcessRepository {
             .toMap(TreeMap()),
         sentReminders = sentReminders.map { it.toJson() },
         conclusion = conclusion?.toJson(),
+        planAlternatives = planAlternatives.map { it.toJson() },
     )
 
     private fun Tenant.toJson() =
@@ -170,5 +176,39 @@ object PlanningProcessRepository {
     private fun Conclusion.toJson() = PlanningProcessFileDao.Json.Conclusion(
         messageId = message.id,
         planId = plan.value.toString(),
+    )
+
+    private fun PlanningProcessFileDao.Json.Plan.toDomain() = Plan(
+        id = PlanId(UUID.fromString(id)),
+        sessions = sessions.map { it.toDomain() },
+    )
+
+    private fun PlanningProcessFileDao.Json.Session.toDomain() = Session(
+        timeSlot = timeSlot,
+        activityId = ActivityId(activityId),
+        participants = participants.map { it.toDomain() }.toSet(),
+        missingOptionalCount = missingOptionalCount,
+    )
+
+    private fun PlanningProcessFileDao.Json.Participant.toDomain() = Participant(
+        user = DiscordUserId(userId),
+        ifNeedBe = ifNeedBe,
+    )
+
+    private fun Plan.toJson() = PlanningProcessFileDao.Json.Plan(
+        id = id.value.toString(),
+        sessions = sessions.map { it.toJson() },
+    )
+
+    private fun Session.toJson() = PlanningProcessFileDao.Json.Session(
+        timeSlot = timeSlot,
+        activityId = activityId.value,
+        participants = participants.map { it.toJson() },
+        missingOptionalCount = missingOptionalCount,
+    )
+
+    private fun Participant.toJson() = PlanningProcessFileDao.Json.Participant(
+        userId = user.id,
+        ifNeedBe = ifNeedBe,
     )
 }

@@ -59,7 +59,7 @@ object PeriodLevelRenderer {
         Container.of(
             Section.of(
                 buttonFactory().render()
-                    .let { if (data.state == PlanningProcess.State.CONCLUDED) it.asDisabled() else it },
+                    .let { if (data.state != PlanningProcess.State.COLLECTING_AVAILABILITIES) it.asDisabled() else it },
                 TextDisplay.of(
                     "### $title\n" +
                             listOf(

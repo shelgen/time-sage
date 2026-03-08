@@ -3,6 +3,9 @@ package com.github.shelgen.timesage.ui.screens
 import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.planning.AvailabilityMessage
+import com.github.shelgen.timesage.planning.AvailabilityThread
+import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.entities.Message
@@ -104,11 +107,52 @@ sealed interface ScreenComponent<EVENT : Event> {
         }
     }
 
-    fun rerenderOtherScreen(messageId: Long, screen: Screen) {
-        JDAHolder.getTextChannel(this.screen.tenant)
-            .editMessageById(messageId, screen.renderEdit())
-            .queue()
+    fun rerenderAvailabilityInterface(planningProcess: PlanningProcess, configuration: Configuration) {
+        val dateRange = planningProcess.dateRange
+        val tenant = configuration.tenant
+        val textChannel = JDAHolder.getTextChannel(screen.tenant)
+        when (val availabilityInterface = planningProcess.availabilityInterface) {
+            is AvailabilityMessage -> {
+                textChannel
+                    .editMessageById(
+                        availabilityInterface.message.id,
+                        AvailabilityMessageScreen(dateRange, tenant).renderEdit()
+                    )
+                    .queue()
+            }
+
+            is AvailabilityThread -> {
+                textChannel
+                    .editMessageById(
+                        availabilityInterface.threadStartMessage.id,
+                        AvailabilityThreadStartScreen(dateRange, tenant).renderEdit()
+                    )
+                    .queue()
+
+                val thread = JDAHolder.getThreadChannel(availabilityInterface.threadChannel)
+                thread
+                    .editMessageById(
+                        availabilityInterface.periodLevelMessage.id,
+                        AvailabilityThreadPeriodLevelScreen(dateRange, tenant).renderEdit()
+                    )
+                    .queue()
+                val weekChunks = dateRange.chunkedByWeek(configuration.localization.startDayOfWeek)
+                availabilityInterface.weekMessages.forEach { (weekRange, messageId) ->
+                    val weekChunkIndex = weekChunks.indexOfFirst { it == weekRange }
+                    if (weekChunkIndex >= 0) {
+                        thread
+                            .editMessageById(
+                                messageId.id,
+                                AvailabilityThreadWeekScreen(weekChunkIndex, dateRange, tenant)
+                                    .renderEdit()
+                            )
+                            .queue()
+                    }
+                }
+            }
+        }
     }
+
 }
 
 sealed interface ScreenButton : ScreenComponent<ButtonInteractionEvent>

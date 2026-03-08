@@ -38,7 +38,7 @@ object TimeSlotContainerRenderer {
     ) = Container.of(
         Section.of(
             toggleButtonFactory(timeSlot).render()
-                .let { if (data.state == PlanningProcess.State.CONCLUDED) it.asDisabled() else it },
+                .let { if (data.state != PlanningProcess.State.COLLECTING_AVAILABILITIES) it.asDisabled() else it },
             TextDisplay.of(
                 "### ${DiscordFormatter.timestamp(timeSlot, DiscordFormatter.TimestampFormat.LONG_DATE_TIME)}\n" +
                         data.availabilityResponses

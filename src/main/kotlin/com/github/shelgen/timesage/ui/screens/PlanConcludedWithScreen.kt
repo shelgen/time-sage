@@ -20,7 +20,7 @@ class PlanConcludedWithScreen(
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val plan = getPlan(planNumber, dateRange, configuration, tenant)
+        val plan = getPlan(planNumber, dateRange, tenant)
         return listOf(TextDisplay.of("## Plan for ${dateRange.toLocalizedString(configuration.localization)}:")) +
                 if (plan.sessions.isEmpty()) {
                     TextDisplay.of("No sessions this period.")

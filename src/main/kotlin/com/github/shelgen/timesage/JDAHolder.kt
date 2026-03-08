@@ -1,11 +1,14 @@
 package com.github.shelgen.timesage
 
+import com.github.shelgen.timesage.discord.DiscordTextChannelId
+import com.github.shelgen.timesage.discord.DiscordThreadChannelId
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import java.io.File
 
 object JDAHolder {
@@ -26,6 +29,10 @@ object JDAHolder {
     fun getTextChannel(tenant: Tenant): TextChannel =
         jda.getTextChannelById(tenant.textChannel.id)
             ?: error("Error getting text channel for $tenant")
+
+    fun getThreadChannel(threadChannel: DiscordThreadChannelId): ThreadChannel =
+        jda.getThreadChannelById(threadChannel.id)
+            ?: error("Error getting thread channel for $threadChannel")
 }
 
 fun replaceBotPinsWith(message: Message) {

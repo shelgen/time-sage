@@ -5,6 +5,7 @@ import com.github.shelgen.timesage.configuration.Activity
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.configuration.Member
 import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.plan.Plan
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.time.TimeSlot
 
@@ -16,6 +17,7 @@ open class PlanningProcess(
     open val availabilityResponses: Map<DiscordUserId, AvailabilityResponse>,
     open val sentReminders: List<SentReminder>,
     open val conclusion: Conclusion?,
+    open val planAlternatives: List<Plan>,
 ) {
     enum class State {
         COLLECTING_AVAILABILITIES, LOCKED, CONCLUDED
@@ -40,7 +42,8 @@ open class PlanningProcess(
                 availabilityInterface = availabilityInterface,
                 availabilityResponses = emptyMap(),
                 sentReminders = emptyList(),
-                conclusion = null
+                conclusion = null,
+                planAlternatives = emptyList()
             )
     }
 }
@@ -53,7 +56,8 @@ class MutablePlanningProcess(
     override val availabilityResponses: MutableMap<DiscordUserId, MutableAvailabilityResponse>,
     override val sentReminders: MutableList<SentReminder>,
     override var conclusion: Conclusion?,
-) : PlanningProcess(dateRange, tenant, state, availabilityInterface, availabilityResponses, sentReminders, conclusion) {
+    override var planAlternatives: List<Plan>,
+) : PlanningProcess(dateRange, tenant, state, availabilityInterface, availabilityResponses, sentReminders, conclusion, planAlternatives) {
     constructor(immutable: PlanningProcess) : this(
         tenant = immutable.tenant,
         dateRange = immutable.dateRange,
@@ -65,6 +69,7 @@ class MutablePlanningProcess(
             .toMutableMap(),
         sentReminders = immutable.sentReminders.toMutableList(),
         conclusion = immutable.conclusion,
+        planAlternatives = immutable.planAlternatives,
     )
 
     fun setAvailability(user: DiscordUserId, timeSlot: TimeSlot, availability: Availability) {

@@ -20,7 +20,7 @@ class PlanAlternativesPageScreen(
     tenant: Tenant
 ) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
-        val allPlans = getPlans(configuration, dateRange, tenant)
+        val allPlans = getPlans(dateRange, tenant)
         val numberedPlansInPage =
             allPlans.drop(fromInclusive).take(pageSize)
                 .mapIndexed { index, plan -> fromInclusive + index + 1 to plan }
