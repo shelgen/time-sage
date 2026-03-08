@@ -30,11 +30,9 @@ class PlanningProcessManageScreen(
         val planningProcess = PlanningProcessRepository.load(dateRange, tenant)
             ?: return planningProcessNotFound()
 
-        val availabilityLink = planningProcess.availabilityInterface.toLink(tenant)
-
         return listOf(
             TextDisplay.of("## Planning: ${dateRange.toLocalizedString(configuration.localization)}"),
-            TextDisplay.of(availabilityLink),
+            TextDisplay.of(planningProcess.availabilityInterface?.toLink(tenant) ?: ""),
             TextDisplay.of("Currently ${DiscordFormatter.bold(planningProcess.state.toDisplayString())}"),
             TextDisplay.of(planningProcess.conclusion?.let {
                 "Conclusion: https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${it.message.id}"
@@ -43,6 +41,7 @@ class PlanningProcessManageScreen(
                 "Last reminder sent: ${configuration.localization.dateOf(it.sentAt)}"
             } ?: "No reminders sent yet."),
         ) + when (planningProcess.state) {
+            PlanningProcess.State.PENDING -> emptyList()
             PlanningProcess.State.COLLECTING_AVAILABILITIES ->
                 listOf(ActionRow.of(Buttons.Lock(this).render(), Buttons.Delete(this).render()))
             PlanningProcess.State.LOCKED ->
@@ -53,6 +52,7 @@ class PlanningProcessManageScreen(
     }
 
     private fun PlanningProcess.State.toDisplayString() = when (this) {
+        PlanningProcess.State.PENDING -> "pending"
         PlanningProcess.State.COLLECTING_AVAILABILITIES -> "collecting availabilities"
         PlanningProcess.State.LOCKED -> "locked"
         PlanningProcess.State.CONCLUDED -> "concluded"
@@ -126,7 +126,7 @@ class PlanningProcessManageScreen(
                         mutable.conclusion = null
                     }
                     rerenderAvailabilityInterface(planningProcess, configuration)
-                    JDAHolder.pin(planningProcess.availabilityInterface, tenant)
+                    planningProcess.availabilityInterface?.let { JDAHolder.pin(it, tenant) }
                     if (conclusionMessageId != null) {
                         JDAHolder.getTextChannel(tenant).deleteMessageById(conclusionMessageId.id).queue()
                     }
@@ -180,6 +180,7 @@ class PlanningProcessManageScreen(
                         textChannel.deleteMessageById(conclusion.message.id).queue()
                     }
                     when (val ai = planningProcess.availabilityInterface) {
+                        null -> { }
                         is AvailabilityMessage -> textChannel.deleteMessageById(ai.message.id).queue()
                         is AvailabilityThread -> {
                             JDAHolder.getThreadChannel(ai.threadChannel).delete().queue()

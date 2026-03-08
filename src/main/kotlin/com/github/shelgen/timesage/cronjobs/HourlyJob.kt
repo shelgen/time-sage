@@ -5,6 +5,7 @@ import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.discord.DiscordMessageId
 import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.logger
+import com.github.shelgen.timesage.planning.AvailabilityInterface
 import com.github.shelgen.timesage.planning.AvailabilityMessageSender
 import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.planning.SentReminder
@@ -50,19 +51,20 @@ class HourlyJob : Job {
                 PlanningProcessRepository.loadAll(configuration.tenant)
                     .filter { it.state == PlanningProcess.State.COLLECTING_AVAILABILITIES }
                     .forEach { planningProcess ->
+                        val availabilityInterface = planningProcess.availabilityInterface ?: return@forEach
                         val lastMessageTimestamp =
                             planningProcess.sentReminders.maxOfOrNull(SentReminder::sentAt)
-                                ?: planningProcess.availabilityInterface.postedAt
+                                ?: availabilityInterface.postedAt
                         val lastMessageDate = configuration.localization.dateOf(lastMessageTimestamp)
                         if (currentDate == lastMessageDate.plusDays(intervalDays.toLong())) {
-                            sendReminder(planningProcess, configuration)
+                            sendReminder(planningProcess, availabilityInterface, configuration)
                         }
                     }
             }
         }
     }
 
-    private fun sendReminder(planningProcess: PlanningProcess, configuration: Configuration) {
+    private fun sendReminder(planningProcess: PlanningProcess, availabilityInterface: AvailabilityInterface, configuration: Configuration) {
         val uansweredUsers = planningProcess.usersThatHaventAnswered(configuration)
         if (uansweredUsers.isNotEmpty()) {
             logger.info("Sending reminder for ${planningProcess.dateRange}")
@@ -76,7 +78,7 @@ class HourlyJob : Job {
                             "!" +
                             " Looks like I'm missing your availability for the schedule." +
                             " Could you check it out? " +
-                            planningProcess.availabilityInterface.toLink(configuration.tenant)
+                            availabilityInterface.toLink(configuration.tenant)
                 ).build()
             ).queue { message ->
                 PlanningProcessRepository.update(planningProcess) {

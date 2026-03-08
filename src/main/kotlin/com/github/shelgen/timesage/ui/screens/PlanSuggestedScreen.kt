@@ -70,7 +70,7 @@ class PlanSuggestedScreen(
                             availabilitiesPeriod.state = PlanningProcess.State.CONCLUDED
                         }
                         rerenderAvailabilityInterface(planningProcess, configuration)
-                        JDAHolder.unpin(planningProcess.availabilityInterface, screen.tenant)
+                        planningProcess.availabilityInterface?.let { JDAHolder.unpin(it, screen.tenant) }
                         JDAHolder.pin(conclusionMessageId, screen.tenant)
                         if (plan.sessions.isNotEmpty()) {
                             JDAHolder.jda.getGuildById(screen.tenant.server.id)?.let { guild ->

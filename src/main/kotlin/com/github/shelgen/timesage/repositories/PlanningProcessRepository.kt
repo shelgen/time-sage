@@ -56,7 +56,7 @@ object PlanningProcessRepository {
         dateRange = DateRange.deserialize(dateRange),
         timeSlots = timeSlots,
         state = state.toDomain(),
-        availabilityInterface = availabilityInterface.toDomain(),
+        availabilityInterface = availabilityInterface?.toDomain(),
         availabilityResponses = availabilityResponses
             .map { (userId, response) -> DiscordUserId(userId) to response.toDomain() }
             .toMap(),
@@ -72,6 +72,7 @@ object PlanningProcessRepository {
         )
 
     private fun PlanningProcessFileDao.Json.State.toDomain() = when (this) {
+        PlanningProcessFileDao.Json.State.PENDING -> PlanningProcess.State.PENDING
         PlanningProcessFileDao.Json.State.COLLECTING_AVAILABILITIES -> PlanningProcess.State.COLLECTING_AVAILABILITIES
         PlanningProcessFileDao.Json.State.LOCKED -> PlanningProcess.State.LOCKED
         PlanningProcessFileDao.Json.State.CONCLUDED -> PlanningProcess.State.CONCLUDED
@@ -123,7 +124,7 @@ object PlanningProcessRepository {
         dateRange = dateRange.serialize(),
         timeSlots = timeSlots,
         state = state.toJson(),
-        availabilityInterface = availabilityInterface.toJson(),
+        availabilityInterface = availabilityInterface?.toJson(),
         availabilityResponses = availabilityResponses
             .map { (user, response) -> user.id to response.toJson() }
             .toMap(TreeMap()),
@@ -139,6 +140,7 @@ object PlanningProcessRepository {
         )
 
     private fun PlanningProcess.State.toJson() = when (this) {
+        PlanningProcess.State.PENDING -> PlanningProcessFileDao.Json.State.PENDING
         PlanningProcess.State.COLLECTING_AVAILABILITIES -> PlanningProcessFileDao.Json.State.COLLECTING_AVAILABILITIES
         PlanningProcess.State.LOCKED -> PlanningProcessFileDao.Json.State.LOCKED
         PlanningProcess.State.CONCLUDED -> PlanningProcessFileDao.Json.State.CONCLUDED

@@ -108,10 +108,11 @@ sealed interface ScreenComponent<EVENT : Event> {
     }
 
     fun rerenderAvailabilityInterface(planningProcess: PlanningProcess, configuration: Configuration) {
+        val availabilityInterface = planningProcess.availabilityInterface ?: return
         val dateRange = planningProcess.dateRange
         val tenant = configuration.tenant
         val textChannel = JDAHolder.getTextChannel(screen.tenant)
-        when (val availabilityInterface = planningProcess.availabilityInterface) {
+        when (availabilityInterface) {
             is AvailabilityMessage -> {
                 textChannel
                     .editMessageById(

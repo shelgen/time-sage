@@ -14,14 +14,14 @@ open class PlanningProcess(
     val tenant: Tenant,
     val timeSlots: List<TimeSlot>,
     open val state: State,
-    open val availabilityInterface: AvailabilityInterface,
+    open val availabilityInterface: AvailabilityInterface?,
     open val availabilityResponses: Map<DiscordUserId, AvailabilityResponse>,
     open val sentReminders: List<SentReminder>,
     open val conclusion: Conclusion?,
     open val planAlternatives: List<Plan>,
 ) {
     enum class State {
-        COLLECTING_AVAILABILITIES, LOCKED, CONCLUDED
+        PENDING, COLLECTING_AVAILABILITIES, LOCKED, CONCLUDED
     }
 
     fun usersThatHaventAnswered(configuration: Configuration): List<DiscordUserId> =
@@ -39,14 +39,13 @@ open class PlanningProcess(
             dateRange: DateRange,
             tenant: Tenant,
             timeSlots: List<TimeSlot>,
-            availabilityInterface: AvailabilityInterface,
         ): PlanningProcess =
             PlanningProcess(
                 dateRange = dateRange,
                 tenant = tenant,
                 timeSlots = timeSlots,
-                state = State.COLLECTING_AVAILABILITIES,
-                availabilityInterface = availabilityInterface,
+                state = State.PENDING,
+                availabilityInterface = null,
                 availabilityResponses = emptyMap(),
                 sentReminders = emptyList(),
                 conclusion = null,
@@ -60,7 +59,7 @@ class MutablePlanningProcess(
     dateRange: DateRange,
     timeSlots: List<TimeSlot>,
     override var state: State,
-    override val availabilityInterface: AvailabilityInterface,
+    override var availabilityInterface: AvailabilityInterface?,
     override val availabilityResponses: MutableMap<DiscordUserId, MutableAvailabilityResponse>,
     override val sentReminders: MutableList<SentReminder>,
     override var conclusion: Conclusion?,
@@ -80,6 +79,11 @@ class MutablePlanningProcess(
         conclusion = immutable.conclusion,
         planAlternatives = immutable.planAlternatives,
     )
+
+    fun startCollectingAvailabilities(availabilityInterface: AvailabilityInterface) {
+        this.availabilityInterface = availabilityInterface
+        this.state = State.COLLECTING_AVAILABILITIES
+    }
 
     fun setAvailability(user: DiscordUserId, timeSlot: TimeSlot, availability: Availability, planSessionLimit: Int) {
         response(user, planSessionLimit)[timeSlot] = availability

@@ -24,14 +24,16 @@ object AvailabilityMessageSender {
         tenant: Tenant
     ) {
         val configuration = ConfigurationRepository.loadOrInitialize(tenant)
-        val planningProcess = PlanningProcessRepository.load(dateRange, tenant)
-        if (planningProcess != null) {
+        if (PlanningProcessRepository.load(dateRange, tenant) != null) {
             logger.info("Planning process for $dateRange already exists, not sending messages.")
             return
         }
 
         logger.info("Sending availability message for $dateRange...")
         val timeSlots = configuration.produceTimeSlots(dateRange)
+
+        val planningProcess = PlanningProcess.new(dateRange, tenant, timeSlots)
+        PlanningProcessRepository.saveNew(planningProcess)
 
         val channel = JDAHolder.getTextChannel(tenant)
         if (timeSlots.size > MAX_TIME_SLOTS_IN_SINGLE_MESSAGE) {
@@ -47,6 +49,7 @@ object AvailabilityMessageSender {
                         threadChannel.sendMessage(AvailabilityThreadPeriodLevelScreen(dateRange, tenant).render())
                             .queue { introMessage ->
                                 sendChunksAndPersist(
+                                    planningProcess = planningProcess,
                                     thread = threadChannel,
                                     dateRange = dateRange,
                                     tenant = tenant,
@@ -63,24 +66,17 @@ object AvailabilityMessageSender {
         } else {
             logger.info("Sending availability message...")
             channel.sendMessage(AvailabilityMessageScreen(dateRange, tenant).render()).queue { message ->
-                logger.info("Saving new planning process...")
-                val discordMessageId = DiscordMessageId(message.idLong)
+                logger.info("Saving availability interface...")
+                val availabilityInterface = AvailabilityMessage(Instant.now(), DiscordMessageId(message.idLong))
+                PlanningProcessRepository.update(planningProcess) { it.startCollectingAvailabilities(availabilityInterface) }
                 logger.info("Updating pinned messages...")
-                val availabilityInterface = AvailabilityMessage(Instant.now(), discordMessageId)
-                PlanningProcessRepository.saveNew(
-                    PlanningProcess.new(
-                        dateRange = dateRange,
-                        tenant = tenant,
-                        timeSlots = timeSlots,
-                        availabilityInterface = availabilityInterface
-                    )
-                )
                 JDAHolder.pin(availabilityInterface, tenant)
             }
         }
     }
 
     private fun sendChunksAndPersist(
+        planningProcess: PlanningProcess,
         thread: ThreadChannel,
         dateRange: DateRange,
         tenant: Tenant,
@@ -92,7 +88,7 @@ object AvailabilityMessageSender {
         accumulatedWeekMessageIds: Map<DateRange, DiscordMessageId>,
     ) {
         if (weekChunkIndex >= weekChunks.size) {
-            logger.info("Saving new planning process...")
+            logger.info("Saving availability interface...")
             val availabilityInterface = AvailabilityThread(
                 postedAt = Instant.now(),
                 threadStartMessage = threadStartMessageId,
@@ -100,14 +96,7 @@ object AvailabilityMessageSender {
                 periodLevelMessage = periodLevelMessageId,
                 weekMessages = accumulatedWeekMessageIds,
             )
-            PlanningProcessRepository.saveNew(
-                PlanningProcess.new(
-                    dateRange = dateRange,
-                    tenant = tenant,
-                    timeSlots = timeSlots,
-                    availabilityInterface = availabilityInterface
-                )
-            )
+            PlanningProcessRepository.update(planningProcess) { it.startCollectingAvailabilities(availabilityInterface) }
             logger.info("Locking thread...")
             thread.manager.setLocked(true).queue()
             JDAHolder.pin(availabilityInterface, tenant)
@@ -124,6 +113,7 @@ object AvailabilityMessageSender {
             ).render()
         ).queue { chunkMessage ->
             sendChunksAndPersist(
+                planningProcess = planningProcess,
                 thread = thread,
                 dateRange = dateRange,
                 tenant = tenant,

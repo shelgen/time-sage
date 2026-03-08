@@ -31,6 +31,7 @@ object CleanupCommand : AbstractSlashCommand(
                 .flatMap { planningProcess ->
                     buildList {
                         when (val availabilityInterface = planningProcess.availabilityInterface) {
+                            null -> {  }
                             is AvailabilityThread -> {
                                 add(availabilityInterface.threadStartMessage)
                                 add(availabilityInterface.periodLevelMessage)

@@ -34,7 +34,7 @@ class PlanningProcessFileDao {
         val dateRange: String,
         val timeSlots: List<Instant>,
         val state: State,
-        val availabilityInterface: AvailabilityInterface,
+        val availabilityInterface: AvailabilityInterface?,
         val availabilityResponses: Map<Long, AvailabilityResponse>,
         val sentReminders: List<SentReminder>,
         val conclusion: Conclusion?,
@@ -46,7 +46,7 @@ class PlanningProcessFileDao {
         )
 
         enum class State {
-            COLLECTING_AVAILABILITIES, LOCKED, CONCLUDED
+            PENDING, COLLECTING_AVAILABILITIES, LOCKED, CONCLUDED
         }
 
         @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
