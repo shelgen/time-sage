@@ -12,9 +12,12 @@ class AvailabilityMessageScreen(dateRange: DateRange, tenant: Tenant) : Abstract
         val planningProcess = PlanningProcessRepository.load(dateRange, configuration.tenant)
             ?: error("Planning process for $dateRange in ${configuration.tenant} does not exist!")
         return AvailabilityThreadStartRenderer.renderComponents(dateRange, configuration) +
-                PeriodLevelRenderer.renderComponents(dateRange, configuration) {
-                    Buttons.ToggleSessionLimit(this@AvailabilityMessageScreen)
-                } +
+                PeriodLevelRenderer.renderComponents(
+                    dateRange = dateRange,
+                    configuration = configuration,
+                    toggleSessionLimitButtonFactory = { Buttons.ToggleSessionLimit(this@AvailabilityMessageScreen) },
+                    previewAlternativesButtonFactory = { Buttons.PreviewAlternatives(this@AvailabilityMessageScreen) },
+                ) +
                 TimeSlotContainerRenderer.renderTimeSlotContainers(
                     timeSlots = planningProcess.timeSlots,
                     dateRange = dateRange,
@@ -28,5 +31,8 @@ class AvailabilityMessageScreen(dateRange: DateRange, tenant: Tenant) : Abstract
 
         class ToggleSessionLimit(override val screen: AvailabilityMessageScreen) :
             PeriodLevelRenderer.ToggleSessionLimitButton<AvailabilityMessageScreen>(screen)
+
+        class PreviewAlternatives(override val screen: AvailabilityMessageScreen) :
+            PeriodLevelRenderer.PreviewAlternativesButton<AvailabilityMessageScreen>(screen)
     }
 }

@@ -7,6 +7,18 @@ open class AvailabilityResponse(
     open val slotAvailabilities: Map<TimeSlot, Availability>,
 ) {
     operator fun get(timeSlot: TimeSlot): Availability? = slotAvailabilities[timeSlot]
+
+    override fun hashCode(): Int {
+        var result = sessionLimit
+        result = 31 * result + slotAvailabilities.hashCode()
+        return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is AvailabilityResponse) return false
+        return sessionLimit == other.sessionLimit && slotAvailabilities == other.slotAvailabilities
+    }
 }
 
 class MutableAvailabilityResponse(

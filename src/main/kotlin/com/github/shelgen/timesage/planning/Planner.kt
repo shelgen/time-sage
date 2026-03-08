@@ -15,6 +15,15 @@ class Planner(
     private val configuration: Configuration,
     private val planningProcess: PlanningProcess,
 ) {
+    fun hashCodeForInput(): Int {
+        var result = configuration.sessionLimit.hashCode()
+        result = 31 * result + configuration.activities.hashCode()
+        result = 31 * result + planningProcess.dateRange.hashCode()
+        result = 31 * result + planningProcess.timeSlots.hashCode()
+        result = 31 * result + planningProcess.availabilityResponses.hashCode()
+        return result
+    }
+
     fun generatePossiblePlans(): List<Plan> {
         logger.info("Generating possible plans for ${planningProcess.dateRange}")
         return buildSessions(sessions = emptyList(), remainingTimeSlots = planningProcess.timeSlots)

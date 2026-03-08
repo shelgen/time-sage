@@ -15,6 +15,25 @@ open class Activity(
 ) {
     fun isRequiredMember(user: DiscordUserId) = members.any { it.user == user && !it.optional }
     fun isMember(user: DiscordUserId) = members.any { it.user == user }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + members.hashCode()
+        result = 31 * result + maxNumMissingOptionalMembers
+        result = 31 * result + (voiceChannel?.hashCode() ?: 0)
+        return result
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Activity) return false
+        return id == other.id &&
+                name == other.name &&
+                members == other.members &&
+                maxNumMissingOptionalMembers == other.maxNumMissingOptionalMembers &&
+                voiceChannel == other.voiceChannel
+    }
 }
 
 class MutableActivity(
