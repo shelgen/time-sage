@@ -315,6 +315,7 @@ class PlannerTest {
             availabilityResponses = availabilityResponses,
             sentReminders = emptyList(),
             conclusion = null,
+            planAlternatives = emptyList(),
         )
     }
 

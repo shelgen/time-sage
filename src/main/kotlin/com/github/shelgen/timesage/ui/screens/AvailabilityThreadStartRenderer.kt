@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.configuration.Activity
 import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -16,14 +17,19 @@ object AvailabilityThreadStartRenderer {
         return listOf(
             TextDisplay.of(
                 "## Availabilities for ${dateRange.toLocalizedString(configuration.localization)}\n" +
-                        if (conclusion != null) {
-                            DiscordFormatter.bold(
-                                "✅ Planning for this ${dateRange.toLocalizedString(configuration.localization)} has been concluded" +
-                                        "\nSee https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${conclusion.message.id}"
-                            )
-                        } else {
-                            "Please use the buttons below to toggle your availability" +
-                                    formatActivities(configuration.activities)
+                        when {
+                            conclusion != null ->
+                                DiscordFormatter.bold(
+                                    "✅ Planning for this ${dateRange.toLocalizedString(configuration.localization)} has been concluded" +
+                                            "\nSee https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${conclusion.message.id}"
+                                )
+                            planningProcess.state == PlanningProcess.State.LOCKED ->
+                                DiscordFormatter.bold(
+                                    "🔒 Availabilities are locked — a plan is currently being selected"
+                                )
+                            else ->
+                                "Please use the buttons below to toggle your availability" +
+                                        formatActivities(configuration.activities)
                         }
             )
         )

@@ -34,10 +34,12 @@ class PlanningProcessManageScreen(
             TextDisplay.of(process.sentReminders.lastOrNull()?.let {
                 "Last reminder sent: ${configuration.localization.dateOf(it.sentAt)}"
             } ?: "No reminders sent yet."),
-        ) + if (process.state == PlanningProcess.State.COLLECTING_AVAILABILITIES) {
-            listOf(ActionRow.of(Buttons.LockAndPickPlan(this).render()))
-        } else {
-            emptyList()
+        ) + when (process.state) {
+            PlanningProcess.State.COLLECTING_AVAILABILITIES ->
+                listOf(ActionRow.of(Buttons.LockAndPickPlan(this).render()))
+            PlanningProcess.State.LOCKED ->
+                listOf(ActionRow.of(Buttons.PickPlans(this).render()))
+            PlanningProcess.State.CONCLUDED -> emptyList()
         }
     }
 
@@ -68,6 +70,21 @@ class PlanningProcessManageScreen(
                         fromInclusive = 0,
                         pageSize = 3,
                         tenant = tenant
+                    )
+                }
+            }
+        }
+
+        class PickPlans(override val screen: PlanningProcessManageScreen) : ScreenButton {
+            fun render() = Button.primary(CustomIdSerialization.serialize(this), "Pick plans...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndNavigateTo {
+                    PlanAlternativesPageScreen(
+                        dateRange = screen.dateRange,
+                        fromInclusive = 0,
+                        pageSize = 3,
+                        tenant = screen.tenant
                     )
                 }
             }
