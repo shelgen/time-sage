@@ -29,6 +29,7 @@ class TimeSlotRulesTest {
             timeSlotRules = rules,
             reminders = Reminders.DEFAULT,
             periodicPlanning = PeriodicPlanning.DEFAULT,
+            sessionLimit = 2,
         )
 
         @Suppress("unused")

@@ -26,8 +26,8 @@ class MutableAvailabilityResponse(
     }
 
     companion object {
-        fun createNew() = MutableAvailabilityResponse(
-            sessionLimit = 2,
+        fun createNew(planSessionLimit: Int) = MutableAvailabilityResponse(
+            sessionLimit = planSessionLimit,
             slotAvailabilities = mutableMapOf(),
         )
     }

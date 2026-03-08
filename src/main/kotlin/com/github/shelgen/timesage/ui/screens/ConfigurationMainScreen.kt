@@ -71,6 +71,13 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                 }.joinToString(", ").ifEmpty { DiscordFormatter.italics("No time slots configured.") }
             ),
             Section.of(
+                Buttons.EditSessionLimit(this).render(),
+                TextDisplay.of(
+                    "### Session limit\n" +
+                            "Limit of ${DiscordFormatter.bold(configuration.sessionLimit.toString())} sessions per plan"
+                )
+            ),
+            Section.of(
                 Buttons.EditPeriodicPlanning(this).render(),
                 TextDisplay.of("### Periodic planning")
             ),
@@ -154,6 +161,16 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                 event.replyModal(Modals.EditWeekend(screen).render(configuration)).queue()
+            }
+        }
+
+        class EditSessionLimit(override val screen: ConfigurationMainScreen) : ScreenButton {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Edit session limit...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
+                event.replyModal(Modals.EditSessionLimit(screen).render(configuration)).queue()
             }
         }
 
@@ -322,6 +339,33 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 configuration.timeSlotRules.remove(day)
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        class EditSessionLimit(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit session settings")
+                    .addComponents(
+                        Label.of(
+                            "Session limit per plan",
+                            StringSelectMenu.create("planSessionLimit")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions((1..10).map { SelectOption.of(it.toString(), it.toString()) })
+                                .setDefaultValues(configuration.sessionLimit.coerceIn(1, 10).toString())
+                                .build()
+                        )
+                    )
+                    .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
+                        configuration.sessionLimit =
+                            event.getValue("planSessionLimit")!!.asStringList.first().toInt()
                     }
                 }
             }

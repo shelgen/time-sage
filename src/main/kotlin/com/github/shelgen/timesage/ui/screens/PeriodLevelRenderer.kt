@@ -6,6 +6,7 @@ import com.github.shelgen.timesage.configuration.Member
 import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.planning.PlanningProcess
+import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -27,9 +28,10 @@ object PeriodLevelRenderer {
         val dateRangeState = PlanningProcessRepository.load(dateRange, tenant)
             ?: error("Planning process for $dateRange in $tenant does not exist!")
         return renderMissingResponses(dateRangeState, configuration) +
-                renderLimits(
+                renderSessionLimits(
                     title = "Limits this ${dateRange.toLocalizedString(configuration.localization)}",
                     data = dateRangeState,
+                    globalSessionLimit = configuration.sessionLimit,
                     buttonFactory = buttonFactory
                 )
     }
@@ -51,9 +53,10 @@ object PeriodLevelRenderer {
                 ?.let { Container.of(it).withAccentColor(0xFFB6C1) }
         )
 
-    private fun renderLimits(
+    private fun renderSessionLimits(
         title: String,
         data: PlanningProcess,
+        globalSessionLimit: Int,
         buttonFactory: () -> ToggleSessionLimitButton<*>,
     ) = listOf(
         Container.of(
@@ -62,19 +65,21 @@ object PeriodLevelRenderer {
                     .let { if (data.state != PlanningProcess.State.COLLECTING_AVAILABILITIES) it.asDisabled() else it },
                 TextDisplay.of(
                     "### $title\n" +
-                            listOf(
+                            ((1 until globalSessionLimit).map { limit ->
+                                val label = if (limit == 1) "Only one session" else "Only $limit sessions"
                                 data.availabilityResponses
                                     .asSequence()
-                                    .filter { (_, response) -> response.sessionLimit == 1 }
+                                    .filter { (_, response) -> response.sessionLimit == limit }
                                     .map { (userId, _) -> userId }
                                     .sortedBy(DiscordUserId::id)
                                     .toList()
                                     .takeUnless { it.isEmpty() }
                                     ?.joinToString(
-                                        prefix = DiscordFormatter.bold("Only one session") + "\n",
+                                        prefix = DiscordFormatter.bold(label) + "\n",
                                         transform = DiscordUserId::toMention,
                                         separator = "\n"
-                                    ).orEmpty(),
+                                    ).orEmpty()
+                            } + listOf(
                                 data.availabilityResponses
                                     .asSequence()
                                     .filter { (_, response) -> response.sessionLimit == 0 }
@@ -87,7 +92,8 @@ object PeriodLevelRenderer {
                                         transform = DiscordUserId::toMention,
                                         separator = "\n"
                                     ).orEmpty()
-                            ).joinToString(separator = "\n\n")
+                            )).filter { it.isNotEmpty() }
+                                .joinToString(separator = "\n\n")
                 )
             )
         )
@@ -100,21 +106,19 @@ object PeriodLevelRenderer {
         override fun handle(event: ButtonInteractionEvent) {
             event.processAndRerender {
                 val userId = DiscordUserId(event.user.idLong)
+                val globalSessionLimit = ConfigurationRepository.loadOrInitialize(screen.tenant).sessionLimit
                 val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)
                     ?: error("Couldn't find matching planning process for interaction!")
-                PlanningProcessRepository.update(planningProcess) { period ->
-                    val old = period.availabilityResponses[userId]?.sessionLimit
-                    val new = cycleLimit(old)
+                PlanningProcessRepository.update(planningProcess) { planningProcess ->
+                    val old = planningProcess.availabilityResponses[userId]?.sessionLimit ?: globalSessionLimit
+                    val new = cycleSessionLimit(old, globalSessionLimit)
                     logger.info("Updating session limit for target period ${screen.dateRange} from $old to $new")
-                    period.setSessionLimit(userId, new)
+                    planningProcess.setSessionLimit(userId, new, globalSessionLimit)
                 }
             }
         }
 
-        private fun cycleLimit(current: Int?) = when (current) {
-            0 -> 2
-            1 -> 0
-            else -> 1
-        }
+        private fun cycleSessionLimit(current: Int, globalSessionLimit: Int): Int =
+            (current + globalSessionLimit - 1) % globalSessionLimit
     }
 }

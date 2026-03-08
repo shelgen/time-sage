@@ -81,14 +81,14 @@ class MutablePlanningProcess(
         planAlternatives = immutable.planAlternatives,
     )
 
-    fun setAvailability(user: DiscordUserId, timeSlot: TimeSlot, availability: Availability) {
-        response(user)[timeSlot] = availability
+    fun setAvailability(user: DiscordUserId, timeSlot: TimeSlot, availability: Availability, planSessionLimit: Int) {
+        response(user, planSessionLimit)[timeSlot] = availability
     }
 
-    fun setSessionLimit(user: DiscordUserId, sessionLimit: Int) {
-        response(user).sessionLimit = sessionLimit
+    fun setSessionLimit(user: DiscordUserId, sessionLimit: Int, planSessionLimit: Int) {
+        response(user, planSessionLimit).sessionLimit = sessionLimit
     }
 
-    private fun response(user: DiscordUserId): MutableAvailabilityResponse =
-        availabilityResponses.getOrPut(user) { MutableAvailabilityResponse.createNew() }
+    private fun response(user: DiscordUserId, planSessionLimit: Int): MutableAvailabilityResponse =
+        availabilityResponses.getOrPut(user) { MutableAvailabilityResponse.createNew(planSessionLimit) }
 }

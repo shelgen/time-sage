@@ -13,6 +13,7 @@ open class Configuration(
     open val timeSlotRules: Map<DayOfWeek, LocalTime>,
     open val reminders: Reminders,
     open val periodicPlanning: PeriodicPlanning,
+    open val sessionLimit: Int,
 ) {
     open fun getActivity(activityId: ActivityId): Activity =
         activities.first { it.id == activityId }
@@ -31,6 +32,7 @@ open class Configuration(
             timeSlotRules = emptyMap(),
             reminders = Reminders.DEFAULT,
             periodicPlanning = PeriodicPlanning.DEFAULT,
+            sessionLimit = 1,
         )
     }
 }
@@ -42,6 +44,7 @@ class MutableConfiguration(
     override val timeSlotRules: MutableMap<DayOfWeek, LocalTime>,
     override val reminders: MutableReminders,
     override val periodicPlanning: MutablePeriodicPlanning,
+    override var sessionLimit: Int,
 ) : Configuration(
     tenant,
     localization = localization,
@@ -49,6 +52,7 @@ class MutableConfiguration(
     timeSlotRules = timeSlotRules,
     reminders = reminders,
     periodicPlanning = periodicPlanning,
+    sessionLimit = sessionLimit,
 ) {
     constructor(immutable: Configuration) : this(
         tenant = immutable.tenant,
@@ -57,6 +61,7 @@ class MutableConfiguration(
         timeSlotRules = immutable.timeSlotRules.toMutableMap(),
         reminders = MutableReminders(immutable.reminders),
         periodicPlanning = MutablePeriodicPlanning(immutable.periodicPlanning),
+        sessionLimit = immutable.sessionLimit,
     )
 
     override fun getActivity(activityId: ActivityId): MutableActivity =

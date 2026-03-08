@@ -5,6 +5,7 @@ import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.planning.Availability
 import com.github.shelgen.timesage.planning.PlanningProcess
+import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.DiscordFormatter
@@ -78,12 +79,13 @@ object TimeSlotContainerRenderer {
         override fun handle(event: ButtonInteractionEvent) {
             event.processAndRerender {
                 val userId = DiscordUserId(event.user.idLong)
+                val planSessionLimit = ConfigurationRepository.loadOrInitialize(screen.tenant).sessionLimit
                 val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
                 PlanningProcessRepository.update(planningProcess) { period ->
                     val old = period.availabilityResponses[userId]?.get(timeSlot)
                     val new = cycleAvailability(old)
                     logger.info("Updating availability at $timeSlot from $old to $new")
-                    period.setAvailability(userId, timeSlot, new)
+                    period.setAvailability(userId, timeSlot, new, planSessionLimit)
                 }
             }
         }

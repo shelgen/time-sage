@@ -45,6 +45,7 @@ object ConfigurationRepository {
         timeSlotRules = timeSlotRules,
         reminders = reminders.toDomain(),
         periodicPlanning = periodicPlanning.toDomain(),
+        sessionLimit = sessionLimit,
     )
 
     private fun ConfigurationFileDao.Json.Tenant.toDomain() = Tenant(
@@ -95,6 +96,7 @@ object ConfigurationRepository {
         timeSlotRules = timeSlotRules,
         reminders = reminders.toJson(),
         periodicPlanning = periodicPlanning.toJson(),
+        sessionLimit = sessionLimit,
     )
 
     private fun Tenant.toJson() = ConfigurationFileDao.Json.Tenant(

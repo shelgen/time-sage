@@ -63,6 +63,7 @@ class AlternativePrinterTest {
             timeSlotRules = mapOf(DayOfWeek.MONDAY to of(18, 0)),
             reminders = Reminders.DEFAULT,
             periodicPlanning = PeriodicPlanning.DEFAULT,
+            sessionLimit = 2,
         )
     )
 

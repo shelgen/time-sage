@@ -25,6 +25,7 @@ class ConfigurationFileDao {
         val timeSlotRules: Map<DayOfWeek, LocalTime>,
         val reminders: Reminders,
         val periodicPlanning: PeriodicPlanning,
+        val sessionLimit: Int,
     ) {
         data class Tenant(
             val serverId: Long,

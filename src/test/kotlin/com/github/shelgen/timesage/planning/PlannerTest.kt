@@ -330,6 +330,7 @@ class PlannerTest {
     private fun config(
         vararg activities: Activity,
         rules: Map<DayOfWeek, LocalTime> = mapOf(DayOfWeek.MONDAY to LocalTime.of(18, 0)),
+        sessionLimit: Int = 2,
     ) = Configuration(
         tenant = Tenant(DiscordServerId(0L), DiscordTextChannelId(0L)),
         localization = Localization(timeZone = UTC, startDayOfWeek = DayOfWeek.MONDAY),
@@ -337,6 +338,7 @@ class PlannerTest {
         timeSlotRules = rules,
         reminders = Reminders.DEFAULT,
         periodicPlanning = PeriodicPlanning.DEFAULT,
+        sessionLimit = sessionLimit,
     )
 
     private fun activity(id: Int, vararg participants: Pair<Long, Boolean>, maxMissing: Int = 0) =

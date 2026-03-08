@@ -113,7 +113,7 @@ class Planner(
         planningProcess.availabilityResponses[user]?.get(timeSlot) ?: Availability.UNAVAILABLE
 
     private fun sessionLimit(user: DiscordUserId): Int =
-        planningProcess.availabilityResponses[user]?.sessionLimit ?: 2
+        planningProcess.availabilityResponses[user]?.sessionLimit ?: configuration.sessionLimit
 
     companion object {
         fun <T> Set<T>.combinations(): Set<Set<T>> {
