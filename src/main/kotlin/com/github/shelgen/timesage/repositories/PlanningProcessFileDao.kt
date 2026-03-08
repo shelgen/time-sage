@@ -1,10 +1,11 @@
 package com.github.shelgen.timesage.repositories
 
+import com.fasterxml.jackson.annotation.JsonSubTypes
+import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.Tenant
 import java.io.File
 import java.time.Instant
-import java.time.LocalDate
 
 class PlanningProcessFileDao {
     private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
@@ -25,24 +26,63 @@ class PlanningProcessFileDao {
     }
 
     data class Json(
-        val singleMessageId: Long?,
-        val threadChannelId: Long?,
-        val threadStartMessageId: Long?,
-        val periodLevelMessageId: Long?,
-        val weekMessageIds: Map<String, Long> = emptyMap(),
+        val tenant: Tenant,
+        val dateRange: String,
+        val state: State,
+        val availabilityInterface: AvailabilityInterface,
         val availabilityResponses: Map<Long, AvailabilityResponse>,
-        val concluded: Boolean = false,
-        val conclusionMessageId: Long? = null,
-        val lastReminderDate: LocalDate? = null,
+        val sentReminders: List<SentReminder>,
+        val conclusion: Conclusion?,
     ) {
-        data class AvailabilityResponse(
-            val sessionLimit: Int?,
-            val availabilities: Map<Instant, AvailabilityStatus>
+        data class Tenant(
+            val serverId: Long,
+            val textChannelId: Long,
         )
 
-        enum class AvailabilityStatus {
+        enum class State {
+            COLLECTING_AVAILABILITIES, LOCKED, CONCLUDED
+        }
+
+        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+        @JsonSubTypes(
+            JsonSubTypes.Type(value = AvailabilityMessage::class, name = "message"),
+            JsonSubTypes.Type(value = AvailabilityThread::class, name = "thread"),
+        )
+        sealed interface AvailabilityInterface {
+            val postedAt: Instant
+        }
+
+        data class AvailabilityMessage(
+            override val postedAt: Instant,
+            val messageId: Long,
+        ) : AvailabilityInterface
+
+        data class AvailabilityThread(
+            override val postedAt: Instant,
+            val threadStartMessageId: Long,
+            val threadChannelId: Long,
+            val periodLevelMessageId: Long,
+            val weekMessageIds: Map<String, Long>,
+        ) : AvailabilityInterface
+
+        data class AvailabilityResponse(
+            val sessionLimit: Int,
+            val slotAvailabilities: Map<Instant, Availability>,
+        )
+
+        enum class Availability {
             AVAILABLE, IF_NEED_BE, UNAVAILABLE
         }
+
+        data class SentReminder(
+            val sentAt: Instant,
+            val messageId: Long,
+        )
+
+        data class Conclusion(
+            val messageId: Long,
+            val planId: String,
+        )
     }
 
     private fun getPlanningProcessFile(dateRange: DateRange, tenant: Tenant): File =

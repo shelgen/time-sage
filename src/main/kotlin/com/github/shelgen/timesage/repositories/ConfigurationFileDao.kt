@@ -4,7 +4,6 @@ import com.github.shelgen.timesage.Tenant
 import java.io.File
 import java.time.DayOfWeek
 import java.time.LocalTime
-import java.util.*
 
 class ConfigurationFileDao {
     private val fileDao = CachedJsonFileDao<Json>(jsonClass = Json::class.java)
@@ -20,44 +19,50 @@ class ConfigurationFileDao {
         File(getTenantDir(tenant), CONFIGURATION_FILE_NAME)
 
     data class Json(
-        val enabled: Boolean,
-        val timeZone: TimeZone?,
-        val scheduling: Scheduling,
+        val tenant: Tenant,
+        val localization: Localization,
         val activities: List<Activity>,
-        val voiceChannelId: Long? = null
+        val timeSlotRules: Map<DayOfWeek, LocalTime>,
+        val reminders: Reminders,
+        val periodicPlanning: PeriodicPlanning,
     ) {
+        data class Tenant(
+            val serverId: Long,
+            val textChannelId: Long,
+        )
+
+        data class Localization(
+            val timeZone: String,
+            val startDayOfWeek: DayOfWeek,
+        )
+
         data class Activity(
             val id: Int,
             val name: String,
-            val members: Members,
-            val maxMissingOptionalMembers: Int
+            val members: List<Member>,
+            val maxNumMissingOptionalMembers: Int,
+            val voiceChannelId: Long?,
         )
 
-        data class Members(
-            val required: Set<Long>,
-            val optional: Set<Long>
+        data class Member(
+            val userId: Long,
+            val optional: Boolean,
         )
 
-        data class Scheduling(
-            val type: Type,
-            val startDayOfWeek: DayOfWeek,
-            val timeSlotRulesPerDay: TimeSlotRules,
-            val daysInAdvanceToStartPlanning: Int,
-            val startHourOfDay: Int,
-            val reminderIntervalDays: Int,
-        ) {
-            enum class Type { WEEKLY, MONTHLY }
-        }
-
-        data class TimeSlotRules(
-            val mondays: LocalTime? = null,
-            val tuesdays: LocalTime? = null,
-            val wednesdays: LocalTime? = null,
-            val thursdays: LocalTime? = null,
-            val fridays: LocalTime? = null,
-            val saturdays: LocalTime? = null,
-            val sundays: LocalTime? = null,
+        data class Reminders(
+            val enabled: Boolean,
+            val intervalDays: Int,
+            val hourOfDay: Int,
         )
+
+        data class PeriodicPlanning(
+            val enabled: Boolean,
+            val periodType: PeriodType,
+            val daysInAdvance: Int,
+            val hourOfDay: Int,
+        )
+
+        enum class PeriodType { WEEKLY, MONTHLY }
     }
 
     companion object {

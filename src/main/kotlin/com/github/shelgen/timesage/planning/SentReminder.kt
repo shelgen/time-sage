@@ -4,6 +4,6 @@ import com.github.shelgen.timesage.discord.DiscordMessageId
 import java.time.Instant
 
 data class SentReminder(
-    val timestamp: Instant,
+    val sentAt: Instant,
     val message: DiscordMessageId
 )

@@ -3,14 +3,14 @@ package com.github.shelgen.timesage.planning
 import com.github.shelgen.timesage.time.TimeSlot
 
 open class AvailabilityResponse(
-    open val sessionLimit: Int?,
+    open val sessionLimit: Int,
     open val slotAvailabilities: Map<TimeSlot, Availability>,
 ) {
     operator fun get(timeSlot: TimeSlot): Availability? = slotAvailabilities[timeSlot]
 }
 
 class MutableAvailabilityResponse(
-    override var sessionLimit: Int?,
+    override var sessionLimit: Int,
     override val slotAvailabilities: MutableMap<TimeSlot, Availability>,
 ) : AvailabilityResponse(
     sessionLimit = sessionLimit,
@@ -27,7 +27,7 @@ class MutableAvailabilityResponse(
 
     companion object {
         fun createNew() = MutableAvailabilityResponse(
-            sessionLimit = null,
+            sessionLimit = 2,
             slotAvailabilities = mutableMapOf(),
         )
     }

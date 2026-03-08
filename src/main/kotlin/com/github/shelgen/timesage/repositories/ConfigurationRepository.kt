@@ -2,23 +2,26 @@ package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Activity
+import com.github.shelgen.timesage.configuration.ActivityId
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.configuration.Localization
+import com.github.shelgen.timesage.configuration.Member
 import com.github.shelgen.timesage.configuration.MutableConfiguration
-import com.github.shelgen.timesage.domain.ActivityMember
-import com.github.shelgen.timesage.domain.Scheduling
-import com.github.shelgen.timesage.domain.SchedulingType
-import com.github.shelgen.timesage.domain.TimeSlotRules
-import com.github.shelgen.timesage.repositories.ConfigurationRepository.toJson
-import java.time.DayOfWeek
-import java.util.*
+import com.github.shelgen.timesage.configuration.PeriodicPlanning
+import com.github.shelgen.timesage.configuration.PeriodType
+import com.github.shelgen.timesage.configuration.Reminders
+import com.github.shelgen.timesage.discord.DiscordServerId
+import com.github.shelgen.timesage.discord.DiscordTextChannelId
+import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.discord.DiscordVoiceChannelId
+import java.util.TimeZone
 
 object ConfigurationRepository {
     private val dao = ConfigurationFileDao()
 
     fun loadOrInitialize(tenant: Tenant): Configuration =
         dao.load(tenant)
-            ?.toDomain(tenant)
+            ?.toDomain()
             ?: Configuration.createDefault(tenant)
 
     @Synchronized
@@ -33,100 +36,105 @@ object ConfigurationRepository {
         return returnValue
     }
 
-    fun findAllTenants() = getAllTenants()
-
     fun all(): Sequence<Configuration> = getAllTenants().map { loadOrInitialize(it) }.asSequence()
 
-    private fun ConfigurationFileDao.Json.toDomain(tenant: Tenant): Configuration {
-        return Configuration(
-            enabled = enabled,
-            localization = Localization(
-                timeZone = timeZone ?: TimeZone.getTimeZone("UTC"),
-                startDayOfWeek = scheduling.startDayOfWeek,
-            ),
-            scheduling = scheduling.toDomain(),
-            activities = activities.map { it.toDomain() },
-            voiceChannelId = voiceChannelId
-        )
-    }
-
-    private fun ConfigurationFileDao.Json.Scheduling.toDomain() = Scheduling(
-        type = type.toDomain(),
-        timeSlotRules = timeSlotRulesPerDay.toDomain(),
-        numDaysInAdvanceToStartPlanning = daysInAdvanceToStartPlanning,
-        timeOfDayToStartPlanning = startHourOfDay,
-        reminderIntervalDays = reminderIntervalDays,
+    private fun ConfigurationFileDao.Json.toDomain(): Configuration = Configuration(
+        tenant = tenant.toDomain(),
+        localization = localization.toDomain(),
+        activities = activities.map { it.toDomain() },
+        timeSlotRules = timeSlotRules,
+        reminders = reminders.toDomain(),
+        periodicPlanning = periodicPlanning.toDomain(),
     )
 
-    private fun ConfigurationFileDao.Json.Scheduling.Type.toDomain() = when (this) {
-        ConfigurationFileDao.Json.Scheduling.Type.WEEKLY -> SchedulingType.WEEKLY
-        ConfigurationFileDao.Json.Scheduling.Type.MONTHLY -> SchedulingType.MONTHLY
-    }
-
-    private fun ConfigurationFileDao.Json.TimeSlotRules.toDomain() = TimeSlotRules(
-        mondays = mondays,
-        tuesdays = tuesdays,
-        wednesdays = wednesdays,
-        thursdays = thursdays,
-        fridays = fridays,
-        saturdays = saturdays,
-        sundays = sundays,
+    private fun ConfigurationFileDao.Json.Tenant.toDomain() = Tenant(
+        server = DiscordServerId(serverId),
+        textChannel = DiscordTextChannelId(textChannelId),
     )
 
-    private fun ConfigurationFileDao.Json.Activity.toDomain(): Activity {
-        return Activity(
-            id = id,
-            name = name,
-            members = members.toDomain(),
-            maxNumMissingOptionalMembers = this.maxMissingOptionalMembers
-        )
-    }
+    private fun ConfigurationFileDao.Json.Localization.toDomain() = Localization(
+        timeZone = TimeZone.getTimeZone(timeZone),
+        startDayOfWeek = startDayOfWeek,
+    )
 
-    private fun ConfigurationFileDao.Json.Members.toDomain(): List<ActivityMember> =
-        required.map { ActivityMember(userId = it, optional = false) } +
-                optional.map { ActivityMember(userId = it, optional = true) }
+    private fun ConfigurationFileDao.Json.Activity.toDomain() = Activity(
+        id = ActivityId(id),
+        name = name,
+        members = members.map { it.toDomain() },
+        maxNumMissingOptionalMembers = maxNumMissingOptionalMembers,
+        voiceChannel = voiceChannelId?.let { DiscordVoiceChannelId(it) },
+    )
+
+    private fun ConfigurationFileDao.Json.Member.toDomain() = Member(
+        user = DiscordUserId(userId),
+        optional = optional,
+    )
+
+    private fun ConfigurationFileDao.Json.Reminders.toDomain() = Reminders(
+        enabled = enabled,
+        intervalDays = intervalDays,
+        hourOfDay = hourOfDay,
+    )
+
+    private fun ConfigurationFileDao.Json.PeriodicPlanning.toDomain() = PeriodicPlanning(
+        enabled = enabled,
+        periodType = periodType.toDomain(),
+        daysInAdvance = daysInAdvance,
+        hourOfDay = hourOfDay,
+    )
+
+    private fun ConfigurationFileDao.Json.PeriodType.toDomain() = when (this) {
+        ConfigurationFileDao.Json.PeriodType.WEEKLY -> PeriodType.WEEKLY
+        ConfigurationFileDao.Json.PeriodType.MONTHLY -> PeriodType.MONTHLY
+    }
 
     private fun Configuration.toJson() = ConfigurationFileDao.Json(
-        enabled = enabled,
-        timeZone = localization.timeZone,
-        scheduling = scheduling.toJson(localization.startDayOfWeek),
-        activities = activities.sortedBy { it.id }.map { it.toJson() },
-        voiceChannelId = voiceChannelId
+        tenant = tenant.toJson(),
+        localization = localization.toJson(),
+        activities = activities.sortedBy { it.id.value }.map { it.toJson() },
+        timeSlotRules = timeSlotRules,
+        reminders = reminders.toJson(),
+        periodicPlanning = periodicPlanning.toJson(),
     )
 
-    private fun Scheduling.toJson(startDayOfWeek: DayOfWeek) = ConfigurationFileDao.Json.Scheduling(
-        type = type.toJson(),
+    private fun Tenant.toJson() = ConfigurationFileDao.Json.Tenant(
+        serverId = server.id,
+        textChannelId = textChannel.id,
+    )
+
+    private fun Localization.toJson() = ConfigurationFileDao.Json.Localization(
+        timeZone = timeZone.id,
         startDayOfWeek = startDayOfWeek,
-        timeSlotRulesPerDay = timeSlotRules.toJson(),
-        daysInAdvanceToStartPlanning = numDaysInAdvanceToStartPlanning,
-        startHourOfDay = timeOfDayToStartPlanning,
-        reminderIntervalDays = reminderIntervalDays,
-    )
-
-    private fun SchedulingType.toJson() = when (this) {
-        SchedulingType.WEEKLY -> ConfigurationFileDao.Json.Scheduling.Type.WEEKLY
-        SchedulingType.MONTHLY -> ConfigurationFileDao.Json.Scheduling.Type.MONTHLY
-    }
-
-    private fun TimeSlotRules.toJson() = ConfigurationFileDao.Json.TimeSlotRules(
-        mondays = mondays,
-        tuesdays = tuesdays,
-        wednesdays = wednesdays,
-        thursdays = thursdays,
-        fridays = fridays,
-        saturdays = saturdays,
-        sundays = sundays,
     )
 
     private fun Activity.toJson() = ConfigurationFileDao.Json.Activity(
-        id = id,
+        id = id.value,
         name = name,
-        members = members.toJson(),
-        maxMissingOptionalMembers = maxNumMissingOptionalMembers
+        members = members.map { it.toJson() },
+        maxNumMissingOptionalMembers = maxNumMissingOptionalMembers,
+        voiceChannelId = voiceChannel?.id,
     )
 
-    private fun List<ActivityMember>.toJson() = ConfigurationFileDao.Json.Members(
-        required = filterNot { it.optional }.map { it.userId }.toSortedSet(),
-        optional = filter { it.optional }.map { it.userId }.toSortedSet(),
+    private fun Member.toJson() = ConfigurationFileDao.Json.Member(
+        userId = user.id,
+        optional = optional,
     )
+
+    private fun Reminders.toJson() = ConfigurationFileDao.Json.Reminders(
+        enabled = enabled,
+        intervalDays = intervalDays,
+        hourOfDay = hourOfDay,
+    )
+
+    private fun PeriodicPlanning.toJson() = ConfigurationFileDao.Json.PeriodicPlanning(
+        enabled = enabled,
+        periodType = periodType.toJson(),
+        daysInAdvance = daysInAdvance,
+        hourOfDay = hourOfDay,
+    )
+
+    private fun PeriodType.toJson() = when (this) {
+        PeriodType.WEEKLY -> ConfigurationFileDao.Json.PeriodType.WEEKLY
+        PeriodType.MONTHLY -> ConfigurationFileDao.Json.PeriodType.MONTHLY
+    }
 }

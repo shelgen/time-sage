@@ -105,7 +105,7 @@ sealed interface ScreenComponent<EVENT : Event> {
     }
 
     fun rerenderOtherScreen(messageId: Long, screen: Screen) {
-        JDAHolder.jda.getTextChannelById(this.screen.tenant.channel)
+        JDAHolder.jda.getTextChannelById(this.screen.tenant.textChannel)
             ?.editMessageById(messageId, screen.renderEdit())
             ?.queue()
     }

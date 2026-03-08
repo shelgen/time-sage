@@ -18,7 +18,7 @@ class AvailabilityThreadStartScreen(val dateRange: DateRange, tenant: Tenant) : 
                             DiscordFormatter.bold(
                                 "✅ Planning for this ${dateRange.toLocalizedString(configuration.localization)} has been concluded" +
                                         dateRangeState.conclusionMessageId?.let {
-                                            "\nSee https://discord.com/channels/${tenant.server}/${tenant.channel}/$it"
+                                            "\nSee https://discord.com/channels/${tenant.server}/${tenant.textChannel}/$it"
                                         }.orEmpty()
                             )
                         } else {

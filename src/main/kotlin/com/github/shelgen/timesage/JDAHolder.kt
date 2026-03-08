@@ -19,7 +19,7 @@ object JDAHolder {
     }
 
     fun getTextChannel(tenant: Tenant): TextChannel =
-        jda.getTextChannelById(tenant.channel.id)
+        jda.getTextChannelById(tenant.textChannel.id)
             ?: error("Error getting text channel for $tenant")
 }
 

@@ -5,5 +5,5 @@ import com.github.shelgen.timesage.discord.DiscordTextChannelId
 
 data class Tenant(
     val server: DiscordServerId,
-    val channel: DiscordTextChannelId
+    val textChannel: DiscordTextChannelId
 )

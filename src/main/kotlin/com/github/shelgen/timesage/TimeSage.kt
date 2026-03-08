@@ -141,5 +141,5 @@ class TimeSage : ListenerAdapter() {
     }
 
     private fun Interaction.toTenant(): Tenant =
-        Tenant(server = DiscordServerId(guild!!.idLong), channel = DiscordTextChannelId(channel!!.idLong))
+        Tenant(server = DiscordServerId(guild!!.idLong), textChannel = DiscordTextChannelId(channel!!.idLong))
 }

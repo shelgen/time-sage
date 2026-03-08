@@ -37,7 +37,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
         return listOf(
             TextDisplay.of("# Time Sage configuration"),
             TextDisplay.of(
-                "${DiscordFormatter.mentionChannel(tenant.channel)} in " +
+                "${DiscordFormatter.mentionChannel(tenant.textChannel)} in " +
                         JDAHolder.jda.getGuildById(tenant.server)?.name
             ),
             TextDisplay.of("-# All configuration is specific for this channel in this server."),

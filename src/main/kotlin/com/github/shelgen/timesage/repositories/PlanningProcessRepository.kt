@@ -1,15 +1,22 @@
 package com.github.shelgen.timesage.repositories
 
+import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.discord.DiscordMessageId
+import com.github.shelgen.timesage.discord.DiscordServerId
+import com.github.shelgen.timesage.discord.DiscordTextChannelId
+import com.github.shelgen.timesage.discord.DiscordThreadChannelId
+import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.plan.PlanId
+import com.github.shelgen.timesage.planning.Availability
+import com.github.shelgen.timesage.planning.AvailabilityInterface
 import com.github.shelgen.timesage.planning.AvailabilityMessage
 import com.github.shelgen.timesage.planning.AvailabilityResponse
-import com.github.shelgen.timesage.domain.AvailabilityResponseDate
-import com.github.shelgen.timesage.planning.AvailabilityResponses
-import com.github.shelgen.timesage.domain.AvailabilityStatus
-import com.github.shelgen.timesage.time.DateRange
+import com.github.shelgen.timesage.planning.AvailabilityThread
+import com.github.shelgen.timesage.planning.Conclusion
 import com.github.shelgen.timesage.planning.MutablePlanningProcess
 import com.github.shelgen.timesage.planning.PlanningProcess
-import com.github.shelgen.timesage.Tenant
-import java.time.LocalDate
+import com.github.shelgen.timesage.planning.SentReminder
+import com.github.shelgen.timesage.time.DateRange
 import java.util.*
 
 object PlanningProcessRepository {
@@ -24,14 +31,12 @@ object PlanningProcessRepository {
 
     @Synchronized
     fun <T> update(
-        dateRange: DateRange,
-        tenant: Tenant,
+        planningProcess: PlanningProcess,
         modification: (planningProcess: MutablePlanningProcess) -> T
     ): T {
-        val existing = loadOrInitialize(dateRange, tenant)
-        val mutable = MutablePlanningProcess(existing)
+        val mutable = MutablePlanningProcess(planningProcess)
         val returnValue = modification(mutable)
-        dao.save(dateRange, tenant, mutable.toJson())
+        dao.save(planningProcess.dateRange, planningProcess.tenant, mutable.toJson())
         return returnValue
     }
 
@@ -39,64 +44,131 @@ object PlanningProcessRepository {
         dao.loadAll(tenant).map { it.toDomain() }
 
     private fun PlanningProcessFileDao.Json.toDomain() = PlanningProcess(
-        availabilityMessage = toAvailabilityMessage(),
-        availabilityResponses = AvailabilityResponses(availabilityResponses.map { (userId, r) -> userId to r.toDomain() }.toMap()),
-        conclusionMessageId = conclusionMessageId,
-        lastReminderDate = lastReminderDate,
+        tenant = tenant.toDomain(),
+        dateRange = DateRange.deserialize(dateRange),
+        state = state.toDomain(),
+        availabilityInterface = availabilityInterface.toDomain(),
+        availabilityResponses = availabilityResponses
+            .map { (userId, response) -> DiscordUserId(userId) to response.toDomain() }
+            .toMap(),
+        sentReminders = sentReminders.map { it.toDomain() },
+        conclusion = conclusion?.toDomain(),
     )
 
-    private fun PlanningProcessFileDao.Json.toAvailabilityMessage(): AvailabilityMessage? =
-        when {
-            threadChannelId != null && threadStartMessageId != null -> AvailabilityMessage.Thread(
-                threadStartScreenMessageId = threadStartMessageId,
-                threadChannelId = threadChannelId,
-                periodLevelScreenMessageId = periodLevelMessageId,
-                availabilityWeekScreenMessageIds = weekMessageIds.mapKeys { (key, _) ->
-                    val (from, to) = key.split("_")
-                    DateRange(LocalDate.parse(from), LocalDate.parse(to))
-                },
-            )
-            singleMessageId != null -> AvailabilityMessage.SingleMessage(singleMessageId)
-            else -> null
-        }
+    private fun PlanningProcessFileDao.Json.Tenant.toDomain() =
+        Tenant(
+            server = DiscordServerId(serverId),
+            textChannel = DiscordTextChannelId(textChannelId),
+        )
 
-    private fun PlanningProcessFileDao.Json.AvailabilityResponse.toDomain() = AvailabilityResponse(
-        sessionLimit = sessionLimit,
-        dates = AvailabilityResponseDate(availabilities.map { (ts, s) -> ts to s.toDomain() }.toMap())
-    )
-
-    private fun PlanningProcessFileDao.Json.AvailabilityStatus.toDomain() = when (this) {
-        PlanningProcessFileDao.Json.AvailabilityStatus.AVAILABLE -> AvailabilityStatus.AVAILABLE
-        PlanningProcessFileDao.Json.AvailabilityStatus.IF_NEED_BE -> AvailabilityStatus.IF_NEED_BE
-        PlanningProcessFileDao.Json.AvailabilityStatus.UNAVAILABLE -> AvailabilityStatus.UNAVAILABLE
+    private fun PlanningProcessFileDao.Json.State.toDomain() = when (this) {
+        PlanningProcessFileDao.Json.State.COLLECTING_AVAILABILITIES -> PlanningProcess.State.COLLECTING_AVAILABILITIES
+        PlanningProcessFileDao.Json.State.LOCKED -> PlanningProcess.State.LOCKED
+        PlanningProcessFileDao.Json.State.CONCLUDED -> PlanningProcess.State.CONCLUDED
     }
 
-    private fun PlanningProcess.toJson(): PlanningProcessFileDao.Json {
-        val thread = availabilityMessage as? AvailabilityMessage.Thread
-        val singleMessage = availabilityMessage as? AvailabilityMessage.SingleMessage
-        return PlanningProcessFileDao.Json(
-            singleMessageId = singleMessage?.messageId,
-            threadChannelId = thread?.threadChannelId,
-            threadStartMessageId = thread?.threadStartScreenMessageId,
-            periodLevelMessageId = thread?.periodLevelScreenMessageId,
-            weekMessageIds = thread?.availabilityWeekScreenMessageIds
-                ?.mapKeys { (period, _) -> "${period.fromInclusive}_${period.toInclusive}" }
-                ?: emptyMap(),
-            availabilityResponses = availabilityResponses.map.map { (userId, r) -> userId to r.toJson() }.toMap(TreeMap()),
-            concluded = concluded,
-            conclusionMessageId = conclusionMessageId,
-            lastReminderDate = lastReminderDate,
+    private fun PlanningProcessFileDao.Json.AvailabilityInterface.toDomain(): AvailabilityInterface = when (this) {
+        is PlanningProcessFileDao.Json.AvailabilityMessage -> AvailabilityMessage(
+            postedAt = postedAt,
+            message = DiscordMessageId(messageId),
+        )
+
+        is PlanningProcessFileDao.Json.AvailabilityThread -> AvailabilityThread(
+            postedAt = postedAt,
+            threadStartMessage = DiscordMessageId(threadStartMessageId),
+            threadChannel = DiscordThreadChannelId(threadChannelId),
+            periodLevelMessage = DiscordMessageId(periodLevelMessageId),
+            weekMessages = weekMessageIds.map { (dateRangeString, messageId) ->
+                DateRange.deserialize(dateRangeString) to DiscordMessageId(messageId)
+            }.toMap(),
+        )
+    }
+
+    private fun PlanningProcessFileDao.Json.AvailabilityResponse.toDomain() =
+        AvailabilityResponse(
+            sessionLimit = sessionLimit,
+            slotAvailabilities = slotAvailabilities
+                .map { (timeSlot, availability) -> timeSlot to availability.toDomain() }
+                .toMap(),
+        )
+
+    private fun PlanningProcessFileDao.Json.Availability.toDomain() = when (this) {
+        PlanningProcessFileDao.Json.Availability.AVAILABLE -> Availability.AVAILABLE
+        PlanningProcessFileDao.Json.Availability.IF_NEED_BE -> Availability.IF_NEED_BE
+        PlanningProcessFileDao.Json.Availability.UNAVAILABLE -> Availability.UNAVAILABLE
+    }
+
+    private fun PlanningProcessFileDao.Json.SentReminder.toDomain() = SentReminder(
+        sentAt = sentAt,
+        message = DiscordMessageId(messageId),
+    )
+
+    private fun PlanningProcessFileDao.Json.Conclusion.toDomain() = Conclusion(
+        message = DiscordMessageId(messageId),
+        plan = PlanId(UUID.fromString(planId)),
+    )
+
+    private fun PlanningProcess.toJson() = PlanningProcessFileDao.Json(
+        tenant = tenant.toJson(),
+        dateRange = dateRange.serialize(),
+        state = state.toJson(),
+        availabilityInterface = availabilityInterface.toJson(),
+        availabilityResponses = availabilityResponses
+            .map { (user, response) -> user.id to response.toJson() }
+            .toMap(TreeMap()),
+        sentReminders = sentReminders.map { it.toJson() },
+        conclusion = conclusion?.toJson(),
+    )
+
+    private fun Tenant.toJson() =
+        PlanningProcessFileDao.Json.Tenant(
+            serverId = server.id,
+            textChannelId = textChannel.id,
+        )
+
+    private fun PlanningProcess.State.toJson() = when (this) {
+        PlanningProcess.State.COLLECTING_AVAILABILITIES -> PlanningProcessFileDao.Json.State.COLLECTING_AVAILABILITIES
+        PlanningProcess.State.LOCKED -> PlanningProcessFileDao.Json.State.LOCKED
+        PlanningProcess.State.CONCLUDED -> PlanningProcessFileDao.Json.State.CONCLUDED
+    }
+
+    private fun AvailabilityInterface.toJson(): PlanningProcessFileDao.Json.AvailabilityInterface = when (this) {
+        is AvailabilityMessage -> PlanningProcessFileDao.Json.AvailabilityMessage(
+            postedAt = postedAt,
+            messageId = message.id,
+        )
+
+        is AvailabilityThread -> PlanningProcessFileDao.Json.AvailabilityThread(
+            postedAt = postedAt,
+            threadStartMessageId = threadStartMessage.id,
+            threadChannelId = threadChannel.id,
+            periodLevelMessageId = periodLevelMessage.id,
+            weekMessageIds = weekMessages
+                .map { (dateRange, message) -> dateRange.serialize() to message.id }
+                .toMap(TreeMap()),
         )
     }
 
     private fun AvailabilityResponse.toJson() = PlanningProcessFileDao.Json.AvailabilityResponse(
         sessionLimit = sessionLimit,
-        availabilities = dates.map.map { (ts, a) -> ts to a.toJson() }.toMap(TreeMap())
+        slotAvailabilities = slotAvailabilities
+            .map { (timeSlot, availability) -> timeSlot to availability.toJson() }
+            .toMap(TreeMap()),
     )
 
-    private fun AvailabilityStatus.toJson() = when (this) {
-        AvailabilityStatus.AVAILABLE -> PlanningProcessFileDao.Json.AvailabilityStatus.AVAILABLE
-        AvailabilityStatus.IF_NEED_BE -> PlanningProcessFileDao.Json.AvailabilityStatus.IF_NEED_BE
-        AvailabilityStatus.UNAVAILABLE -> PlanningProcessFileDao.Json.AvailabilityStatus.UNAVAILABLE
+    private fun Availability.toJson() = when (this) {
+        Availability.AVAILABLE -> PlanningProcessFileDao.Json.Availability.AVAILABLE
+        Availability.IF_NEED_BE -> PlanningProcessFileDao.Json.Availability.IF_NEED_BE
+        Availability.UNAVAILABLE -> PlanningProcessFileDao.Json.Availability.UNAVAILABLE
     }
+
+    private fun SentReminder.toJson() = PlanningProcessFileDao.Json.SentReminder(
+        sentAt = sentAt,
+        messageId = message.id,
+    )
+
+    private fun Conclusion.toJson() = PlanningProcessFileDao.Json.Conclusion(
+        messageId = message.id,
+        planId = plan.value.toString(),
+    )
 }

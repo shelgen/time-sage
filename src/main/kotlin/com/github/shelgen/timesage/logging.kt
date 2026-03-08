@@ -13,7 +13,7 @@ const val MDC_USER_NAME = "userName"
 
 fun withTenantMDC(tenant: Tenant, block: (Tenant) -> Unit) {
     MDC.putCloseable(MDC_GUILD_ID, tenant.server.toString()).use {
-        MDC.putCloseable(MDC_CHANNEL_ID, tenant.channel.toString()).use {
+        MDC.putCloseable(MDC_CHANNEL_ID, tenant.textChannel.toString()).use {
             block(tenant)
         }
     }

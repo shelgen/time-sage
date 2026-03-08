@@ -13,6 +13,8 @@ data class DateRange(
 ): ClosedRange<LocalDate> by fromInclusive..toInclusive {
     fun dates(): List<LocalDate> = fromInclusive.datesUntil(toInclusive.plusDays(1)).toList()
 
+    fun serialize(): String = "${fromInclusive}_${toInclusive}"
+
     override fun toString() = "$fromInclusive through $toInclusive"
 
     fun toLocalizedString(localization: Localization) =
@@ -63,5 +65,10 @@ data class DateRange(
 
         fun from(yearMonth: YearMonth) =
             DateRange(yearMonth.atDay(1), yearMonth.atEndOfMonth())
+
+        fun deserialize(serialized: String): DateRange {
+            val (from, to) = serialized.split("_", limit = 2)
+            return DateRange(LocalDate.parse(from), LocalDate.parse(to))
+        }
     }
 }

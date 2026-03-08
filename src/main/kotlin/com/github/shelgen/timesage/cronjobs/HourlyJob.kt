@@ -51,7 +51,7 @@ class HourlyJob : Job {
                     .filter { it.state == PlanningProcess.State.COLLECTING_AVAILABILITIES }
                     .forEach { planningProcess ->
                         val lastMessageTimestamp =
-                            planningProcess.sentReminders.maxOfOrNull(SentReminder::timestamp)
+                            planningProcess.sentReminders.maxOfOrNull(SentReminder::sentAt)
                                 ?: planningProcess.availabilityInterface.postedAt
                         val lastMessageDate = configuration.localization.dateOf(lastMessageTimestamp)
                         if (currentDate == lastMessageDate.plusDays(intervalDays.toLong())) {
@@ -79,7 +79,7 @@ class HourlyJob : Job {
                             planningProcess.availabilityInterface.toLink(configuration.tenant)
                 ).build()
             ).queue { message ->
-                PlanningProcessRepository.update(planningProcess.dateRange, configuration.tenant) {
+                PlanningProcessRepository.update(planningProcess) {
                     it.sentReminders.add(SentReminder(Instant.now(), DiscordMessageId(message.idLong)))
                 }
             }

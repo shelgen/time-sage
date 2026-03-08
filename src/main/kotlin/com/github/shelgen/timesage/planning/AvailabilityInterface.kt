@@ -16,14 +16,14 @@ data class AvailabilityMessage(
     val message: DiscordMessageId,
 ) : AvailabilityInterface {
     override fun toLink(tenant: Tenant) =
-        "https://discord.com/channels/${tenant.server}/${tenant.channel}/${message.id}"
+        "https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${message.id}"
 }
 
 data class AvailabilityThread(
     override val postedAt: Instant,
     val threadStartMessage: DiscordMessageId,
     val threadChannel: DiscordThreadChannelId,
-    val periodLevelMessage: DiscordMessageId?,
+    val periodLevelMessage: DiscordMessageId,
     val weekMessages: Map<DateRange, DiscordMessageId>,
 ) : AvailabilityInterface {
     override fun toLink(tenant: Tenant) =

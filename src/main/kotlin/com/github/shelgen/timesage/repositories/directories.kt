@@ -1,23 +1,25 @@
 package com.github.shelgen.timesage.repositories
 
 import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.discord.DiscordServerId
+import com.github.shelgen.timesage.discord.DiscordTextChannelId
 import java.io.File
 
 val SERVERS_DIR = File("time-sage/servers")
 
-fun getServerDir(guildId: Long): File =
-    File(SERVERS_DIR, guildId.toString())
+fun getServerDir(server: DiscordServerId): File =
+    File(SERVERS_DIR, server.id.toString())
 
-fun getChannelsDir(guildId: Long): File =
-    File(getServerDir(guildId), "channels")
+fun getChannelsDir(server: DiscordServerId): File =
+    File(getServerDir(server), "channels")
 
 fun getTenantDir(tenant: Tenant): File =
-    File(getChannelsDir(tenant.server), tenant.channel.toString())
+    File(getChannelsDir(tenant.server), tenant.textChannel.toString())
 
 fun getAllTenants(): List<Tenant> =
-    SERVERS_DIR.findAllLongSubfolderNames().flatMap { guildId ->
-        getChannelsDir(guildId).findAllLongSubfolderNames().map { channelId ->
-            Tenant(server = guildId, channel = channelId)
+    SERVERS_DIR.findAllLongSubfolderNames().map(::DiscordServerId).flatMap { server ->
+        getChannelsDir(server).findAllLongSubfolderNames().map(::DiscordTextChannelId).map { channel ->
+            Tenant(server, channel)
         }
     }
 
