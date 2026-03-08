@@ -6,12 +6,12 @@ import com.github.shelgen.timesage.time.DateRange
 
 class AvailabilityThreadPeriodLevelScreen(dateRange: DateRange, tenant: Tenant) : AbstractDateRangeScreen(dateRange, tenant) {
     override fun renderComponents(configuration: Configuration) =
-        PeriodLevelScreenContent<AvailabilityThreadPeriodLevelScreen>(this) {
-            Buttons.ToggleSessionLimit(this)
-        }.renderComponents(configuration)
+        PeriodLevelRenderer.renderComponents(dateRange, configuration) {
+            Buttons.ToggleSessionLimit(this@AvailabilityThreadPeriodLevelScreen)
+        }
 
     class Buttons {
         class ToggleSessionLimit(override val screen: AvailabilityThreadPeriodLevelScreen) :
-            PeriodLevelScreenContent.ToggleSessionLimitButton<AvailabilityThreadPeriodLevelScreen>(screen)
+            PeriodLevelRenderer.ToggleSessionLimitButton<AvailabilityThreadPeriodLevelScreen>(screen)
     }
 }

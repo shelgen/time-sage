@@ -8,10 +8,10 @@ import java.time.Instant
 
 class AvailabilityMessageScreen(dateRange: DateRange, tenant: Tenant) : AbstractDateRangeScreen(dateRange, tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> =
-        AvailabilityThreadStartScreen(dateRange, tenant).renderComponents(configuration) +
-                PeriodLevelScreenContent<AvailabilityMessageScreen>(this) {
-                    Buttons.ToggleSessionLimit(this)
-                }.renderComponents(configuration) +
+        AvailabilityThreadStartRenderer.renderComponents(dateRange, configuration) +
+                PeriodLevelRenderer.renderComponents(dateRange, configuration) {
+                    Buttons.ToggleSessionLimit(this@AvailabilityMessageScreen)
+                } +
                 TimeSlotContainerRenderer.renderTimeSlotContainers(
                     weekTimeSlots = configuration.produceTimeSlots(dateRange),
                     dateRange = dateRange,
@@ -23,6 +23,6 @@ class AvailabilityMessageScreen(dateRange: DateRange, tenant: Tenant) : Abstract
             TimeSlotContainerRenderer.ToggleAvailabilityButton(timeSlot, screen)
 
         class ToggleSessionLimit(override val screen: AvailabilityMessageScreen) :
-            PeriodLevelScreenContent.ToggleSessionLimitButton<AvailabilityMessageScreen>(screen)
+            PeriodLevelRenderer.ToggleSessionLimitButton<AvailabilityMessageScreen>(screen)
     }
 }

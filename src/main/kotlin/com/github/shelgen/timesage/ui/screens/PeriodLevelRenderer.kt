@@ -7,6 +7,7 @@ import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.logger
 import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
+import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.buttons.Button
@@ -16,18 +17,21 @@ import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.entities.emoji.Emoji
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
 
-class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
-    val screen: T,
-    val buttonFactory: () -> ToggleSessionLimitButton<T>
-) {
-    private val dateRange = screen.dateRange
-    private val tenant = screen.tenant
-
-    fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
+object PeriodLevelRenderer {
+    fun renderComponents(
+        dateRange: DateRange,
+        configuration: Configuration,
+        buttonFactory: () -> ToggleSessionLimitButton<*>,
+    ): List<MessageTopLevelComponent> {
+        val tenant = configuration.tenant
         val dateRangeState = PlanningProcessRepository.load(dateRange, tenant)
             ?: error("Planning process for $dateRange in $tenant does not exist!")
         return renderMissingResponses(dateRangeState, configuration) +
-                renderLimits("Limits this ${dateRange.toLocalizedString(configuration.localization)}", dateRangeState)
+                renderLimits(
+                    title = "Limits this ${dateRange.toLocalizedString(configuration.localization)}",
+                    data = dateRangeState,
+                    buttonFactory = buttonFactory
+                )
     }
 
     private fun renderMissingResponses(data: PlanningProcess, configuration: Configuration) =
@@ -47,44 +51,47 @@ class PeriodLevelScreenContent<T : AbstractDateRangeScreen>(
                 ?.let { Container.of(it).withAccentColor(0xFFB6C1) }
         )
 
-    private fun renderLimits(title: String, data: PlanningProcess) =
-        listOf(
-            Container.of(
-                Section.of(
-                    buttonFactory().render()
-                        .let { if (data.state == PlanningProcess.State.CONCLUDED) it.asDisabled() else it },
-                    TextDisplay.of(
-                        "### $title\n" +
-                                listOf(
-                                    data.availabilityResponses
-                                        .asSequence()
-                                        .filter { (_, response) -> response.sessionLimit == 1 }
-                                        .map { (userId, _) -> userId }
-                                        .sortedBy(DiscordUserId::id)
-                                        .toList()
-                                        .takeUnless { it.isEmpty() }
-                                        ?.joinToString(
-                                            prefix = DiscordFormatter.bold("Only one session") + "\n",
-                                            transform = DiscordUserId::toMention,
-                                            separator = "\n"
-                                        ).orEmpty(),
-                                    data.availabilityResponses
-                                        .asSequence()
-                                        .filter { (_, response) -> response.sessionLimit == 0 }
-                                        .map { (userId, _) -> userId }
-                                        .sortedBy(DiscordUserId::id)
-                                        .toList()
-                                        .takeUnless { it.isEmpty() }
-                                        ?.joinToString(
-                                            prefix = DiscordFormatter.bold("Can't make it at all") + "\n",
-                                            transform = DiscordUserId::toMention,
-                                            separator = "\n"
-                                        ).orEmpty()
-                                ).joinToString(separator = "\n\n")
-                    )
+    private fun renderLimits(
+        title: String,
+        data: PlanningProcess,
+        buttonFactory: () -> ToggleSessionLimitButton<*>,
+    ) = listOf(
+        Container.of(
+            Section.of(
+                buttonFactory().render()
+                    .let { if (data.state == PlanningProcess.State.CONCLUDED) it.asDisabled() else it },
+                TextDisplay.of(
+                    "### $title\n" +
+                            listOf(
+                                data.availabilityResponses
+                                    .asSequence()
+                                    .filter { (_, response) -> response.sessionLimit == 1 }
+                                    .map { (userId, _) -> userId }
+                                    .sortedBy(DiscordUserId::id)
+                                    .toList()
+                                    .takeUnless { it.isEmpty() }
+                                    ?.joinToString(
+                                        prefix = DiscordFormatter.bold("Only one session") + "\n",
+                                        transform = DiscordUserId::toMention,
+                                        separator = "\n"
+                                    ).orEmpty(),
+                                data.availabilityResponses
+                                    .asSequence()
+                                    .filter { (_, response) -> response.sessionLimit == 0 }
+                                    .map { (userId, _) -> userId }
+                                    .sortedBy(DiscordUserId::id)
+                                    .toList()
+                                    .takeUnless { it.isEmpty() }
+                                    ?.joinToString(
+                                        prefix = DiscordFormatter.bold("Can't make it at all") + "\n",
+                                        transform = DiscordUserId::toMention,
+                                        separator = "\n"
+                                    ).orEmpty()
+                            ).joinToString(separator = "\n\n")
                 )
             )
         )
+    )
 
     abstract class ToggleSessionLimitButton<T : AbstractDateRangeScreen>(override val screen: T) : ScreenButton {
         fun render() =
