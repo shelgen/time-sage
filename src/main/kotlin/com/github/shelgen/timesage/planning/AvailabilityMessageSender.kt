@@ -5,7 +5,6 @@ import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.discord.DiscordMessageId
 import com.github.shelgen.timesage.discord.DiscordThreadChannelId
 import com.github.shelgen.timesage.logger
-import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
@@ -64,15 +63,16 @@ object AvailabilityMessageSender {
             channel.sendMessage(AvailabilityMessageScreen(dateRange, tenant).render()).queue { message ->
                 logger.info("Saving new planning process...")
                 val discordMessageId = DiscordMessageId(message.idLong)
+                logger.info("Updating pinned messages...")
+                val availabilityInterface = AvailabilityMessage(Instant.now(), discordMessageId)
                 PlanningProcessRepository.saveNew(
                     PlanningProcess.new(
                         dateRange = dateRange,
                         tenant = tenant,
-                        availabilityInterface = AvailabilityMessage(Instant.now(), discordMessageId)
+                        availabilityInterface = availabilityInterface
                     )
                 )
-                logger.info("Updating pinned messages...")
-                replaceBotPinsWith(discordMessageId, tenant)
+                JDAHolder.pin(availabilityInterface, tenant)
             }
         }
     }
@@ -89,22 +89,23 @@ object AvailabilityMessageSender {
     ) {
         if (weekChunkIndex >= weekChunks.size) {
             logger.info("Saving new planning process...")
+            val availabilityInterface = AvailabilityThread(
+                postedAt = Instant.now(),
+                threadStartMessage = threadStartMessageId,
+                threadChannel = DiscordThreadChannelId(thread.idLong),
+                periodLevelMessage = periodLevelMessageId,
+                weekMessages = accumulatedWeekMessageIds,
+            )
             PlanningProcessRepository.saveNew(
                 PlanningProcess.new(
                     dateRange = dateRange,
                     tenant = tenant,
-                    availabilityInterface = AvailabilityThread(
-                        postedAt = Instant.now(),
-                        threadStartMessage = threadStartMessageId,
-                        threadChannel = DiscordThreadChannelId(thread.idLong),
-                        periodLevelMessage = periodLevelMessageId,
-                        weekMessages = accumulatedWeekMessageIds,
-                    )
+                    availabilityInterface = availabilityInterface
                 )
             )
             logger.info("Locking thread...")
             thread.manager.setLocked(true).queue()
-            replaceBotPinsWith(threadStartMessageId, tenant)
+            JDAHolder.pin(availabilityInterface, tenant)
             return
         }
 

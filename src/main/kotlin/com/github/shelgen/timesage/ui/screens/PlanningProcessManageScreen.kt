@@ -119,6 +119,7 @@ class PlanningProcessManageScreen(
                         mutable.conclusion = null
                     }
                     rerenderAvailabilityInterface(planningProcess, configuration)
+                    JDAHolder.pin(planningProcess.availabilityInterface, tenant)
                     if (conclusionMessageId != null) {
                         JDAHolder.getTextChannel(tenant).deleteMessageById(conclusionMessageId.id).queue()
                     }

@@ -9,7 +9,6 @@ import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.plan.PlanId
 import com.github.shelgen.timesage.planning.Conclusion
 import com.github.shelgen.timesage.planning.PlanningProcess
-import com.github.shelgen.timesage.replaceBotPinsWith
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
@@ -70,7 +69,8 @@ class PlanSuggestedScreen(
                             availabilitiesPeriod.state = PlanningProcess.State.CONCLUDED
                         }
                         rerenderAvailabilityInterface(planningProcess, configuration)
-                        replaceBotPinsWith(conclusionMessageId, screen.tenant)
+                        JDAHolder.unpin(planningProcess.availabilityInterface, screen.tenant)
+                        JDAHolder.pin(conclusionMessageId, screen.tenant)
                         if (plan.sessions.isNotEmpty()) {
                             JDAHolder.jda.getGuildById(screen.tenant.server.id)?.let { guild ->
                                 createScheduledEventsForPlan(plan, guild, configuration)

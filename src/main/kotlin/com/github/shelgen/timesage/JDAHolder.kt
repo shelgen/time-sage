@@ -2,11 +2,11 @@ package com.github.shelgen.timesage
 
 import com.github.shelgen.timesage.discord.DiscordMessageId
 import com.github.shelgen.timesage.discord.DiscordThreadChannelId
+import com.github.shelgen.timesage.planning.AvailabilityInterface
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.entities.Activity
 import net.dv8tion.jda.api.entities.Guild
-import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import java.io.File
@@ -33,29 +33,16 @@ object JDAHolder {
     fun getThreadChannel(threadChannel: DiscordThreadChannelId): ThreadChannel =
         jda.getThreadChannelById(threadChannel.id)
             ?: error("Error getting thread channel for $threadChannel")
-}
 
-fun replaceBotPinsWith(message: DiscordMessageId, tenant: Tenant) {
-    val channel = JDAHolder.getTextChannel(tenant)
-    val botPinnedMessages = mutableListOf<Message>()
-    channel.retrievePinnedMessages().forEachAsync { pinned ->
-        if (pinned.message.author.idLong == JDAHolder.jda.selfUser.idLong) {
-            botPinnedMessages.add(pinned.message)
-        }
-        true
-    }.thenRun { unpinSequentiallyThenPin(botPinnedMessages, channel, message.id) }
-}
+    fun pin(availabilityInterface: AvailabilityInterface, tenant: Tenant) {
+        pin(availabilityInterface.messageToPin(), tenant)
+    }
 
-private fun unpinSequentiallyThenPin(
-    remaining: List<Message>,
-    channel: TextChannel,
-    newMessageId: Long
-) {
-    if (remaining.isEmpty()) {
-        channel.pinMessageById(newMessageId).queue()
-    } else {
-        remaining.first().unpin().queue {
-            unpinSequentiallyThenPin(remaining.drop(1), channel, newMessageId)
-        }
+    fun pin(message: DiscordMessageId, tenant: Tenant) {
+        getTextChannel(tenant).pinMessageById(message.id).queue()
+    }
+
+    fun unpin(availabilityInterface: AvailabilityInterface, tenant: Tenant) {
+        getTextChannel(tenant).unpinMessageById(availabilityInterface.messageToPin().id).queue()
     }
 }

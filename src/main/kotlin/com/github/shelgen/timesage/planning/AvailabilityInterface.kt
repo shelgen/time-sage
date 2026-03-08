@@ -9,6 +9,7 @@ import java.time.Instant
 sealed interface AvailabilityInterface {
     val postedAt: Instant
     fun toLink(tenant: Tenant): String
+    fun messageToPin(): DiscordMessageId
 }
 
 data class AvailabilityMessage(
@@ -17,6 +18,8 @@ data class AvailabilityMessage(
 ) : AvailabilityInterface {
     override fun toLink(tenant: Tenant) =
         "https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${message.id}"
+
+    override fun messageToPin(): DiscordMessageId = message
 }
 
 data class AvailabilityThread(
@@ -28,4 +31,6 @@ data class AvailabilityThread(
 ) : AvailabilityInterface {
     override fun toLink(tenant: Tenant) =
         "https://discord.com/channels/${tenant.server}/${threadChannel.id}/${periodLevelMessage.id}"
+
+    override fun messageToPin(): DiscordMessageId = threadStartMessage
 }
