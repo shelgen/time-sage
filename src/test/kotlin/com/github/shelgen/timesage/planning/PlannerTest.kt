@@ -299,7 +299,6 @@ class PlannerTest {
         availabilityResponses: Map<DiscordUserId, AvailabilityResponse> = emptyMap(),
     ) = Planner(
         configuration = configuration,
-        dateRange = DateRange.weekFrom(weekStart),
         planningProcess = planningProcess(availabilityResponses)
     )
 

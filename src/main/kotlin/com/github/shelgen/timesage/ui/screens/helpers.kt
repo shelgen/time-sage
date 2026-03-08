@@ -15,7 +15,6 @@ fun getPlans(
     tenant: Tenant
 ): List<Plan> = Planner(
     configuration = configuration,
-    dateRange = dateRange,
     planningProcess = PlanningProcessRepository.load(dateRange, tenant)!!
 ).generatePossiblePlans()
 

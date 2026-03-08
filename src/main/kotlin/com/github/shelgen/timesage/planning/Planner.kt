@@ -8,18 +8,16 @@ import com.github.shelgen.timesage.plan.Participant
 import com.github.shelgen.timesage.plan.Plan
 import com.github.shelgen.timesage.plan.PlanId
 import com.github.shelgen.timesage.plan.Session
-import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.time.TimeSlot
 import java.util.*
 
 class Planner(
     private val configuration: Configuration,
-    private val dateRange: DateRange,
     private val planningProcess: PlanningProcess,
 ) {
     fun generatePossiblePlans(): List<Plan> {
-        logger.info("Generating possible plans for period $dateRange")
-        val timeSlots = configuration.produceTimeSlots(dateRange)
+        logger.info("Generating possible plans for ${planningProcess.dateRange}")
+        val timeSlots = configuration.produceTimeSlots(planningProcess.dateRange)
         return buildSessions(sessions = emptyList(), remainingTimeSlots = timeSlots)
             .distinct()
             .filter { it.isNotEmpty() }
