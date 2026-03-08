@@ -22,7 +22,7 @@ object ScheduleCommand : AbstractSlashCommand(
                 pageSize = 3,
                 tenant = tenant
             )
-            it.sendMessage(screen.render()).queue()
+            it.editOriginal(screen.renderEdit()).queue()
              */
             MDC.clear()
         }

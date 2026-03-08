@@ -122,7 +122,7 @@ class TimeSage : ListenerAdapter() {
                 val command = slashCommands.find { command -> command.name == name }
                 if (command == null) {
                     event.reply("Sorry, I don't recognize the command you just used. Maybe it's an outdated one?")
-                        .queue()
+                        .setEphemeral(true).queue()
                 } else {
                     command.handle(
                         event = event,

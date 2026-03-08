@@ -14,7 +14,7 @@ object ConfigureCommand : AbstractSlashCommand(
         val outerMdc = MDC.getCopyOfContextMap()
         event.deferReply(true).queue {
             MDC.setContextMap(outerMdc)
-            it.sendMessage(ConfigurationMainScreen(tenant).render()).queue()
+            it.editOriginal(ConfigurationMainScreen(tenant).renderEdit()).queue()
             MDC.clear()
         }
     }
