@@ -17,7 +17,7 @@ data class AvailabilityMessage(
     val message: DiscordMessageId,
 ) : AvailabilityInterface {
     override fun toLink(tenant: Tenant) =
-        "https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${message.id}"
+        "https://discord.com/channels/${tenant.server.id}/${tenant.textChannel.id}/${message.id}"
 
     override fun messageToPin(): DiscordMessageId = message
 }
@@ -30,7 +30,7 @@ data class AvailabilityThread(
     val weekMessages: Map<DateRange, DiscordMessageId>,
 ) : AvailabilityInterface {
     override fun toLink(tenant: Tenant) =
-        "https://discord.com/channels/${tenant.server}/${threadChannel.id}/${periodLevelMessage.id}"
+        "https://discord.com/channels/${tenant.server.id}/${threadChannel.id}/${periodLevelMessage.id}"
 
     override fun messageToPin(): DiscordMessageId = threadStartMessage
 }
