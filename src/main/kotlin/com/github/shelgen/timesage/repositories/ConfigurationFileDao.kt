@@ -57,12 +57,12 @@ class ConfigurationFileDao {
 
         data class PeriodicPlanning(
             val enabled: Boolean,
-            val periodType: PeriodType,
+            val interval: Interval,
             val daysInAdvance: Int,
             val hourOfDay: Int,
         )
 
-        enum class PeriodType { WEEKLY, MONTHLY }
+        enum class Interval { WEEKLY, MONTHLY }
     }
 
     companion object {

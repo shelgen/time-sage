@@ -2,16 +2,16 @@ package com.github.shelgen.timesage.configuration
 
 open class PeriodicPlanning(
     open val enabled: Boolean,
-    open val periodType: PeriodType,
+    open val interval: Interval,
     open val daysInAdvance: Int,
     open val hourOfDay: Int,
 ) {
-    fun nextPeriod(localization: Localization) = periodType.nextPeriod(localization)
+    fun nextPeriod(localization: Localization) = interval.nextDateRange(localization)
 
     companion object {
         val DEFAULT = PeriodicPlanning(
             enabled = false,
-            periodType = PeriodType.WEEKLY,
+            interval = Interval.WEEKLY,
             daysInAdvance = 5,
             hourOfDay = 17,
         )
@@ -20,13 +20,13 @@ open class PeriodicPlanning(
 
 class MutablePeriodicPlanning(
     override var enabled: Boolean,
-    override var periodType: PeriodType,
+    override var interval: Interval,
     override var daysInAdvance: Int,
     override var hourOfDay: Int,
-) : PeriodicPlanning(enabled, periodType, daysInAdvance, hourOfDay) {
+) : PeriodicPlanning(enabled, interval, daysInAdvance, hourOfDay) {
     constructor(periodicPlanning: PeriodicPlanning) : this(
         enabled = periodicPlanning.enabled,
-        periodType = periodicPlanning.periodType,
+        interval = periodicPlanning.interval,
         daysInAdvance = periodicPlanning.daysInAdvance,
         hourOfDay = periodicPlanning.hourOfDay,
     )

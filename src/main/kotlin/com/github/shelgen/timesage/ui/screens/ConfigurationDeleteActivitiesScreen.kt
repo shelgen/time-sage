@@ -2,6 +2,7 @@ package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.configuration.ActivityId
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -33,7 +34,7 @@ class ConfigurationDeleteActivitiesScreen(tenant: Tenant) : Screen(tenant) {
 
     class Buttons {
         class DeleteActivity(
-            private val activityId: Int,
+            private val activityId: ActivityId,
             override val screen: ConfigurationDeleteActivitiesScreen
         ) : ScreenButton {
             fun render() =

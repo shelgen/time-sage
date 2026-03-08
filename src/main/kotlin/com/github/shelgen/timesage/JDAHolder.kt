@@ -3,6 +3,7 @@ package com.github.shelgen.timesage
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.entities.Activity
+import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.Message
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import java.io.File
@@ -17,6 +18,10 @@ object JDAHolder {
         logger.info("Waiting for JDA to be ready")
         build.awaitReady()
     }
+
+    fun getGuild(tenant: Tenant): Guild =
+        jda.getGuildById(tenant.server.id)
+            ?: error("Error getting guild for $tenant")
 
     fun getTextChannel(tenant: Tenant): TextChannel =
         jda.getTextChannelById(tenant.textChannel.id)

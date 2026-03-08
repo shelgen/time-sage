@@ -8,7 +8,7 @@ import com.github.shelgen.timesage.configuration.Localization
 import com.github.shelgen.timesage.configuration.Member
 import com.github.shelgen.timesage.configuration.MutableConfiguration
 import com.github.shelgen.timesage.configuration.PeriodicPlanning
-import com.github.shelgen.timesage.configuration.PeriodType
+import com.github.shelgen.timesage.configuration.Interval
 import com.github.shelgen.timesage.configuration.Reminders
 import com.github.shelgen.timesage.discord.DiscordServerId
 import com.github.shelgen.timesage.discord.DiscordTextChannelId
@@ -78,14 +78,14 @@ object ConfigurationRepository {
 
     private fun ConfigurationFileDao.Json.PeriodicPlanning.toDomain() = PeriodicPlanning(
         enabled = enabled,
-        periodType = periodType.toDomain(),
+        interval = interval.toDomain(),
         daysInAdvance = daysInAdvance,
         hourOfDay = hourOfDay,
     )
 
-    private fun ConfigurationFileDao.Json.PeriodType.toDomain() = when (this) {
-        ConfigurationFileDao.Json.PeriodType.WEEKLY -> PeriodType.WEEKLY
-        ConfigurationFileDao.Json.PeriodType.MONTHLY -> PeriodType.MONTHLY
+    private fun ConfigurationFileDao.Json.Interval.toDomain() = when (this) {
+        ConfigurationFileDao.Json.Interval.WEEKLY -> Interval.WEEKLY
+        ConfigurationFileDao.Json.Interval.MONTHLY -> Interval.MONTHLY
     }
 
     private fun Configuration.toJson() = ConfigurationFileDao.Json(
@@ -128,13 +128,13 @@ object ConfigurationRepository {
 
     private fun PeriodicPlanning.toJson() = ConfigurationFileDao.Json.PeriodicPlanning(
         enabled = enabled,
-        periodType = periodType.toJson(),
+        interval = interval.toJson(),
         daysInAdvance = daysInAdvance,
         hourOfDay = hourOfDay,
     )
 
-    private fun PeriodType.toJson() = when (this) {
-        PeriodType.WEEKLY -> ConfigurationFileDao.Json.PeriodType.WEEKLY
-        PeriodType.MONTHLY -> ConfigurationFileDao.Json.PeriodType.MONTHLY
+    private fun Interval.toJson() = when (this) {
+        Interval.WEEKLY -> ConfigurationFileDao.Json.Interval.WEEKLY
+        Interval.MONTHLY -> ConfigurationFileDao.Json.Interval.MONTHLY
     }
 }

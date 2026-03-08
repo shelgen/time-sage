@@ -1,11 +1,13 @@
 package com.github.shelgen.timesage.ui.screens
 
 import com.github.shelgen.timesage.JDAHolder
-import com.github.shelgen.timesage.domain.ActivityMember
-import com.github.shelgen.timesage.configuration.Configuration
-import com.github.shelgen.timesage.domain.SchedulingType
 import com.github.shelgen.timesage.Tenant
-import com.github.shelgen.timesage.domain.TimeSlotRules
+import com.github.shelgen.timesage.configuration.ActivityId
+import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.configuration.Interval
+import com.github.shelgen.timesage.configuration.Member
+import com.github.shelgen.timesage.discord.DiscordUserId
+import com.github.shelgen.timesage.discord.DiscordVoiceChannelId
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.ui.DiscordFormatter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -35,32 +37,12 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
             DayOfWeek.of((configuration.localization.startDayOfWeek.value - 1 + it) % 7 + 1)
         }
         return listOf(
-            TextDisplay.of("# Time Sage configuration"),
             TextDisplay.of(
-                "${DiscordFormatter.mentionChannel(tenant.textChannel)} in " +
-                        JDAHolder.jda.getGuildById(tenant.server)?.name
+                "# Time Sage configuration\n" +
+                        "${tenant.textChannel.toMention()} in " + JDAHolder.getGuild(tenant).name + "\n" +
+                        "-# All configuration is specific for this channel in this server.\n" +
+                        "### Localization"
             ),
-            TextDisplay.of("-# All configuration is specific for this channel in this server."),
-            Section.of(
-                if (configuration.enabled) {
-                    Buttons.Disable(this).render()
-                } else {
-                    Buttons.Enable(this).render()
-                },
-                TextDisplay.of(DiscordFormatter.bold("Enabled") + ": " + (if (configuration.enabled) "Yes" else "No"))
-            ),
-            Section.of(
-                Buttons.SetVoiceChannel(this).render(),
-                TextDisplay.of(
-                    "${DiscordFormatter.bold("Voice channel for scheduled events")}: " +
-                            (configuration.voiceChannelId?.let { id ->
-                                JDAHolder.jda.getGuildById(tenant.server)
-                                    ?.voiceChannelCache?.getElementById(id)?.name
-                                    ?.let { "#$it" } ?: "Unknown channel"
-                            } ?: "Not set")
-                )
-            ),
-            TextDisplay.of("### Localization"),
             Section.of(
                 Buttons.ChangeTimeZone(this).render(),
                 TextDisplay.of("${DiscordFormatter.bold("Time zone")}: ${configuration.localization.timeZone.toZoneId()}")
@@ -68,53 +50,63 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
             Section.of(
                 Buttons.EditStartDay(this).render(),
                 TextDisplay.of(
-                    "Weeks start on a ${
-                        DiscordFormatter.bold(
-                            configuration.localization.startDayOfWeek.getDisplayName(TextStyle.FULL, Locale.US).lowercase()
-                        )
-                    }."
+                    "Weeks start on a " + DiscordFormatter.bold(
+                        configuration.localization.startDayOfWeek
+                            .getDisplayName(TextStyle.FULL, Locale.US)
+                            .lowercase()
+                    )
                 )
             ),
-            Section.of(
-                Buttons.ChangeScheduleInterval(this).render(),
-                TextDisplay.of("${DiscordFormatter.bold("Schedule interval")}: ${configuration.scheduling.type.humanReadableName}")
-            ),
-            TextDisplay.of("### Scheduling"),
+            TextDisplay.of("### Time slot rules"),
             ActionRow.of(
                 Buttons.EditWeekdays(this).render(),
                 Buttons.EditWeekend(this).render()
             ),
             TextDisplay.of(
-                "Eligible times are " +
-                        orderedDays.mapNotNull { day ->
-                            configuration.scheduling.timeSlotRules[day]?.let { time ->
-                                DiscordFormatter.bold(day.getDisplayName(TextStyle.FULL, Locale.US) + "s") +
-                                        " at ${DiscordFormatter.bold(time.toString())}"
-                            }
-                        }.joinToString(", ")
+                orderedDays.mapNotNull { day ->
+                    configuration.timeSlotRules[day]?.let { time ->
+                        DiscordFormatter.bold(day.getDisplayName(TextStyle.FULL, Locale.US) + "s") +
+                                " at ${DiscordFormatter.bold(time.toString())}"
+                    }
+                }.joinToString(", ").ifEmpty { DiscordFormatter.italics("No time slots configured.") }
             ),
             Section.of(
-                Buttons.EditPlanningTiming(this).render(),
-                TextDisplay.of("### Planning timing")
+                Buttons.EditPeriodicPlanning(this).render(),
+                TextDisplay.of("### Periodic planning")
             ),
             TextDisplay.of(
-                "Planning starts ${DiscordFormatter.bold("${configuration.scheduling.numDaysInAdvanceToStartPlanning} days")} before the period at " +
-                        DiscordFormatter.bold("%02d:00".format(configuration.scheduling.timeOfDayToStartPlanning)) + " (${configuration.localization.timeZone.toZoneId()}).\n" +
-                        "Reminders: " + when (configuration.scheduling.reminderIntervalDays) {
-                    0 -> DiscordFormatter.bold("Never")
-                    1 -> DiscordFormatter.bold("Every day")
-                    7 -> DiscordFormatter.bold("Every week")
-                    else -> DiscordFormatter.bold("Every ${configuration.scheduling.reminderIntervalDays} days")
+                if (!configuration.periodicPlanning.enabled) {
+                    DiscordFormatter.italics("Periodic planning is disabled.")
+                } else {
+                    "Automatic planning is done ${
+                        DiscordFormatter.bold(configuration.periodicPlanning.interval.name.lowercase())
+                    }, starting ${DiscordFormatter.bold("${configuration.periodicPlanning.daysInAdvance} days")} before each period " +
+                            "at ${DiscordFormatter.bold("%02d:00".format(configuration.periodicPlanning.hourOfDay))} (${configuration.localization.timeZone.toZoneId()})."
+                }
+            ),
+            Section.of(
+                Buttons.EditReminders(this).render(),
+                TextDisplay.of("### Reminders")
+            ),
+            TextDisplay.of(
+                if (!configuration.reminders.enabled) {
+                    DiscordFormatter.italics("Reminders are disabled.")
+                } else {
+                    "Reminders are sent every " + when (configuration.reminders.intervalDays) {
+                        1 -> DiscordFormatter.bold("day")
+                        7 -> DiscordFormatter.bold("week")
+                        else -> DiscordFormatter.bold("${configuration.reminders.intervalDays} days")
+                    } + " at ${DiscordFormatter.bold("%02d:00".format(configuration.reminders.hourOfDay))} (${configuration.localization.timeZone.toZoneId()})."
                 }
             ),
             TextDisplay.of(DiscordFormatter.bold("Activities") + ":"),
         ) + if (configuration.activities.isEmpty()) {
             listOf(TextDisplay.of(DiscordFormatter.italics("There are currently no activities.")))
         } else {
-            configuration.activities.map {
+            configuration.activities.map { activity ->
                 Section.of(
-                    Buttons.EditActivity(it.id, this).render(),
-                    TextDisplay.of("- ${it.name}")
+                    Buttons.EditActivity(activity.id, this).render(),
+                    TextDisplay.of("- ${activity.name}")
                 )
             }
         } + listOf(
@@ -126,39 +118,6 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
     }
 
     class Buttons {
-        class Enable(override val screen: ConfigurationMainScreen) : ScreenButton {
-            fun render() =
-                Button.primary(CustomIdSerialization.serialize(this), "Enable")
-
-            override fun handle(event: ButtonInteractionEvent) {
-                event.processAndRerender {
-                    ConfigurationRepository.update(screen.tenant) { it.enabled = true }
-                }
-            }
-        }
-
-        class Disable(override val screen: ConfigurationMainScreen) : ScreenButton {
-            fun render() =
-                Button.primary(CustomIdSerialization.serialize(this), "Disable")
-
-            override fun handle(event: ButtonInteractionEvent) {
-                event.processAndRerender {
-                    ConfigurationRepository.update(screen.tenant) { it.enabled = false }
-                }
-            }
-        }
-
-        class SetVoiceChannel(override val screen: ConfigurationMainScreen) : ScreenButton {
-            fun render() =
-                Button.primary(CustomIdSerialization.serialize(this), "Set voice channel...")
-
-            override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                val modal = Modals.SetVoiceChannel(screen).render(configuration)
-                event.replyModal(modal).queue()
-            }
-        }
-
         class ChangeTimeZone(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
                 Button.primary(CustomIdSerialization.serialize(this), "Change time zone...")
@@ -168,14 +127,13 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
             }
         }
 
-        class ChangeScheduleInterval(override val screen: ConfigurationMainScreen) : ScreenButton {
+        class EditStartDay(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
-                Button.primary(CustomIdSerialization.serialize(this), "Change schedule interval...")
+                Button.primary(CustomIdSerialization.serialize(this), "Change start day...")
 
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                val modal = Modals.ChangeScheduleInterval(screen).render(configuration)
-                event.replyModal(modal).queue()
+                event.replyModal(Modals.EditStartDay(screen).render(configuration)).queue()
             }
         }
 
@@ -185,8 +143,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                val modal = Modals.EditWeekdays(screen).render(configuration)
-                event.replyModal(modal).queue()
+                event.replyModal(Modals.EditWeekdays(screen).render(configuration)).queue()
             }
         }
 
@@ -196,24 +153,32 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                val modal = Modals.EditWeekend(screen).render(configuration)
-                event.replyModal(modal).queue()
+                event.replyModal(Modals.EditWeekend(screen).render(configuration)).queue()
             }
         }
 
-        class EditStartDay(override val screen: ConfigurationMainScreen) : ScreenButton {
+        class EditPeriodicPlanning(override val screen: ConfigurationMainScreen) : ScreenButton {
             fun render() =
-                Button.primary(CustomIdSerialization.serialize(this), "Change start day...")
+                Button.primary(CustomIdSerialization.serialize(this), "Edit periodic planning...")
 
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                val modal = Modals.EditStartDay(screen).render(configuration)
-                event.replyModal(modal).queue()
+                event.replyModal(Modals.EditPeriodicPlanning(screen).render(configuration)).queue()
+            }
+        }
+
+        class EditReminders(override val screen: ConfigurationMainScreen) : ScreenButton {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Edit reminders...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
+                event.replyModal(Modals.EditReminders(screen).render(configuration)).queue()
             }
         }
 
         class EditActivity(
-            private val activityId: Int,
+            private val activityId: ActivityId,
             override val screen: ConfigurationMainScreen
         ) : ScreenButton {
             fun render() =
@@ -221,8 +186,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                val modal = Modals.EditActivity(activityId, screen).render(configuration)
-                event.replyModal(modal).queue()
+                event.replyModal(Modals.EditActivity(activityId, screen).render(configuration)).queue()
             }
         }
 
@@ -232,8 +196,7 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
 
             override fun handle(event: ButtonInteractionEvent) {
                 val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                val modal = Modals.AddActivity(screen).render(configuration)
-                event.replyModal(modal).queue()
+                event.replyModal(Modals.AddActivity(screen).render(configuration)).queue()
             }
         }
 
@@ -242,176 +205,12 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                 Button.danger(CustomIdSerialization.serialize(this), "Delete activities...")
 
             override fun handle(event: ButtonInteractionEvent) {
-                event.processAndNavigateTo {
-                    ConfigurationDeleteActivitiesScreen(screen.tenant)
-                }
-            }
-        }
-
-        class EditPlanningTiming(override val screen: ConfigurationMainScreen) : ScreenButton {
-            fun render() =
-                Button.primary(CustomIdSerialization.serialize(this), "Edit planning timing...")
-
-            override fun handle(event: ButtonInteractionEvent) {
-                val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
-                val modal = Modals.EditPlanningTiming(screen).render(configuration)
-                event.replyModal(modal).queue()
+                event.processAndNavigateTo { ConfigurationDeleteActivitiesScreen(screen.tenant) }
             }
         }
     }
 
     class Modals {
-        class ChangeScheduleInterval(override val screen: ConfigurationMainScreen) : ScreenModal {
-            fun render(configuration: Configuration) =
-                Modal
-                    .create(CustomIdSerialization.serialize(this), "Change schedule interval")
-                    .addComponents(
-                        Label.of(
-                            "Schedule interval",
-                            StringSelectMenu.create("scheduleInterval")
-                                .setMinValues(1)
-                                .setMaxValues(1)
-                                .addOptions(SchedulingType.entries.map {
-                                    SelectOption.of(it.humanReadableName, it.name)
-                                })
-                                .setDefaultValues(configuration.scheduling.type.name)
-                                .build()
-                        )
-                    )
-                    .build()
-
-            override fun handle(event: ModalInteractionEvent) {
-                event.processAndRerender {
-                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
-                        configuration.scheduling.type =
-                            enumValueOf(event.getValue("scheduleInterval")!!.asStringList.first())
-                    }
-                }
-            }
-        }
-
-        class SetVoiceChannel(override val screen: ConfigurationMainScreen) : ScreenModal {
-            fun render(configuration: Configuration) =
-                Modal
-                    .create(CustomIdSerialization.serialize(this), "Set voice channel for scheduled events")
-                    .addComponents(
-                        Label.of(
-                            "Voice channel",
-                            EntitySelectMenu.create("voiceChannel", SelectTarget.CHANNEL)
-                                .setChannelTypes(ChannelType.VOICE)
-                                .setRequired(false)
-                                .setMinValues(0)
-                                .setMaxValues(1)
-                                .also { builder ->
-                                    configuration.voiceChannelId?.let {
-                                        builder.setDefaultValues(EntitySelectMenu.DefaultValue.channel(it))
-                                    }
-                                }
-                                .build()
-                        )
-                    )
-                    .build()
-
-            override fun handle(event: ModalInteractionEvent) {
-                event.processAndRerender {
-                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
-                        configuration.voiceChannelId = event.getValue("voiceChannel")!!.asLongList.firstOrNull()
-                    }
-                }
-            }
-        }
-
-        class EditWeekdays(override val screen: ConfigurationMainScreen) : ScreenModal {
-            fun render(configuration: Configuration): Modal {
-                val weekdays = listOf(
-                    DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-                    DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
-                )
-                return Modal
-                    .create(CustomIdSerialization.serialize(this), "Edit weekday scheduling")
-                    .addComponents(
-                        *weekdays.map { day ->
-                            Label.of(
-                                "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to skip)",
-                                TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
-                                    .setRequired(false)
-                                    .also { builder ->
-                                        configuration.scheduling.timeSlotRules[day]
-                                            ?.let { builder.setValue(it.toString()) }
-                                    }
-                                    .build()
-                            )
-                        }.toTypedArray()
-                    )
-                    .build()
-            }
-
-            override fun handle(event: ModalInteractionEvent) {
-                event.processAndRerender {
-                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
-                        val weekdays = listOf(
-                            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-                            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
-                        )
-                        val updatedPairs = weekdays.mapNotNull { day ->
-                            val raw = event.getValue(day.name.lowercase())?.asString?.trim()
-                            if (!raw.isNullOrBlank()) runCatching { LocalTime.parse(raw) }.getOrNull()?.let { day to it }
-                            else null
-                        }
-                        val preserved = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY).mapNotNull { day ->
-                            configuration.scheduling.timeSlotRules[day]?.let { day to it }
-                        }
-                        configuration.scheduling.timeSlotRules =
-                            TimeSlotRules.of(*(updatedPairs + preserved).toTypedArray())
-                    }
-                }
-            }
-        }
-
-        class EditWeekend(override val screen: ConfigurationMainScreen) : ScreenModal {
-            fun render(configuration: Configuration): Modal {
-                val weekend = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
-                return Modal
-                    .create(CustomIdSerialization.serialize(this), "Edit weekend scheduling")
-                    .addComponents(
-                        *weekend.map { day ->
-                            Label.of(
-                                "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to skip)",
-                                TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
-                                    .setRequired(false)
-                                    .also { builder ->
-                                        configuration.scheduling.timeSlotRules[day]
-                                            ?.let { builder.setValue(it.toString()) }
-                                    }
-                                    .build()
-                            )
-                        }.toTypedArray()
-                    )
-                    .build()
-            }
-
-            override fun handle(event: ModalInteractionEvent) {
-                event.processAndRerender {
-                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
-                        val weekend = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
-                        val updatedPairs = weekend.mapNotNull { day ->
-                            val raw = event.getValue(day.name.lowercase())?.asString?.trim()
-                            if (!raw.isNullOrBlank()) runCatching { LocalTime.parse(raw) }.getOrNull()?.let { day to it }
-                            else null
-                        }
-                        val preserved = listOf(
-                            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-                            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
-                        ).mapNotNull { day ->
-                            configuration.scheduling.timeSlotRules[day]?.let { day to it }
-                        }
-                        configuration.scheduling.timeSlotRules =
-                            TimeSlotRules.of(*(updatedPairs + preserved).toTypedArray())
-                    }
-                }
-            }
-        }
-
         class EditStartDay(override val screen: ConfigurationMainScreen) : ScreenModal {
             fun render(configuration: Configuration) =
                 Modal
@@ -439,6 +238,224 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                     ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         configuration.localization.startDayOfWeek =
                             DayOfWeek.of(event.getValue("startDayOfWeek")!!.asStringList.first().toInt())
+                    }
+                }
+            }
+        }
+
+        class EditWeekdays(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration): Modal {
+                val weekdays = listOf(
+                    DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                    DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
+                )
+                return Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit weekday scheduling")
+                    .addComponents(
+                        *weekdays.map { day ->
+                            Label.of(
+                                "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to remove)",
+                                TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
+                                    .setRequired(false)
+                                    .also { builder ->
+                                        configuration.timeSlotRules[day]
+                                            ?.let { builder.setValue(it.toString()) }
+                                    }
+                                    .build()
+                            )
+                        }.toTypedArray()
+                    )
+                    .build()
+            }
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
+                        listOf(
+                            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
+                        ).forEach { day ->
+                            val raw = event.getValue(day.name.lowercase())?.asString?.trim()
+                            if (!raw.isNullOrBlank()) {
+                                runCatching { LocalTime.parse(raw) }.getOrNull()
+                                    ?.let { configuration.timeSlotRules[day] = it }
+                            } else {
+                                configuration.timeSlotRules.remove(day)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        class EditWeekend(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration): Modal {
+                val weekend = listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+                return Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit weekend scheduling")
+                    .addComponents(
+                        *weekend.map { day ->
+                            Label.of(
+                                "${day.getDisplayName(TextStyle.FULL, Locale.US)} (leave blank to remove)",
+                                TextInput.create(day.name.lowercase(), TextInputStyle.SHORT)
+                                    .setRequired(false)
+                                    .also { builder ->
+                                        configuration.timeSlotRules[day]
+                                            ?.let { builder.setValue(it.toString()) }
+                                    }
+                                    .build()
+                            )
+                        }.toTypedArray()
+                    )
+                    .build()
+            }
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
+                        listOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY).forEach { day ->
+                            val raw = event.getValue(day.name.lowercase())?.asString?.trim()
+                            if (!raw.isNullOrBlank()) {
+                                runCatching { LocalTime.parse(raw) }.getOrNull()
+                                    ?.let { configuration.timeSlotRules[day] = it }
+                            } else {
+                                configuration.timeSlotRules.remove(day)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        class EditPeriodicPlanning(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit periodic planning")
+                    .addComponents(
+                        Label.of(
+                            "Enabled",
+                            StringSelectMenu.create("enabled")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions(
+                                    SelectOption.of("Yes", "true"),
+                                    SelectOption.of("No", "false")
+                                )
+                                .setDefaultValues(configuration.periodicPlanning.enabled.toString())
+                                .build()
+                        ),
+                        Label.of(
+                            "Period type",
+                            StringSelectMenu.create("periodType")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions(Interval.entries.map {
+                                    SelectOption.of(
+                                        it.name.lowercase().replaceFirstChar(Char::uppercaseChar),
+                                        it.name
+                                    )
+                                })
+                                .setDefaultValues(configuration.periodicPlanning.interval.name)
+                                .build()
+                        ),
+                        Label.of(
+                            "Days before period",
+                            StringSelectMenu.create("daysBeforePeriod")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions((1..14).map {
+                                    SelectOption.of(if (it == 1) "1 day before" else "$it days before", it.toString())
+                                })
+                                .setDefaultValues(
+                                    configuration.periodicPlanning.daysInAdvance.coerceIn(1, 14).toString()
+                                )
+                                .build()
+                        ),
+                        Label.of(
+                            "Planning start hour (${configuration.localization.timeZone.toZoneId()})",
+                            StringSelectMenu.create("planningStartHour")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions((0..23).map { SelectOption.of("%02d:00".format(it), it.toString()) })
+                                .setDefaultValues(configuration.periodicPlanning.hourOfDay.toString())
+                                .build()
+                        ),
+                    )
+                    .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
+                        configuration.periodicPlanning.enabled =
+                            event.getValue("enabled")!!.asStringList.first().toBoolean()
+                        configuration.periodicPlanning.interval =
+                            enumValueOf(event.getValue("periodType")!!.asStringList.first())
+                        configuration.periodicPlanning.daysInAdvance =
+                            event.getValue("daysBeforePeriod")!!.asStringList.first().toInt()
+                        configuration.periodicPlanning.hourOfDay =
+                            event.getValue("planningStartHour")!!.asStringList.first().toInt()
+                    }
+                }
+            }
+        }
+
+        class EditReminders(override val screen: ConfigurationMainScreen) : ScreenModal {
+            fun render(configuration: Configuration) =
+                Modal
+                    .create(CustomIdSerialization.serialize(this), "Edit reminders")
+                    .addComponents(
+                        Label.of(
+                            "Enabled",
+                            StringSelectMenu.create("remindersEnabled")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions(
+                                    SelectOption.of("Yes", "true"),
+                                    SelectOption.of("No", "false")
+                                )
+                                .setDefaultValues(configuration.reminders.enabled.toString())
+                                .build()
+                        ),
+                        Label.of(
+                            "Reminder interval",
+                            StringSelectMenu.create("reminderIntervalDays")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions(
+                                    listOf(
+                                        SelectOption.of("Every day", "1"),
+                                        SelectOption.of("Every other day", "2"),
+                                        SelectOption.of("Every 3 days", "3"),
+                                        SelectOption.of("Every 4 days", "4"),
+                                        SelectOption.of("Every 5 days", "5"),
+                                        SelectOption.of("Every 6 days", "6"),
+                                        SelectOption.of("Every week", "7"),
+                                    )
+                                )
+                                .setDefaultValues(configuration.reminders.intervalDays.coerceIn(1, 7).toString())
+                                .build()
+                        ),
+                        Label.of(
+                            "Reminder hour (${configuration.localization.timeZone.toZoneId()})",
+                            StringSelectMenu.create("reminderHour")
+                                .setMinValues(1)
+                                .setMaxValues(1)
+                                .addOptions((0..23).map { SelectOption.of("%02d:00".format(it), it.toString()) })
+                                .setDefaultValues(configuration.reminders.hourOfDay.toString())
+                                .build()
+                        ),
+                    )
+                    .build()
+
+            override fun handle(event: ModalInteractionEvent) {
+                event.processAndRerender {
+                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
+                        configuration.reminders.enabled =
+                            event.getValue("remindersEnabled")!!.asStringList.first().toBoolean()
+                        configuration.reminders.intervalDays =
+                            event.getValue("reminderIntervalDays")!!.asStringList.first().toInt()
+                        configuration.reminders.hourOfDay =
+                            event.getValue("reminderHour")!!.asStringList.first().toInt()
                     }
                 }
             }
@@ -478,6 +495,15 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 .addOptions((0..4).map(Int::toString).map { SelectOption.of(it, it) })
                                 .setDefaultValues("1")
                                 .build()
+                        ),
+                        Label.of(
+                            "Voice channel (optional)",
+                            EntitySelectMenu.create("voiceChannel", SelectTarget.CHANNEL)
+                                .setChannelTypes(ChannelType.VOICE)
+                                .setRequired(false)
+                                .setMinValues(0)
+                                .setMaxValues(1)
+                                .build()
                         )
                     )
                     .build()
@@ -487,25 +513,31 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                     ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
                         val activity = configuration.addNewActivity()
                         activity.name = event.getValue("name")!!.asString
-                        activity.setOptionalMembers(event.getValue("optionalParticipants")!!.asLongList)
-                        activity.setRequiredMembers(event.getValue("requiredParticipants")!!.asLongList)
+                        activity.setRequiredMembers(event.getValue("requiredParticipants")!!.asLongList.map(::DiscordUserId))
+                        activity.setOptionalMembers(event.getValue("optionalParticipants")!!.asLongList.map(::DiscordUserId))
                         activity.maxNumMissingOptionalMembers =
                             event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
+                        activity.voiceChannel =
+                            event.getValue("voiceChannel")!!.asLongList.firstOrNull()?.let(::DiscordVoiceChannelId)
                     }
                 }
             }
         }
 
-        class EditActivity(private val activityId: Int, override val screen: ConfigurationMainScreen) : ScreenModal {
-            fun render(configuration: Configuration) =
-                Modal
+        class EditActivity(
+            private val activityId: ActivityId,
+            override val screen: ConfigurationMainScreen
+        ) : ScreenModal {
+            fun render(configuration: Configuration): Modal {
+                val activity = configuration.getActivity(activityId)
+                return Modal
                     .create(CustomIdSerialization.serialize(this), "Edit activity")
                     .addComponents(
                         Label.of(
                             "Name",
                             TextInput.create("name", TextInputStyle.SHORT)
                                 .setPlaceholder("Name of the activity")
-                                .setValue(configuration.getActivity(activityId).name)
+                                .setValue(activity.name)
                                 .build()
                         ),
                         Label.of(
@@ -514,11 +546,9 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 .setMinValues(1)
                                 .setMaxValues(25)
                                 .setDefaultValues(
-                                    configuration.getActivity(activityId)
-                                        .members
-                                        .filterNot(ActivityMember::optional)
-                                        .map(ActivityMember::userId)
-                                        .map(EntitySelectMenu.DefaultValue::user)
+                                    activity.members
+                                        .filterNot(Member::optional)
+                                        .map { EntitySelectMenu.DefaultValue.user(it.user.id) }
                                 ).build()
                         ),
                         Label.of(
@@ -528,11 +558,9 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 .setMinValues(0)
                                 .setMaxValues(25)
                                 .setDefaultValues(
-                                    configuration.getActivity(activityId)
-                                        .members
-                                        .filter(ActivityMember::optional)
-                                        .map(ActivityMember::userId)
-                                        .map(EntitySelectMenu.DefaultValue::user)
+                                    activity.members
+                                        .filter(Member::optional)
+                                        .map { EntitySelectMenu.DefaultValue.user(it.user.id) }
                                 ).build()
                         ),
                         Label.of(
@@ -541,81 +569,38 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                                 .setMinValues(1)
                                 .setMaxValues(1)
                                 .addOptions((0..4).map(Int::toString).map { SelectOption.of(it, it) })
-                                .setDefaultValues(configuration.getActivity(activityId).maxNumMissingOptionalMembers.toString())
+                                .setDefaultValues(activity.maxNumMissingOptionalMembers.toString())
+                                .build()
+                        ),
+                        Label.of(
+                            "Voice channel (optional)",
+                            EntitySelectMenu.create("voiceChannel", SelectTarget.CHANNEL)
+                                .setChannelTypes(ChannelType.VOICE)
+                                .setRequired(false)
+                                .setMinValues(0)
+                                .setMaxValues(1)
+                                .also { builder ->
+                                    activity.voiceChannel?.let {
+                                        builder.setDefaultValues(EntitySelectMenu.DefaultValue.channel(it.id))
+                                    }
+                                }
                                 .build()
                         )
                     )
                     .build()
+            }
 
             override fun handle(event: ModalInteractionEvent) {
                 event.processAndRerender {
                     ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
-                        val activity = configuration.getActivity(activityId = activityId)
+                        val activity = configuration.getActivity(activityId)
                         activity.name = event.getValue("name")!!.asString
-                        activity.setOptionalMembers(event.getValue("optionalParticipants")!!.asLongList)
-                        activity.setRequiredMembers(event.getValue("requiredParticipants")!!.asLongList)
+                        activity.setRequiredMembers(event.getValue("requiredParticipants")!!.asLongList.map(::DiscordUserId))
+                        activity.setOptionalMembers(event.getValue("optionalParticipants")!!.asLongList.map(::DiscordUserId))
                         activity.maxNumMissingOptionalMembers =
                             event.getValue("maxMissingOptional")!!.asStringList.first().toInt()
-                    }
-                }
-            }
-        }
-
-        class EditPlanningTiming(override val screen: ConfigurationMainScreen) : ScreenModal {
-            fun render(configuration: Configuration) =
-                Modal
-                    .create(CustomIdSerialization.serialize(this), "Edit planning timing")
-                    .addComponents(
-                        Label.of(
-                            "Days before period",
-                            StringSelectMenu.create("daysBeforePeriod")
-                                .setMinValues(1)
-                                .setMaxValues(1)
-                                .addOptions((1..14).map {
-                                    SelectOption.of(if (it == 1) "1 day before" else "$it days before", it.toString())
-                                })
-                                .setDefaultValues(configuration.scheduling.numDaysInAdvanceToStartPlanning.coerceIn(1, 14).toString())
-                                .build()
-                        ),
-                        Label.of(
-                            "Planning start hour (${configuration.localization.timeZone.toZoneId()})",
-                            StringSelectMenu.create("planningStartHour")
-                                .setMinValues(1)
-                                .setMaxValues(1)
-                                .addOptions((0..23).map { SelectOption.of("%02d:00".format(it), it.toString()) })
-                                .setDefaultValues(configuration.scheduling.timeOfDayToStartPlanning.toString())
-                                .build()
-                        ),
-                        Label.of(
-                            "Reminder interval",
-                            StringSelectMenu.create("reminderIntervalDays")
-                                .setMinValues(1)
-                                .setMaxValues(1)
-                                .addOptions(listOf(
-                                    SelectOption.of("Never", "0"),
-                                    SelectOption.of("Every day", "1"),
-                                    SelectOption.of("Every other day", "2"),
-                                    SelectOption.of("Every 3 days", "3"),
-                                    SelectOption.of("Every 4 days", "4"),
-                                    SelectOption.of("Every 5 days", "5"),
-                                    SelectOption.of("Every 6 days", "6"),
-                                    SelectOption.of("Every week", "7"),
-                                ))
-                                .setDefaultValues(configuration.scheduling.reminderIntervalDays.coerceIn(0, 7).toString())
-                                .build()
-                        ),
-                    )
-                    .build()
-
-            override fun handle(event: ModalInteractionEvent) {
-                event.processAndRerender {
-                    ConfigurationRepository.update(tenant = screen.tenant) { configuration ->
-                        configuration.scheduling.numDaysInAdvanceToStartPlanning =
-                            event.getValue("daysBeforePeriod")!!.asStringList.first().toInt()
-                        configuration.scheduling.timeOfDayToStartPlanning =
-                            event.getValue("planningStartHour")!!.asStringList.first().toInt()
-                        configuration.scheduling.reminderIntervalDays =
-                            event.getValue("reminderIntervalDays")!!.asStringList.first().toInt()
+                        activity.voiceChannel =
+                            event.getValue("voiceChannel")!!.asLongList.firstOrNull()?.let(::DiscordVoiceChannelId)
                     }
                 }
             }

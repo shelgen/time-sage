@@ -14,10 +14,7 @@ class AvailabilityMessageScreen(dateRange: DateRange, tenant: Tenant) : Abstract
                     Buttons.ToggleSessionLimit(this)
                 }.renderComponents(configuration) +
                 TimeSlotContainerRenderer.renderTimeSlotContainers(
-                    weekTimeSlots = configuration.scheduling.timeSlotRules.getTimeSlots(
-                        dateRange = dateRange,
-                        timeZone = configuration.localization.timeZone
-                    ),
+                    weekTimeSlots = configuration.produceTimeSlots(dateRange),
                     dateRange = dateRange,
                     tenant = tenant
                 ) { timeSlot -> Buttons.ToggleTimeSlotAvailability(timeSlot, this) }

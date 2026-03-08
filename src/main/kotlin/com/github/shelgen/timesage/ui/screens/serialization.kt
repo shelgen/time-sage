@@ -1,7 +1,8 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.Tenant
+import com.github.shelgen.timesage.configuration.ActivityId
+import com.github.shelgen.timesage.time.DateRange
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -103,7 +104,9 @@ object CustomIdSerialization {
             typeOf<Long>()
                 -> fieldValue.toString()
 
-            typeOf<DateRange>() -> "${(fieldValue as DateRange).fromInclusive}_${fieldValue.toInclusive}"
+            typeOf<DateRange>() -> (fieldValue as DateRange).serialize()
+
+            typeOf<ActivityId>() -> (fieldValue as ActivityId).value.toString()
 
             else -> error("Serialization of field of type $fieldType not supported")
         }
@@ -116,13 +119,8 @@ object CustomIdSerialization {
             typeOf<Instant>() -> Instant.parse(serializedValue)
             typeOf<Int>() -> serializedValue.toInt()
             typeOf<Long>() -> serializedValue.toLong()
-            typeOf<DateRange>() -> serializedValue.split("_", limit = 2)
-                .let { (fromInclusiveString, toInclusiveString) ->
-                    DateRange(
-                        fromInclusive = LocalDate.parse(fromInclusiveString),
-                        toInclusive = LocalDate.parse(toInclusiveString)
-                    )
-                }
+            typeOf<DateRange>() -> DateRange.deserialize(serializedValue)
+            typeOf<ActivityId>() -> ActivityId(serializedValue.toInt())
 
             else -> error("Deserialization of field of type $fieldType not supported")
         }

@@ -11,9 +11,6 @@ object DiscordFormatter {
     fun timestamp(instant: Instant, format: TimestampFormat) =
         "<t:${instant.epochSecond}:${format.formatValue}>"
 
-    fun mentionUser(id: Long) = "<@$id>"
-    fun mentionChannel(id: Long) = "<#$id>"
-
     enum class TimestampFormat(val formatValue: String) {
         RELATIVE_TIME("R"), // 48 seconds ago
         LONG_DATE("D"), // August 9, 2025
