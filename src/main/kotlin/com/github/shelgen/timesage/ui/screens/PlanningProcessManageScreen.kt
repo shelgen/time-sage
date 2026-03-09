@@ -31,31 +31,44 @@ class PlanningProcessManageScreen(
             ?: return planningProcessNotFound()
 
         return listOf(
-            TextDisplay.of("## Planning: ${dateRange.toLocalizedString(configuration.localization)}"),
-            TextDisplay.of(planningProcess.availabilityInterface?.toLink(tenant) ?: ""),
-            TextDisplay.of("Currently ${DiscordFormatter.bold(planningProcess.state.toDisplayString())}"),
-            TextDisplay.of(planningProcess.conclusion?.let {
-                "Conclusion: https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${it.message.id}"
-            } ?: "No conclusion yet."),
-            TextDisplay.of(planningProcess.sentReminders.lastOrNull()?.let {
-                "Last reminder sent: ${configuration.localization.dateOf(it.sentAt)}"
-            } ?: "No reminders sent yet."),
+            TextDisplay.of(
+                "## Planning of ${dateRange.toLocalizedString(configuration.localization)}\n" +
+                        planningProcess.availabilityInterface?.toLink(tenant).orEmpty() + "\n" +
+                        showStatus(planningProcess) + "\n" +
+                        planningProcess.conclusion?.let {
+                            "https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${it.message.id}"
+                        }.orEmpty() + "\n" +
+                        (planningProcess.sentReminders.lastOrNull()?.let {
+                            "Last reminder sent: ${configuration.localization.dateOf(it.sentAt)}"
+                        } ?: "No reminders sent yet.")
+            ),
         ) + when (planningProcess.state) {
             PlanningProcess.State.PENDING -> emptyList()
             PlanningProcess.State.COLLECTING_AVAILABILITIES ->
                 listOf(ActionRow.of(Buttons.Lock(this).render(), Buttons.Delete(this).render()))
+
             PlanningProcess.State.LOCKED ->
-                listOf(ActionRow.of(Buttons.PickPlan(this).render(), Buttons.Unlock(this).render(), Buttons.Delete(this).render()))
+                listOf(
+                    ActionRow.of(
+                        Buttons.PickPlan(this).render(),
+                        Buttons.Unlock(this).render(),
+                        Buttons.Delete(this).render()
+                    )
+                )
+
             PlanningProcess.State.CONCLUDED ->
                 listOf(ActionRow.of(Buttons.UndoConclusion(this).render(), Buttons.Delete(this).render()))
         }
     }
 
+    private fun showStatus(planningProcess: PlanningProcess): String =
+        "Currently ${DiscordFormatter.bold(planningProcess.state.toDisplayString())}"
+
     private fun PlanningProcess.State.toDisplayString() = when (this) {
-        PlanningProcess.State.PENDING -> "pending"
-        PlanningProcess.State.COLLECTING_AVAILABILITIES -> "collecting availabilities"
-        PlanningProcess.State.LOCKED -> "locked"
-        PlanningProcess.State.CONCLUDED -> "concluded"
+        PlanningProcess.State.PENDING -> "Just started, still creating messages...."
+        PlanningProcess.State.COLLECTING_AVAILABILITIES -> "Actively collecting availabilities"
+        PlanningProcess.State.LOCKED -> "Locked and ready for planning"
+        PlanningProcess.State.CONCLUDED -> "Concluded:"
     }
 
     class Buttons {
@@ -133,6 +146,7 @@ class PlanningProcessManageScreen(
                 }
             }
         }
+
         class Delete(override val screen: PlanningProcessManageScreen) : ScreenButton {
             fun render() = Button.danger(CustomIdSerialization.serialize(this), "Delete")
 
@@ -180,7 +194,7 @@ class PlanningProcessManageScreen(
                         textChannel.deleteMessageById(conclusion.message.id).queue()
                     }
                     when (val ai = planningProcess.availabilityInterface) {
-                        null -> { }
+                        null -> {}
                         is AvailabilityMessage -> textChannel.deleteMessageById(ai.message.id).queue()
                         is AvailabilityThread -> {
                             JDAHolder.getThreadChannel(ai.threadChannel).delete().queue()

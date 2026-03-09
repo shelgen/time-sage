@@ -10,19 +10,21 @@ import java.util.*
 data class DateRange(
     val fromInclusive: LocalDate,
     val toInclusive: LocalDate
-): ClosedRange<LocalDate> by fromInclusive..toInclusive {
+) : ClosedRange<LocalDate> by fromInclusive..toInclusive {
     fun dates(): List<LocalDate> = fromInclusive.datesUntil(toInclusive.plusDays(1)).toList()
 
     fun serialize(): String = "${fromInclusive}_${toInclusive}"
 
     override fun toString() = "$fromInclusive through $toInclusive"
 
-    fun toLocalizedString(localization: Localization) =
+    fun toLocalizedString(localization: Localization): String =
         when {
             isANamedMonth() -> fromInclusive.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US))
-            isAWeek(localization) -> "week of $fromInclusive through $toInclusive"
-            else -> "$fromInclusive through $toInclusive"
+            isAWeek(localization) -> "week of ${fromInclusive.asShortDate()} through ${toInclusive.asShortDate()}"
+            else -> "${fromInclusive.asShortDate()} through ${toInclusive.asShortDate()}"
         }
+
+    private fun LocalDate.asShortDate(): String = format(DateTimeFormatter.ofPattern("MMMM d", Locale.US))
 
     /**
      * Splits the dates of this date range into week chunks, each starting on [startDayOfWeek].
