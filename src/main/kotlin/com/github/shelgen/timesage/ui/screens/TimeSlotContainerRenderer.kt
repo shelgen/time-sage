@@ -87,8 +87,11 @@ object TimeSlotContainerRenderer {
                     logger.info("Updating availability at $timeSlot from $old to $new")
                     period.setAvailability(userId, timeSlot, new, planSessionLimit)
                 }
+                onAfterUpdate()
             }
         }
+
+        protected open fun onAfterUpdate() {}
     }
 
     private fun cycleAvailability(current: Availability?) = when (current) {

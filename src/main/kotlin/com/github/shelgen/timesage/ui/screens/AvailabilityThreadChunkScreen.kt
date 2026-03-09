@@ -1,7 +1,9 @@
 package com.github.shelgen.timesage.ui.screens
 
+import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
+import com.github.shelgen.timesage.planning.AvailabilityThread
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
@@ -30,6 +32,18 @@ class AvailabilityThreadChunkScreen(
 
     class Buttons {
         class ToggleTimeSlotAvailability(timeSlot: Instant, screen: AvailabilityThreadChunkScreen) :
-            TimeSlotContainerRenderer.ToggleAvailabilityButton(timeSlot, screen)
+            TimeSlotContainerRenderer.ToggleAvailabilityButton(timeSlot, screen) {
+
+            override fun onAfterUpdate() {
+                val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant) ?: return
+                val ai = planningProcess.availabilityInterface as? AvailabilityThread ?: return
+                JDAHolder.getThreadChannel(ai.threadChannel)
+                    .editMessageById(
+                        ai.periodLevelMessage.id,
+                        AvailabilityThreadPeriodLevelScreen(screen.dateRange, screen.tenant).renderEdit()
+                    )
+                    .queue()
+            }
+        }
     }
 }

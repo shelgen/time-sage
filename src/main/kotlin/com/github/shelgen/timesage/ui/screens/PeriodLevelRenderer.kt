@@ -117,8 +117,11 @@ object PeriodLevelRenderer {
                     logger.info("Updating session limit for ${screen.dateRange} from $old to $new")
                     planningProcess.setSessionLimit(userId, new, globalSessionLimit)
                 }
+                onAfterUpdate()
             }
         }
+
+        protected open fun onAfterUpdate() {}
 
         private fun cycleSessionLimit(current: Int, globalSessionLimit: Int): Int =
             (current + globalSessionLimit) % (globalSessionLimit + 1)
