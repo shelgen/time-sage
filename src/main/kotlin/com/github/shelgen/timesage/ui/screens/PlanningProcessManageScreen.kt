@@ -58,7 +58,7 @@ class PlanningProcessManageScreen(
 
             PlanningProcess.State.CONCLUDED ->
                 listOf(ActionRow.of(Buttons.UndoConclusion(this).render(), Buttons.Delete(this).render()))
-        }
+        } + listOf(ActionRow.of(Buttons.Back(this).render()))
     }
 
     private fun showStatus(planningProcess: PlanningProcess): String =
@@ -152,6 +152,14 @@ class PlanningProcessManageScreen(
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.replyModal(Modals.ConfirmDelete(screen).render()).queue()
+            }
+        }
+
+        class Back(override val screen: PlanningProcessManageScreen) : ScreenButton {
+            fun render() = Button.secondary(CustomIdSerialization.serialize(this), "Back")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndNavigateTo { PlanningProcessesScreen(screen.tenant) }
             }
         }
     }
