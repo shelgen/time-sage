@@ -122,6 +122,7 @@ class PlanAlternativesPageScreen(
                         }
                         rerenderAvailabilityInterface(planningProcess, configuration)
                         planningProcess.availabilityInterface?.let { JDAHolder.unpin(it, screen.tenant) }
+                        planningProcess.availabilityInterface?.let { JDAHolder.archiveThread(it) }
                         JDAHolder.pin(conclusionMessageId, screen.tenant)
                         if (plan.sessions.isNotEmpty()) {
                             JDAHolder.jda.getGuildById(screen.tenant.server.id)?.let { guild ->
@@ -196,6 +197,7 @@ class PlanAlternativesPageScreen(
                         }
                         rerenderAvailabilityInterface(planningProcess, configuration)
                         planningProcess.availabilityInterface?.let { JDAHolder.unpin(it, screen.tenant) }
+                        planningProcess.availabilityInterface?.let { JDAHolder.archiveThread(it) }
                         JDAHolder.pin(conclusionMessageId, screen.tenant)
                     }
                 ) {

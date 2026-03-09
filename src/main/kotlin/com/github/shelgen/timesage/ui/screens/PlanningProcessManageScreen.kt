@@ -142,6 +142,7 @@ class PlanningProcessManageScreen(
                     }
                     rerenderAvailabilityInterface(planningProcess, configuration)
                     planningProcess.availabilityInterface?.let { JDAHolder.pin(it, tenant) }
+                    planningProcess.availabilityInterface?.let { JDAHolder.unarchiveThread(it) }
                     if (conclusion != null) {
                         deleteConclusionArtifacts(conclusion, tenant)
                     }
