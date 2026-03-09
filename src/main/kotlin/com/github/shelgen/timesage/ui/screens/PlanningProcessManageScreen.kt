@@ -43,7 +43,10 @@ class PlanningProcessManageScreen(
                         } ?: "No reminders sent yet.")
             ),
         ) + when (planningProcess.state) {
-            PlanningProcess.State.PENDING -> emptyList()
+            PlanningProcess.State.PENDING -> listOf(
+                ActionRow.of(Buttons.Delete(this).render())
+            )
+
             PlanningProcess.State.COLLECTING_AVAILABILITIES ->
                 listOf(ActionRow.of(Buttons.Lock(this).render(), Buttons.Delete(this).render()))
 
