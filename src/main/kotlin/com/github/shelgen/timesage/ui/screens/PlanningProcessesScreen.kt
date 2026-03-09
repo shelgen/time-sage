@@ -40,7 +40,10 @@ class PlanningProcessesScreen(tenant: Tenant) : Screen(tenant) {
                     planningProcesses.map { process ->
                         Section.of(
                             Buttons.Manage(process.dateRange, this@PlanningProcessesScreen).render(),
-                            TextDisplay.of(process.dateRange.toLocalizedString(configuration.localization))
+                            TextDisplay.of(
+                                "- " + process.dateRange.toLocalizedString(configuration.localization)
+                                    .capitalize() + " (${process.state.name})"
+                            )
                         )
                     }
         }
