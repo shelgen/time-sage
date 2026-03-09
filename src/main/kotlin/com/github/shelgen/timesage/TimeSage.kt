@@ -10,6 +10,7 @@ import com.github.shelgen.timesage.ui.screens.ScreenEntitySelectMenu
 import com.github.shelgen.timesage.ui.screens.ScreenModal
 import com.github.shelgen.timesage.ui.screens.ScreenStringSelectMenu
 import com.github.shelgen.timesage.ui.screens.allSealedSubclasses
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
@@ -141,6 +142,9 @@ class TimeSage : ListenerAdapter() {
         MDC.putCloseable(MDC_USER_NAME, name).use({ block })
     }
 
-    private fun Interaction.toTenant(): Tenant =
-        Tenant(server = DiscordServerId(guild!!.idLong), textChannel = DiscordTextChannelId(channel!!.idLong))
+    private fun Interaction.toTenant(): Tenant {
+        val channel = channel!!
+        val textChannelId = if (channel is ThreadChannel) channel.parentChannel.idLong else channel.idLong
+        return Tenant(server = DiscordServerId(guild!!.idLong), textChannel = DiscordTextChannelId(textChannelId))
+    }
 }
