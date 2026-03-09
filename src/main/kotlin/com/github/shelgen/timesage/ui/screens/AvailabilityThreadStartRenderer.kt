@@ -20,12 +20,12 @@ object AvailabilityThreadStartRenderer {
                         when {
                             conclusion != null ->
                                 DiscordFormatter.bold(
-                                    "✅ Planning for this ${dateRange.toLocalizedString(configuration.localization)} has been concluded" +
-                                            "\nSee " + conclusion.linkToMessage(tenant)
+                                    "✅ A plan has been made!\n" +
+                                            "See " + conclusion.linkToMessage(tenant)
                                 )
                             planningProcess.state == PlanningProcess.State.LOCKED ->
                                 DiscordFormatter.bold(
-                                    "🔒 Availabilities are locked — a plan is currently being selected"
+                                    "🔒 Responses are locked and a plan is being selected"
                                 )
                             else ->
                                 "Please use the buttons below to toggle your availability" +

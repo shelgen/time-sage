@@ -101,11 +101,13 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                 if (!configuration.reminders.enabled) {
                     DiscordFormatter.italics("Reminders are disabled.")
                 } else {
-                    "Reminders are sent every " + when (configuration.reminders.intervalDays) {
-                        1 -> DiscordFormatter.bold("day")
-                        7 -> DiscordFormatter.bold("week")
-                        else -> DiscordFormatter.bold("${configuration.reminders.intervalDays} days")
-                    } + " at ${DiscordFormatter.bold("%02d:00".format(configuration.reminders.hourOfDay))} (${configuration.localization.timeZone.toZoneId()})."
+                    "Reminders are sent " + DiscordFormatter.bold(
+                        "every " + when (val intervalDays = configuration.reminders.intervalDays) {
+                            1 -> "day"
+                            7 -> "week"
+                            else -> "$intervalDays days"
+                        }
+                    ) + " at ${DiscordFormatter.bold("%02d:00".format(configuration.reminders.hourOfDay))} (${configuration.localization.timeZone.toZoneId()})."
                 }
             ),
             TextDisplay.of(DiscordFormatter.bold("Activities") + ":"),

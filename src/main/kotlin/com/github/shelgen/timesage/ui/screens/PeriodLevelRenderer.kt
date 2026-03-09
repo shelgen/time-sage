@@ -32,7 +32,6 @@ object PeriodLevelRenderer {
             ?: error("Planning process for $dateRange in $tenant does not exist!")
         return renderMissingResponses(dateRangeState, configuration) +
                 renderSessionLimits(
-                    title = "Limits this ${dateRange.toLocalizedString(configuration.localization)}",
                     planningProcess = dateRangeState,
                     globalSessionLimit = configuration.sessionLimit,
                     buttonFactory = toggleSessionLimitButtonFactory
@@ -58,7 +57,6 @@ object PeriodLevelRenderer {
         )
 
     private fun renderSessionLimits(
-        title: String,
         planningProcess: PlanningProcess,
         globalSessionLimit: Int,
         buttonFactory: () -> ToggleSessionLimitButton<*>,
@@ -68,7 +66,7 @@ object PeriodLevelRenderer {
                 buttonFactory().render()
                     .let { if (planningProcess.isLocked()) it.asDisabled() else it },
                 TextDisplay.of(
-                    "### $title\n" +
+                    "### Limits this period\n" +
                             ((1 until globalSessionLimit).map { limit ->
                                 val label = if (limit == 1) "Only one session" else "Only $limit sessions"
                                 planningProcess.availabilityResponses
@@ -116,7 +114,7 @@ object PeriodLevelRenderer {
                 PlanningProcessRepository.update(planningProcess) { planningProcess ->
                     val old = planningProcess.availabilityResponses[userId]?.sessionLimit ?: globalSessionLimit
                     val new = cycleSessionLimit(old, globalSessionLimit)
-                    logger.info("Updating session limit for target period ${screen.dateRange} from $old to $new")
+                    logger.info("Updating session limit for ${screen.dateRange} from $old to $new")
                     planningProcess.setSessionLimit(userId, new, globalSessionLimit)
                 }
             }
