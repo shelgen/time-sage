@@ -137,18 +137,14 @@ sealed interface ScreenComponent<EVENT : Event> {
                         AvailabilityThreadPeriodLevelScreen(dateRange, tenant).renderEdit()
                     )
                     .queue()
-                val weekChunks = dateRange.chunkedByWeek(configuration.localization.startDayOfWeek)
-                availabilityInterface.weekMessages.forEach { (weekRange, messageId) ->
-                    val weekChunkIndex = weekChunks.indexOfFirst { it == weekRange }
-                    if (weekChunkIndex >= 0) {
-                        thread
-                            .editMessageById(
-                                messageId.id,
-                                AvailabilityThreadWeekScreen(weekChunkIndex, dateRange, tenant)
-                                    .renderEdit()
-                            )
-                            .queue()
-                    }
+                availabilityInterface.chunkMessages.forEachIndexed { chunkIndex, messageId ->
+                    thread
+                        .editMessageById(
+                            messageId.id,
+                            AvailabilityThreadChunkScreen(chunkIndex, dateRange, tenant)
+                                .renderEdit()
+                        )
+                        .queue()
                 }
             }
         }

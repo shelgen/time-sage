@@ -68,7 +68,7 @@ class PlanningProcessFileDao {
             val threadStartMessageId: Long,
             val threadChannelId: Long,
             val periodLevelMessageId: Long,
-            val weekMessageIds: Map<String, Long>,
+            val chunkMessageIds: List<Long>,
         ) : AvailabilityInterface
 
         data class AvailabilityResponse(

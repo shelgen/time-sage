@@ -1,7 +1,6 @@
 package com.github.shelgen.timesage.time
 
 import com.github.shelgen.timesage.configuration.Localization
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -25,26 +24,6 @@ data class DateRange(
         }
 
     private fun LocalDate.asShortDate(): String = format(DateTimeFormatter.ofPattern("MMMM d", Locale.US))
-
-    /**
-     * Splits the dates of this date range into week chunks, each starting on [startDayOfWeek].
-     * The first and last chunk may be partial weeks.
-     */
-    fun chunkedByWeek(startDayOfWeek: DayOfWeek): List<DateRange> {
-        val result = mutableListOf<DateRange>()
-        var chunkStart: LocalDate? = null
-        var chunkEnd: LocalDate? = null
-        for (date in dates()) {
-            if (date.dayOfWeek == startDayOfWeek && chunkStart != null) {
-                result.add(DateRange(chunkStart, chunkEnd!!))
-                chunkStart = null
-            }
-            if (chunkStart == null) chunkStart = date
-            chunkEnd = date
-        }
-        if (chunkStart != null) result.add(DateRange(chunkStart, chunkEnd!!))
-        return result
-    }
 
     private fun isANamedMonth(): Boolean {
         val yearMonth = YearMonth.from(fromInclusive)

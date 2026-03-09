@@ -12,7 +12,7 @@ import com.github.shelgen.timesage.time.TimeSlot
 import com.github.shelgen.timesage.ui.screens.AvailabilityMessageScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadPeriodLevelScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadStartScreen
-import com.github.shelgen.timesage.ui.screens.AvailabilityThreadWeekScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityThreadChunkScreen
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import java.time.Instant
 
@@ -38,7 +38,7 @@ object AvailabilityMessageSender {
         val channel = JDAHolder.getTextChannel(tenant)
         if (timeSlots.size > MAX_TIME_SLOTS_IN_SINGLE_MESSAGE) {
             logger.info("More than $MAX_TIME_SLOTS_IN_SINGLE_MESSAGE time slots, creating thread...")
-            val chunks = dateRange.chunkedByWeek(configuration.localization.startDayOfWeek)
+            val chunks = timeSlots.chunked(MAX_TIME_SLOTS_IN_SINGLE_MESSAGE)
 
             logger.info("Sending thread start message...")
             channel.sendMessage(AvailabilityThreadStartScreen(dateRange, tenant).render()).queue { headerMessage ->
@@ -54,11 +54,11 @@ object AvailabilityMessageSender {
                                     dateRange = dateRange,
                                     tenant = tenant,
                                     timeSlots = timeSlots,
-                                    weekChunks = chunks,
-                                    weekChunkIndex = 0,
+                                    chunks = chunks,
+                                    chunkIndex = 0,
                                     threadStartMessageId = DiscordMessageId(headerMessage.idLong),
                                     periodLevelMessageId = DiscordMessageId(introMessage.idLong),
-                                    accumulatedWeekMessageIds = emptyMap(),
+                                    accumulatedChunkMessageIds = emptyList(),
                                 )
                             }
                     }
@@ -81,20 +81,20 @@ object AvailabilityMessageSender {
         dateRange: DateRange,
         tenant: Tenant,
         timeSlots: List<TimeSlot>,
-        weekChunks: List<DateRange>,
-        weekChunkIndex: Int,
+        chunks: List<List<TimeSlot>>,
+        chunkIndex: Int,
         threadStartMessageId: DiscordMessageId,
         periodLevelMessageId: DiscordMessageId,
-        accumulatedWeekMessageIds: Map<DateRange, DiscordMessageId>,
+        accumulatedChunkMessageIds: List<DiscordMessageId>,
     ) {
-        if (weekChunkIndex >= weekChunks.size) {
+        if (chunkIndex >= chunks.size) {
             logger.info("Saving availability interface...")
             val availabilityInterface = AvailabilityThread(
                 postedAt = Instant.now(),
                 threadStartMessage = threadStartMessageId,
                 threadChannel = DiscordThreadChannelId(thread.idLong),
                 periodLevelMessage = periodLevelMessageId,
-                weekMessages = accumulatedWeekMessageIds,
+                chunkMessages = accumulatedChunkMessageIds,
             )
             PlanningProcessRepository.update(planningProcess) { it.startCollectingAvailabilities(availabilityInterface) }
             logger.info("Locking thread...")
@@ -103,11 +103,10 @@ object AvailabilityMessageSender {
             return
         }
 
-        val weekChunk = weekChunks[weekChunkIndex]
-        logger.info("Sending week message for week chunk $weekChunk...")
+        logger.info("Sending chunk message $chunkIndex...")
         thread.sendMessage(
-            AvailabilityThreadWeekScreen(
-                weekChunkIndex = weekChunkIndex,
+            AvailabilityThreadChunkScreen(
+                chunkIndex = chunkIndex,
                 dateRange = dateRange,
                 tenant = tenant
             ).render()
@@ -118,11 +117,11 @@ object AvailabilityMessageSender {
                 dateRange = dateRange,
                 tenant = tenant,
                 timeSlots = timeSlots,
-                weekChunks = weekChunks,
-                weekChunkIndex = weekChunkIndex + 1,
+                chunks = chunks,
+                chunkIndex = chunkIndex + 1,
                 threadStartMessageId = threadStartMessageId,
                 periodLevelMessageId = periodLevelMessageId,
-                accumulatedWeekMessageIds = accumulatedWeekMessageIds + (weekChunk to DiscordMessageId(chunkMessage.idLong)),
+                accumulatedChunkMessageIds = accumulatedChunkMessageIds + DiscordMessageId(chunkMessage.idLong),
             )
         }
     }

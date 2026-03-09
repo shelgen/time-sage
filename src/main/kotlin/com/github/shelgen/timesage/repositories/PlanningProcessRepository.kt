@@ -89,9 +89,7 @@ object PlanningProcessRepository {
             threadStartMessage = DiscordMessageId(threadStartMessageId),
             threadChannel = DiscordThreadChannelId(threadChannelId),
             periodLevelMessage = DiscordMessageId(periodLevelMessageId),
-            weekMessages = weekMessageIds.map { (dateRangeString, messageId) ->
-                DateRange.deserialize(dateRangeString) to DiscordMessageId(messageId)
-            }.toMap(),
+            chunkMessages = chunkMessageIds.map { DiscordMessageId(it) },
         )
     }
 
@@ -157,9 +155,7 @@ object PlanningProcessRepository {
             threadStartMessageId = threadStartMessage.id,
             threadChannelId = threadChannel.id,
             periodLevelMessageId = periodLevelMessage.id,
-            weekMessageIds = weekMessages
-                .map { (dateRange, message) -> dateRange.serialize() to message.id }
-                .toMap(TreeMap()),
+            chunkMessageIds = chunkMessages.map { it.id },
         )
     }
 

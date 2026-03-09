@@ -3,7 +3,6 @@ package com.github.shelgen.timesage.planning
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.discord.DiscordMessageId
 import com.github.shelgen.timesage.discord.DiscordThreadChannelId
-import com.github.shelgen.timesage.time.DateRange
 import java.time.Instant
 
 sealed interface AvailabilityInterface {
@@ -27,7 +26,7 @@ data class AvailabilityThread(
     val threadStartMessage: DiscordMessageId,
     val threadChannel: DiscordThreadChannelId,
     val periodLevelMessage: DiscordMessageId,
-    val weekMessages: Map<DateRange, DiscordMessageId>,
+    val chunkMessages: List<DiscordMessageId>,
 ) : AvailabilityInterface {
     override fun toLink(tenant: Tenant) =
         "https://discord.com/channels/${tenant.server.id}/${threadChannel.id}/${periodLevelMessage.id}"
