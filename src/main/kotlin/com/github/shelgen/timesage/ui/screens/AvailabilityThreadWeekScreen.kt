@@ -25,9 +25,9 @@ class AvailabilityThreadWeekScreen(
         }
         if (weekTimeSlots.isEmpty()) {
             return if (weekChunkIndex == 0) {
-                listOf(TextDisplay.of(DiscordFormatter.italics("#- The first week this period has no time slots.")))
+                listOf(TextDisplay.of(DiscordFormatter.italics("-# The first week this period has no time slots.")))
             } else {
-                listOf(TextDisplay.of(DiscordFormatter.italics("#- The last week this period has no time slots.")))
+                listOf(TextDisplay.of(DiscordFormatter.italics("-# The last week this period has no time slots.")))
             }
         }
         return TimeSlotContainerRenderer.renderTimeSlotContainers(
