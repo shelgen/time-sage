@@ -8,6 +8,7 @@ import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.ui.AlternativePrinter
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.components.actionrow.ActionRow
+import net.dv8tion.jda.api.components.actionrow.ActionRowChildComponent
 import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.container.Container
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
@@ -60,30 +61,42 @@ class PreviewAlternativesScreen(
             )
         }
 
-        val nextSize = pageSize.coerceAtMost(allPlans.size - (fromInclusive + pageSize))
-        val bottomRow: List<MessageTopLevelComponent> = if (nextSize > 0) {
-            listOf(ActionRow.of(Buttons.ShowMoreAlternatives(nextSize = nextSize, screen = this).render()))
-        } else {
-            emptyList()
-        }
+        val navigationRow: List<MessageTopLevelComponent> = buildList<ActionRowChildComponent> {
+            if (fromInclusive > 0) add(Buttons.Previous(screen = this@PreviewAlternativesScreen).render())
+            if (fromInclusive + pageSize < allPlans.size) add(Buttons.Next(screen = this@PreviewAlternativesScreen).render())
+        }.let { buttons -> if (buttons.isEmpty()) emptyList() else listOf(ActionRow.of(buttons)) }
 
-        return header + alternatives + bottomRow
+        return header + alternatives + navigationRow
     }
 
     class Buttons {
-        class ShowMoreAlternatives(
-            val nextSize: Int,
-            override val screen: PreviewAlternativesScreen,
-        ) : ScreenButton {
+        class Previous(override val screen: PreviewAlternativesScreen) : ScreenButton {
             fun render() =
-                Button.primary(CustomIdSerialization.serialize(this), "Show $nextSize more...")
+                Button.primary(CustomIdSerialization.serialize(this), "Previous")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndNavigateTo {
+                    PreviewAlternativesScreen(
+                        dateRange = screen.dateRange,
+                        fromInclusive = maxOf(0, screen.fromInclusive - screen.pageSize),
+                        pageSize = screen.pageSize,
+                        inputHashCode = screen.inputHashCode,
+                        tenant = screen.tenant,
+                    )
+                }
+            }
+        }
+
+        class Next(override val screen: PreviewAlternativesScreen) : ScreenButton {
+            fun render() =
+                Button.primary(CustomIdSerialization.serialize(this), "Next")
 
             override fun handle(event: ButtonInteractionEvent) {
                 event.processAndNavigateTo {
                     PreviewAlternativesScreen(
                         dateRange = screen.dateRange,
                         fromInclusive = screen.fromInclusive + screen.pageSize,
-                        pageSize = nextSize,
+                        pageSize = screen.pageSize,
                         inputHashCode = screen.inputHashCode,
                         tenant = screen.tenant,
                     )
