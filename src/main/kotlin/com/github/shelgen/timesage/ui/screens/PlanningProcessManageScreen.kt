@@ -35,9 +35,7 @@ class PlanningProcessManageScreen(
                 "## Planning of ${dateRange.toLocalizedString(configuration.localization)}\n" +
                         planningProcess.availabilityInterface?.toLink(tenant).orEmpty() + "\n" +
                         showStatus(planningProcess) + "\n" +
-                        planningProcess.conclusion?.let {
-                            "https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${it.message.id}"
-                        }.orEmpty() + "\n" +
+                        planningProcess.conclusion?.linkToMessage(tenant).orEmpty() + "\n" +
                         (planningProcess.sentReminders.lastOrNull()?.let {
                             "Last reminder sent: ${configuration.localization.dateOf(it.sentAt)}"
                         } ?: "No reminders sent yet.")

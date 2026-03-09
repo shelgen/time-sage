@@ -21,7 +21,7 @@ object AvailabilityThreadStartRenderer {
                             conclusion != null ->
                                 DiscordFormatter.bold(
                                     "✅ Planning for this ${dateRange.toLocalizedString(configuration.localization)} has been concluded" +
-                                            "\nSee https://discord.com/channels/${tenant.server}/${tenant.textChannel}/${conclusion.message.id}"
+                                            "\nSee " + conclusion.linkToMessage(tenant)
                                 )
                             planningProcess.state == PlanningProcess.State.LOCKED ->
                                 DiscordFormatter.bold(
