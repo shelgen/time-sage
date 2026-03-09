@@ -123,7 +123,7 @@ object PeriodLevelRenderer {
         }
 
         private fun cycleSessionLimit(current: Int, globalSessionLimit: Int): Int =
-            (current + globalSessionLimit - 1) % globalSessionLimit
+            (current + globalSessionLimit - 1) % (globalSessionLimit + 1)
     }
 
     abstract class PreviewAlternativesButton<T : AbstractDateRangeScreen>(override val screen: T) : ScreenButton {
