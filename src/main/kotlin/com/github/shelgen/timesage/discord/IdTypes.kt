@@ -1,5 +1,7 @@
 package com.github.shelgen.timesage.discord
 
+data class DiscordScheduledEventId(val id: Long)
+
 data class DiscordVoiceChannelId(val id: Long)
 
 data class DiscordServerId(val id: Long)

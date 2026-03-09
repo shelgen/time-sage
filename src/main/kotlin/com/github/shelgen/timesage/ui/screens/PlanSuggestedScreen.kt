@@ -65,7 +65,8 @@ class PlanSuggestedScreen(
                         PlanningProcessRepository.update(planningProcess) { availabilitiesPeriod ->
                             availabilitiesPeriod.conclusion = Conclusion(
                                 message = conclusionMessageId,
-                                plan = plan.id
+                                plan = plan.id,
+                                scheduledEvents = emptyList(),
                             )
                             availabilitiesPeriod.state = PlanningProcess.State.CONCLUDED
                         }
@@ -74,7 +75,12 @@ class PlanSuggestedScreen(
                         JDAHolder.pin(conclusionMessageId, screen.tenant)
                         if (plan.sessions.isNotEmpty()) {
                             JDAHolder.jda.getGuildById(screen.tenant.server.id)?.let { guild ->
-                                createScheduledEventsForPlan(plan, guild, configuration)
+                                createScheduledEventsForPlan(plan, guild, configuration) { scheduledEventIds ->
+                                    val updated = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
+                                    PlanningProcessRepository.update(updated) { mutable ->
+                                        mutable.conclusion = mutable.conclusion?.copy(scheduledEvents = scheduledEventIds)
+                                    }
+                                }
                             }
                         }
                     }

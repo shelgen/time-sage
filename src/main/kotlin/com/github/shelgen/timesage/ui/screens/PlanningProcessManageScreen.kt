@@ -5,6 +5,7 @@ import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.planning.AvailabilityMessage
 import com.github.shelgen.timesage.planning.AvailabilityThread
+import com.github.shelgen.timesage.planning.Conclusion
 import com.github.shelgen.timesage.planning.Planner
 import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
@@ -134,15 +135,15 @@ class PlanningProcessManageScreen(
                     val dateRange = screen.dateRange
                     val configuration = ConfigurationRepository.loadOrInitialize(tenant)
                     val planningProcess = PlanningProcessRepository.load(dateRange, tenant)!!
-                    val conclusionMessageId = planningProcess.conclusion?.message
+                    val conclusion = planningProcess.conclusion
                     PlanningProcessRepository.update(planningProcess) { mutable ->
                         mutable.state = PlanningProcess.State.LOCKED
                         mutable.conclusion = null
                     }
                     rerenderAvailabilityInterface(planningProcess, configuration)
                     planningProcess.availabilityInterface?.let { JDAHolder.pin(it, tenant) }
-                    if (conclusionMessageId != null) {
-                        JDAHolder.getTextChannel(tenant).deleteMessageById(conclusionMessageId.id).queue()
+                    if (conclusion != null) {
+                        deleteConclusionArtifacts(conclusion, tenant)
                     }
                 }
             }
@@ -200,7 +201,7 @@ class PlanningProcessManageScreen(
                         textChannel.deleteMessageById(reminder.message.id).queue()
                     }
                     planningProcess.conclusion?.let { conclusion ->
-                        textChannel.deleteMessageById(conclusion.message.id).queue()
+                        deleteConclusionArtifacts(conclusion, tenant)
                     }
                     when (val ai = planningProcess.availabilityInterface) {
                         null -> {}
@@ -213,6 +214,20 @@ class PlanningProcessManageScreen(
                     PlanningProcessRepository.delete(planningProcess)
                     PlanningProcessesScreen(tenant)
                 }
+            }
+        }
+    }
+
+    companion object {
+        private fun deleteConclusionArtifacts(
+            conclusion: Conclusion,
+            tenant: Tenant
+        ) {
+            val textChannel = JDAHolder.getTextChannel(tenant)
+            textChannel.deleteMessageById(conclusion.message.id).queue()
+            val guild = JDAHolder.getGuild(tenant)
+            conclusion.scheduledEvents.forEach { eventId ->
+                guild.retrieveScheduledEventById(eventId.id).queue({ it.delete().queue() }, {})
             }
         }
     }

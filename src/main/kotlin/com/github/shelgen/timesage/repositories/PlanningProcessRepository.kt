@@ -3,6 +3,7 @@ package com.github.shelgen.timesage.repositories
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.ActivityId
 import com.github.shelgen.timesage.discord.DiscordMessageId
+import com.github.shelgen.timesage.discord.DiscordScheduledEventId
 import com.github.shelgen.timesage.discord.DiscordServerId
 import com.github.shelgen.timesage.discord.DiscordTextChannelId
 import com.github.shelgen.timesage.discord.DiscordThreadChannelId
@@ -115,6 +116,7 @@ object PlanningProcessRepository {
     private fun PlanningProcessFileDao.Json.Conclusion.toDomain() = Conclusion(
         message = DiscordMessageId(messageId),
         plan = PlanId(UUID.fromString(planId)),
+        scheduledEvents = scheduledEventIds.map { DiscordScheduledEventId(it) },
     )
 
     private fun PlanningProcess.toJson() = PlanningProcessFileDao.Json(
@@ -180,6 +182,7 @@ object PlanningProcessRepository {
     private fun Conclusion.toJson() = PlanningProcessFileDao.Json.Conclusion(
         messageId = message.id,
         planId = plan.value.toString(),
+        scheduledEventIds = scheduledEvents.map { it.id },
     )
 
     private fun PlanningProcessFileDao.Json.Plan.toDomain() = Plan(

@@ -88,6 +88,7 @@ class PlanningProcessFileDao {
         data class Conclusion(
             val messageId: Long,
             val planId: String,
+            val scheduledEventIds: List<Long>,
         )
 
         data class Plan(
