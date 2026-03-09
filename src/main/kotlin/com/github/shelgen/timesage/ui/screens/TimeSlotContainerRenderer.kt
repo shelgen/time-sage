@@ -70,7 +70,7 @@ object TimeSlotContainerRenderer {
     )
 
     abstract class ToggleAvailabilityButton(
-        private val timeSlot: Instant,
+        val timeSlot: Instant,
         override val screen: AbstractDateRangeScreen
     ) : ScreenButton {
         fun render() =
