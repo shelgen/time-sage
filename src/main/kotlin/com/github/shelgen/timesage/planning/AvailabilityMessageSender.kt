@@ -106,8 +106,6 @@ object AvailabilityMessageSender {
                         footerMessage = DiscordMessageId(footerMessage.idLong),
                     )
                     PlanningProcessRepository.update(planningProcess) { it.startCollectingAvailabilities(availabilityInterface) }
-                    logger.info("Locking thread...")
-                    thread.manager.setLocked(true).queue()
                     JDAHolder.pin(availabilityInterface, tenant)
                 }
             return
