@@ -12,7 +12,6 @@ class AvailabilityThreadPeriodLevelScreen(dateRange: DateRange, tenant: Tenant) 
             dateRange = dateRange,
             configuration = configuration,
             toggleSessionLimitButtonFactory = { Buttons.ToggleSessionLimit(this@AvailabilityThreadPeriodLevelScreen) },
-            previewAlternativesButtonFactory = { Buttons.PreviewAlternatives(this@AvailabilityThreadPeriodLevelScreen) },
         )
 
     class Buttons {
@@ -29,8 +28,5 @@ class AvailabilityThreadPeriodLevelScreen(dateRange: DateRange, tenant: Tenant) 
                 )
             }
         }
-
-        class PreviewAlternatives(override val screen: AvailabilityThreadPeriodLevelScreen) :
-            PeriodLevelRenderer.PreviewAlternativesButton<AvailabilityThreadPeriodLevelScreen>(screen)
     }
 }

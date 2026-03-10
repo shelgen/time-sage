@@ -10,6 +10,7 @@ import com.github.shelgen.timesage.repositories.PlanningProcessRepository
 import com.github.shelgen.timesage.time.DateRange
 import com.github.shelgen.timesage.time.TimeSlot
 import com.github.shelgen.timesage.ui.screens.AvailabilityMessageScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityThreadFooterScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadPeriodLevelScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadStartScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadTimeSlotChunkScreen
@@ -92,18 +93,23 @@ object AvailabilityMessageSender {
         accumulatedTimeSlotChunks: List<AvailabilityThread.TimeSlotChunk>,
     ) {
         if (chunkIndex >= chunks.size) {
-            logger.info("Saving availability interface...")
-            val availabilityInterface = AvailabilityThread(
-                postedAt = Instant.now(),
-                threadStartMessage = threadStartMessageId,
-                threadChannel = DiscordThreadChannelId(thread.idLong),
-                periodLevelMessage = periodLevelMessageId,
-                timeSlotChunks = accumulatedTimeSlotChunks,
-            )
-            PlanningProcessRepository.update(planningProcess) { it.startCollectingAvailabilities(availabilityInterface) }
-            logger.info("Locking thread...")
-            thread.manager.setLocked(true).queue()
-            JDAHolder.pin(availabilityInterface, tenant)
+            logger.info("Sending footer message...")
+            thread.sendMessage(AvailabilityThreadFooterScreen(dateRange, tenant).render())
+                .queue { footerMessage ->
+                    logger.info("Saving availability interface...")
+                    val availabilityInterface = AvailabilityThread(
+                        postedAt = Instant.now(),
+                        threadStartMessage = threadStartMessageId,
+                        threadChannel = DiscordThreadChannelId(thread.idLong),
+                        periodLevelMessage = periodLevelMessageId,
+                        timeSlotChunks = accumulatedTimeSlotChunks,
+                        footerMessage = DiscordMessageId(footerMessage.idLong),
+                    )
+                    PlanningProcessRepository.update(planningProcess) { it.startCollectingAvailabilities(availabilityInterface) }
+                    logger.info("Locking thread...")
+                    thread.manager.setLocked(true).queue()
+                    JDAHolder.pin(availabilityInterface, tenant)
+                }
             return
         }
 
@@ -139,6 +145,7 @@ object AvailabilityMessageSender {
         rerenderStart: Boolean = true,
         rerenderPeriodLevel: Boolean = true,
         rerenderTimeSlots: Boolean = true,
+        rerenderFooter: Boolean = false,
     ) {
         val availabilityInterface = planningProcess.availabilityInterface ?: return
         val dateRange = planningProcess.dateRange
@@ -190,6 +197,15 @@ object AvailabilityMessageSender {
                             .queue()
                         timeSlotIndex += chunk.size
                     }
+                }
+
+                if (rerenderFooter) {
+                    thread
+                        .editMessageById(
+                            availabilityInterface.footerMessage.id,
+                            AvailabilityThreadFooterScreen(dateRange, tenant).renderEdit()
+                        )
+                        .queue()
                 }
             }
         }

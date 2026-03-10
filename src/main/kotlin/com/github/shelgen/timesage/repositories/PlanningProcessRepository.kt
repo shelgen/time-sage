@@ -96,6 +96,7 @@ object PlanningProcessRepository {
                     message = DiscordMessageId(it.messageId)
                 )
             },
+            footerMessage = DiscordMessageId(footerMessageId),
         )
     }
 
@@ -168,6 +169,7 @@ object PlanningProcessRepository {
                     messageId = it.message.id
                 )
             },
+            footerMessageId = footerMessage.id,
         )
     }
 

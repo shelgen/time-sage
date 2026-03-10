@@ -16,13 +16,13 @@ class AvailabilityMessageScreen(dateRange: DateRange, tenant: Tenant) : Abstract
                     dateRange = dateRange,
                     configuration = configuration,
                     toggleSessionLimitButtonFactory = { Buttons.ToggleSessionLimit(this@AvailabilityMessageScreen) },
-                    previewAlternativesButtonFactory = { Buttons.PreviewAlternatives(this@AvailabilityMessageScreen) },
                 ) +
                 TimeSlotContainerRenderer.renderTimeSlotContainers(
                     timeSlots = planningProcess.timeSlots,
                     dateRange = dateRange,
                     tenant = tenant
-                ) { timeSlot -> Buttons.ToggleTimeSlotAvailability(timeSlot, this) }
+                ) { timeSlot -> Buttons.ToggleTimeSlotAvailability(timeSlot, this) } +
+                FooterRenderer.renderComponents { Buttons.PreviewAlternatives(this@AvailabilityMessageScreen) }
     }
 
     class Buttons {
@@ -33,6 +33,6 @@ class AvailabilityMessageScreen(dateRange: DateRange, tenant: Tenant) : Abstract
             PeriodLevelRenderer.ToggleSessionLimitButton<AvailabilityMessageScreen>(screen)
 
         class PreviewAlternatives(override val screen: AvailabilityMessageScreen) :
-            PeriodLevelRenderer.PreviewAlternativesButton<AvailabilityMessageScreen>(screen)
+            FooterRenderer.PreviewAlternativesButton<AvailabilityMessageScreen>(screen)
     }
 }

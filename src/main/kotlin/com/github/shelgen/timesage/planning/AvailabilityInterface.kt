@@ -27,6 +27,7 @@ data class AvailabilityThread(
     val threadChannel: DiscordThreadChannelId,
     val periodLevelMessage: DiscordMessageId,
     val timeSlotChunks: List<TimeSlotChunk>,
+    val footerMessage: DiscordMessageId,
 ) : AvailabilityInterface {
     data class TimeSlotChunk(val size: Int, val message: DiscordMessageId)
 
