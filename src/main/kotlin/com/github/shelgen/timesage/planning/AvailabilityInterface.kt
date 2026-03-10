@@ -26,8 +26,10 @@ data class AvailabilityThread(
     val threadStartMessage: DiscordMessageId,
     val threadChannel: DiscordThreadChannelId,
     val periodLevelMessage: DiscordMessageId,
-    val chunkMessages: List<DiscordMessageId>,
+    val timeSlotChunks: List<TimeSlotChunk>,
 ) : AvailabilityInterface {
+    data class TimeSlotChunk(val size: Int, val message: DiscordMessageId)
+
     override fun toLink(tenant: Tenant) =
         "https://discord.com/channels/${tenant.server.id}/${threadChannel.id}/${periodLevelMessage.id}"
 

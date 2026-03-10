@@ -90,7 +90,12 @@ object PlanningProcessRepository {
             threadStartMessage = DiscordMessageId(threadStartMessageId),
             threadChannel = DiscordThreadChannelId(threadChannelId),
             periodLevelMessage = DiscordMessageId(periodLevelMessageId),
-            chunkMessages = chunkMessageIds.map { DiscordMessageId(it) },
+            timeSlotChunks = timeSlotChunks.map {
+                AvailabilityThread.TimeSlotChunk(
+                    size = it.size,
+                    message = DiscordMessageId(it.messageId)
+                )
+            },
         )
     }
 
@@ -157,7 +162,12 @@ object PlanningProcessRepository {
             threadStartMessageId = threadStartMessage.id,
             threadChannelId = threadChannel.id,
             periodLevelMessageId = periodLevelMessage.id,
-            chunkMessageIds = chunkMessages.map { it.id },
+            timeSlotChunks = timeSlotChunks.map {
+                PlanningProcessFileDao.Json.AvailabilityThread.TimeSlotChunk(
+                    size = it.size,
+                    messageId = it.message.id
+                )
+            },
         )
     }
 

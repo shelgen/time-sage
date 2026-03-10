@@ -12,7 +12,7 @@ import com.github.shelgen.timesage.time.TimeSlot
 import com.github.shelgen.timesage.ui.screens.AvailabilityMessageScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadPeriodLevelScreen
 import com.github.shelgen.timesage.ui.screens.AvailabilityThreadStartScreen
-import com.github.shelgen.timesage.ui.screens.AvailabilityThreadChunkScreen
+import com.github.shelgen.timesage.ui.screens.AvailabilityThreadTimeSlotChunkScreen
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel
 import java.time.Instant
 
@@ -58,7 +58,7 @@ object AvailabilityMessageSender {
                                     chunkIndex = 0,
                                     threadStartMessageId = DiscordMessageId(headerMessage.idLong),
                                     periodLevelMessageId = DiscordMessageId(introMessage.idLong),
-                                    accumulatedChunkMessageIds = emptyList(),
+                                    accumulatedTimeSlotChunks = emptyList(),
                                 )
                             }
                     }
@@ -85,7 +85,7 @@ object AvailabilityMessageSender {
         chunkIndex: Int,
         threadStartMessageId: DiscordMessageId,
         periodLevelMessageId: DiscordMessageId,
-        accumulatedChunkMessageIds: List<DiscordMessageId>,
+        accumulatedTimeSlotChunks: List<AvailabilityThread.TimeSlotChunk>,
     ) {
         if (chunkIndex >= chunks.size) {
             logger.info("Saving availability interface...")
@@ -94,7 +94,7 @@ object AvailabilityMessageSender {
                 threadStartMessage = threadStartMessageId,
                 threadChannel = DiscordThreadChannelId(thread.idLong),
                 periodLevelMessage = periodLevelMessageId,
-                chunkMessages = accumulatedChunkMessageIds,
+                timeSlotChunks = accumulatedTimeSlotChunks,
             )
             PlanningProcessRepository.update(planningProcess) { it.startCollectingAvailabilities(availabilityInterface) }
             logger.info("Locking thread...")
@@ -105,8 +105,9 @@ object AvailabilityMessageSender {
 
         logger.info("Sending chunk message $chunkIndex...")
         thread.sendMessage(
-            AvailabilityThreadChunkScreen(
-                chunkIndex = chunkIndex,
+            AvailabilityThreadTimeSlotChunkScreen(
+                fromInclusive = chunkIndex * MAX_TIME_SLOTS_IN_SINGLE_MESSAGE,
+                size = chunks[chunkIndex].size,
                 dateRange = dateRange,
                 tenant = tenant
             ).render()
@@ -121,7 +122,10 @@ object AvailabilityMessageSender {
                 chunkIndex = chunkIndex + 1,
                 threadStartMessageId = threadStartMessageId,
                 periodLevelMessageId = periodLevelMessageId,
-                accumulatedChunkMessageIds = accumulatedChunkMessageIds + DiscordMessageId(chunkMessage.idLong),
+                accumulatedTimeSlotChunks = accumulatedTimeSlotChunks + AvailabilityThread.TimeSlotChunk(
+                    size = chunks[chunkIndex].size,
+                    message = DiscordMessageId(chunkMessage.idLong),
+                ),
             )
         }
     }

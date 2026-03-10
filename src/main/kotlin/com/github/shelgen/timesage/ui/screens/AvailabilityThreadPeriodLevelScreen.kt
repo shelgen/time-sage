@@ -24,13 +24,20 @@ class AvailabilityThreadPeriodLevelScreen(dateRange: DateRange, tenant: Tenant) 
                 val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant) ?: return
                 val ai = planningProcess.availabilityInterface as? AvailabilityThread ?: return
                 val threadChannel = JDAHolder.getThreadChannel(ai.threadChannel)
-                ai.chunkMessages.forEachIndexed { chunkIndex, messageId ->
+                var timeSlotIndex = 0
+                ai.timeSlotChunks.forEach { chunk ->
                     threadChannel
                         .editMessageById(
-                            messageId.id,
-                            AvailabilityThreadChunkScreen(chunkIndex, screen.dateRange, screen.tenant).renderEdit()
+                            chunk.message.id,
+                            AvailabilityThreadTimeSlotChunkScreen(
+                                fromInclusive = timeSlotIndex,
+                                size = chunk.size,
+                                dateRange = screen.dateRange,
+                                tenant = screen.tenant
+                            ).renderEdit()
                         )
                         .queue()
+                    timeSlotIndex += chunk.size
                 }
             }
         }

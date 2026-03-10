@@ -35,7 +35,7 @@ object CleanupCommand : AbstractSlashCommand(
                             is AvailabilityThread -> {
                                 add(availabilityInterface.threadStartMessage)
                                 add(availabilityInterface.periodLevelMessage)
-                                addAll(availabilityInterface.chunkMessages)
+                                addAll(availabilityInterface.timeSlotChunks.map { it.message })
                             }
                             is AvailabilityMessage -> add(availabilityInterface.message)
                         }

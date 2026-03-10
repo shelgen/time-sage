@@ -137,14 +137,20 @@ sealed interface ScreenComponent<EVENT : Event> {
                         AvailabilityThreadPeriodLevelScreen(dateRange, tenant).renderEdit()
                     )
                     .queue()
-                availabilityInterface.chunkMessages.forEachIndexed { chunkIndex, messageId ->
+                var timeSlotIndex = 0
+                availabilityInterface.timeSlotChunks.forEachIndexed { chunkIndex, chunk ->
                     thread
                         .editMessageById(
-                            messageId.id,
-                            AvailabilityThreadChunkScreen(chunkIndex, dateRange, tenant)
-                                .renderEdit()
+                            chunk.message.id,
+                            AvailabilityThreadTimeSlotChunkScreen(
+                                fromInclusive = timeSlotIndex,
+                                size = chunk.size,
+                                dateRange = dateRange,
+                                tenant = tenant
+                            ).renderEdit()
                         )
                         .queue()
+                    timeSlotIndex += chunk.size
                 }
             }
         }

@@ -68,8 +68,13 @@ class PlanningProcessFileDao {
             val threadStartMessageId: Long,
             val threadChannelId: Long,
             val periodLevelMessageId: Long,
-            val chunkMessageIds: List<Long>,
-        ) : AvailabilityInterface
+            val timeSlotChunks: List<TimeSlotChunk>,
+        ) : AvailabilityInterface {
+            data class TimeSlotChunk(
+                val size: Int,
+                val messageId: Long,
+            )
+        }
 
         data class AvailabilityResponse(
             val sessionLimit: Int,
