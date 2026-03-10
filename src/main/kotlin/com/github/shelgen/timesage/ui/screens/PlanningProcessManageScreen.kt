@@ -4,6 +4,7 @@ import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
 import com.github.shelgen.timesage.planning.AvailabilityMessage
+import com.github.shelgen.timesage.planning.AvailabilityMessageSender
 import com.github.shelgen.timesage.planning.AvailabilityThread
 import com.github.shelgen.timesage.planning.Conclusion
 import com.github.shelgen.timesage.planning.Planner
@@ -88,7 +89,7 @@ class PlanningProcessManageScreen(
                         planningProcess.state = PlanningProcess.State.LOCKED
                         planningProcess.planAlternatives = plans
                     }
-                    rerenderAvailabilityInterface(planningProcess, configuration)
+                    AvailabilityMessageSender.rerenderAvailabilityInterface(planningProcess)
                 }
             }
         }
@@ -115,13 +116,12 @@ class PlanningProcessManageScreen(
                 event.processAndRerender {
                     val tenant = screen.tenant
                     val dateRange = screen.dateRange
-                    val configuration = ConfigurationRepository.loadOrInitialize(tenant)
                     val planningProcess = PlanningProcessRepository.load(dateRange, tenant)!!
                     PlanningProcessRepository.update(planningProcess) { mutable ->
                         mutable.state = PlanningProcess.State.COLLECTING_AVAILABILITIES
                         mutable.planAlternatives = mutableListOf()
                     }
-                    rerenderAvailabilityInterface(planningProcess, configuration)
+                    AvailabilityMessageSender.rerenderAvailabilityInterface(planningProcess)
                 }
             }
         }
@@ -133,14 +133,13 @@ class PlanningProcessManageScreen(
                 event.processAndRerender {
                     val tenant = screen.tenant
                     val dateRange = screen.dateRange
-                    val configuration = ConfigurationRepository.loadOrInitialize(tenant)
                     val planningProcess = PlanningProcessRepository.load(dateRange, tenant)!!
                     val conclusion = planningProcess.conclusion
                     PlanningProcessRepository.update(planningProcess) { mutable ->
                         mutable.state = PlanningProcess.State.LOCKED
                         mutable.conclusion = null
                     }
-                    rerenderAvailabilityInterface(planningProcess, configuration)
+                    AvailabilityMessageSender.rerenderAvailabilityInterface(planningProcess)
                     planningProcess.availabilityInterface?.let { JDAHolder.pin(it, tenant) }
                     planningProcess.availabilityInterface?.let { JDAHolder.unarchiveThread(it) }
                     if (conclusion != null) {

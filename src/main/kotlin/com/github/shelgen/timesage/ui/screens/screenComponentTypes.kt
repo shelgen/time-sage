@@ -1,11 +1,7 @@
 package com.github.shelgen.timesage.ui.screens
 
-import com.github.shelgen.timesage.JDAHolder
 import com.github.shelgen.timesage.Tenant
 import com.github.shelgen.timesage.configuration.Configuration
-import com.github.shelgen.timesage.planning.AvailabilityMessage
-import com.github.shelgen.timesage.planning.AvailabilityThread
-import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import net.dv8tion.jda.api.components.MessageTopLevelComponent
 import net.dv8tion.jda.api.entities.Message
@@ -106,56 +102,6 @@ sealed interface ScreenComponent<EVENT : Event> {
             }
         }
     }
-
-    fun rerenderAvailabilityInterface(planningProcess: PlanningProcess, configuration: Configuration) {
-        val availabilityInterface = planningProcess.availabilityInterface ?: return
-        val dateRange = planningProcess.dateRange
-        val tenant = configuration.tenant
-        val textChannel = JDAHolder.getTextChannel(screen.tenant)
-        when (availabilityInterface) {
-            is AvailabilityMessage -> {
-                textChannel
-                    .editMessageById(
-                        availabilityInterface.message.id,
-                        AvailabilityMessageScreen(dateRange, tenant).renderEdit()
-                    )
-                    .queue()
-            }
-
-            is AvailabilityThread -> {
-                textChannel
-                    .editMessageById(
-                        availabilityInterface.threadStartMessage.id,
-                        AvailabilityThreadStartScreen(dateRange, tenant).renderEdit()
-                    )
-                    .queue()
-
-                val thread = JDAHolder.getThreadChannel(availabilityInterface.threadChannel)
-                thread
-                    .editMessageById(
-                        availabilityInterface.periodLevelMessage.id,
-                        AvailabilityThreadPeriodLevelScreen(dateRange, tenant).renderEdit()
-                    )
-                    .queue()
-                var timeSlotIndex = 0
-                availabilityInterface.timeSlotChunks.forEachIndexed { chunkIndex, chunk ->
-                    thread
-                        .editMessageById(
-                            chunk.message.id,
-                            AvailabilityThreadTimeSlotChunkScreen(
-                                fromInclusive = timeSlotIndex,
-                                size = chunk.size,
-                                dateRange = dateRange,
-                                tenant = tenant
-                            ).renderEdit()
-                        )
-                        .queue()
-                    timeSlotIndex += chunk.size
-                }
-            }
-        }
-    }
-
 }
 
 sealed interface ScreenButton : ScreenComponent<ButtonInteractionEvent>

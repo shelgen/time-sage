@@ -8,6 +8,7 @@ import com.github.shelgen.timesage.configuration.Interval
 import com.github.shelgen.timesage.configuration.Member
 import com.github.shelgen.timesage.discord.DiscordUserId
 import com.github.shelgen.timesage.discord.DiscordVoiceChannelId
+import com.github.shelgen.timesage.planning.AvailabilityMessageSender
 import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
 import com.github.shelgen.timesage.repositories.PlanningProcessRepository
@@ -568,10 +569,16 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                         activity.voiceChannel =
                             event.getValue("voiceChannel")!!.asLongList.firstOrNull()?.let(::DiscordVoiceChannelId)
                     }
-                    val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                     PlanningProcessRepository.loadAll(screen.tenant)
                         .filter { it.state == PlanningProcess.State.COLLECTING_AVAILABILITIES }
-                        .forEach { rerenderAvailabilityInterface(it, configuration) }
+                        .forEach {
+                            AvailabilityMessageSender.rerenderAvailabilityInterface(
+                                planningProcess = it,
+                                rerenderStart = true,
+                                rerenderPeriodLevel = true,
+                                rerenderTimeSlots = false
+                            )
+                        }
                 }
             }
         }
@@ -654,10 +661,16 @@ class ConfigurationMainScreen(tenant: Tenant) : Screen(tenant) {
                         activity.voiceChannel =
                             event.getValue("voiceChannel")!!.asLongList.firstOrNull()?.let(::DiscordVoiceChannelId)
                     }
-                    val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                     PlanningProcessRepository.loadAll(screen.tenant)
                         .filter { it.state == PlanningProcess.State.COLLECTING_AVAILABILITIES }
-                        .forEach { rerenderAvailabilityInterface(it, configuration) }
+                        .forEach {
+                            AvailabilityMessageSender.rerenderAvailabilityInterface(
+                                planningProcess = it,
+                                rerenderStart = true,
+                                rerenderPeriodLevel = true,
+                                rerenderTimeSlots = false
+                            )
+                        }
                 }
             }
         }

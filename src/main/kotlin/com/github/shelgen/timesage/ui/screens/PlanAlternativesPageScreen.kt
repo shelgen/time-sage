@@ -7,6 +7,7 @@ import com.github.shelgen.timesage.createScheduledEventsForPlan
 import com.github.shelgen.timesage.discord.DiscordMessageId
 import com.github.shelgen.timesage.plan.Plan
 import com.github.shelgen.timesage.plan.PlanId
+import com.github.shelgen.timesage.planning.AvailabilityMessageSender
 import com.github.shelgen.timesage.planning.Conclusion
 import com.github.shelgen.timesage.planning.PlanningProcess
 import com.github.shelgen.timesage.repositories.ConfigurationRepository
@@ -120,7 +121,7 @@ class PlanAlternativesPageScreen(
                             )
                             mutable.state = PlanningProcess.State.CONCLUDED
                         }
-                        rerenderAvailabilityInterface(planningProcess, configuration)
+                        AvailabilityMessageSender.rerenderAvailabilityInterface(planningProcess)
                         planningProcess.availabilityInterface?.let { JDAHolder.unpin(it, screen.tenant) }
                         planningProcess.availabilityInterface?.let { JDAHolder.archiveThread(it) }
                         JDAHolder.pin(conclusionMessageId, screen.tenant)
@@ -129,7 +130,8 @@ class PlanAlternativesPageScreen(
                                 createScheduledEventsForPlan(plan, guild, configuration) { scheduledEventIds ->
                                     val updated = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
                                     PlanningProcessRepository.update(updated) { mutable ->
-                                        mutable.conclusion = mutable.conclusion?.copy(scheduledEvents = scheduledEventIds)
+                                        mutable.conclusion =
+                                            mutable.conclusion?.copy(scheduledEvents = scheduledEventIds)
                                     }
                                 }
                             }
@@ -195,7 +197,7 @@ class PlanAlternativesPageScreen(
                             )
                             mutable.state = PlanningProcess.State.CONCLUDED
                         }
-                        rerenderAvailabilityInterface(planningProcess, configuration)
+                        AvailabilityMessageSender.rerenderAvailabilityInterface(planningProcess)
                         planningProcess.availabilityInterface?.let { JDAHolder.unpin(it, screen.tenant) }
                         planningProcess.availabilityInterface?.let { JDAHolder.archiveThread(it) }
                         JDAHolder.pin(conclusionMessageId, screen.tenant)

@@ -68,7 +68,11 @@ object AvailabilityMessageSender {
             channel.sendMessage(AvailabilityMessageScreen(dateRange, tenant).render()).queue { message ->
                 logger.info("Saving availability interface...")
                 val availabilityInterface = AvailabilityMessage(Instant.now(), DiscordMessageId(message.idLong))
-                PlanningProcessRepository.update(planningProcess) { it.startCollectingAvailabilities(availabilityInterface) }
+                PlanningProcessRepository.update(planningProcess) {
+                    it.startCollectingAvailabilities(
+                        availabilityInterface
+                    )
+                }
                 logger.info("Updating pinned messages...")
                 JDAHolder.pin(availabilityInterface, tenant)
             }
@@ -127,6 +131,67 @@ object AvailabilityMessageSender {
                     message = DiscordMessageId(chunkMessage.idLong),
                 ),
             )
+        }
+    }
+
+    fun rerenderAvailabilityInterface(
+        planningProcess: PlanningProcess,
+        rerenderStart: Boolean = true,
+        rerenderPeriodLevel: Boolean = true,
+        rerenderTimeSlots: Boolean = true,
+    ) {
+        val availabilityInterface = planningProcess.availabilityInterface ?: return
+        val dateRange = planningProcess.dateRange
+        val tenant = planningProcess.tenant
+        val textChannel = JDAHolder.getTextChannel(tenant)
+        when (availabilityInterface) {
+            is AvailabilityMessage -> {
+                textChannel
+                    .editMessageById(
+                        availabilityInterface.message.id,
+                        AvailabilityMessageScreen(dateRange, tenant).renderEdit()
+                    )
+                    .queue()
+            }
+
+            is AvailabilityThread -> {
+                if (rerenderStart) {
+                    textChannel
+                        .editMessageById(
+                            availabilityInterface.threadStartMessage.id,
+                            AvailabilityThreadStartScreen(dateRange, tenant).renderEdit()
+                        )
+                        .queue()
+                }
+
+                val thread = JDAHolder.getThreadChannel(availabilityInterface.threadChannel)
+                if (rerenderPeriodLevel) {
+                    thread
+                        .editMessageById(
+                            availabilityInterface.periodLevelMessage.id,
+                            AvailabilityThreadPeriodLevelScreen(dateRange, tenant).renderEdit()
+                        )
+                        .queue()
+                }
+
+                if (rerenderTimeSlots) {
+                    var timeSlotIndex = 0
+                    availabilityInterface.timeSlotChunks.forEach { chunk ->
+                        thread
+                            .editMessageById(
+                                chunk.message.id,
+                                AvailabilityThreadTimeSlotChunkScreen(
+                                    fromInclusive = timeSlotIndex,
+                                    size = chunk.size,
+                                    dateRange = dateRange,
+                                    tenant = tenant
+                                ).renderEdit()
+                            )
+                            .queue()
+                        timeSlotIndex += chunk.size
+                    }
+                }
+            }
         }
     }
 }
