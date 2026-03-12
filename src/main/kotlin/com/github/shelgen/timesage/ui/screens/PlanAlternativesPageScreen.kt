@@ -187,7 +187,6 @@ class PlanAlternativesPageScreen(
                 event.processAndAddPublicScreen(
                     onMessagePosted = { conclusionMessage ->
                         val planningProcess = PlanningProcessRepository.load(screen.dateRange, screen.tenant)!!
-                        val configuration = ConfigurationRepository.loadOrInitialize(screen.tenant)
                         val conclusionMessageId = DiscordMessageId(conclusionMessage.idLong)
                         PlanningProcessRepository.update(planningProcess) { mutable ->
                             mutable.conclusion = Conclusion(
