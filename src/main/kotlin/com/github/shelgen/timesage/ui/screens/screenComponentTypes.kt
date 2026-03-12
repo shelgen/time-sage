@@ -66,7 +66,7 @@ sealed interface ScreenComponent<EVENT : Event> {
                 }
             } catch (e: Exception) {
                 logger.error("Error in processAndAddPublicScreen (screen=${screen::class.simpleName})", e)
-                interactionHook.editOriginal("An error occurred.").queue()
+                interactionHook.setEphemeral(true).editOriginal("An error occurred.").queue()
             } finally {
                 MDC.clear()
             }
