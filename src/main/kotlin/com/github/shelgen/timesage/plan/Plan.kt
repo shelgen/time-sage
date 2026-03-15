@@ -12,8 +12,8 @@ data class Plan(
 ) {
     val score: Score = Score(
         missingOptionalParticipants = sessions.sumOf(Session::missingOptionalCount),
-        ifNeedBeParticipants = sessions.sumOf(Session::countIfNeedBes),
         numberOfSessions = sessions.size,
+        ifNeedBeParticipants = sessions.sumOf(Session::countIfNeedBes),
         participantSessions = sessions.sumOf(Session::countParticipants),
         directlyFollowingDays = sessions.zipWithNext().count { (a, b) ->
             numDaysBetween(
@@ -25,15 +25,15 @@ data class Plan(
 
     data class Score(
         val missingOptionalParticipants: Int,
-        val ifNeedBeParticipants: Int,
         val numberOfSessions: Int,
+        val ifNeedBeParticipants: Int,
         val participantSessions: Int,
         val directlyFollowingDays: Int
     ) : Comparable<Score> {
         private val comparator: Comparator<Score> = compareBy(
             { it.missingOptionalParticipants },
-            { it.ifNeedBeParticipants },
             { -it.numberOfSessions },
+            { it.ifNeedBeParticipants },
             { -it.participantSessions },
             { it.directlyFollowingDays }
         )
@@ -44,9 +44,9 @@ data class Plan(
             val parts = buildList {
                 if (missingOptionalParticipants > 0)
                     add("$missingOptionalParticipants missing")
+                add(if (numberOfSessions == 1) "1 session" else "$numberOfSessions sessions")
                 if (ifNeedBeParticipants > 0)
                     add("$ifNeedBeParticipants if-need-be")
-                add(if (numberOfSessions == 1) "1 session" else "$numberOfSessions sessions")
                 add(if (participantSessions == 1) "1 participant" else "$participantSessions participants")
                 if (directlyFollowingDays > 0)
                     add(if (directlyFollowingDays == 1) "1 directly following day" else "$directlyFollowingDays directly following days")
