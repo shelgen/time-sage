@@ -282,13 +282,13 @@ class PlannerTest {
     // ─── Score unit tests ─────────────────────────────────────────────────────
 
     @Test
-    fun `Score ordering - missing first, then if-need-be, then more sessions, then more participants, then fewer consecutive days`() {
-        val s1 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
-        val s2 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 1)
-        val s3 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 0, numberOfSessions = 2, participantSessions = 4, directlyFollowingDays = 0)
-        val s4 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 0, numberOfSessions = 1, participantSessions = 3, directlyFollowingDays = 0)
-        val s5 = Plan.Score(missingOptionalParticipants = 0, ifNeedBeParticipants = 1, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
-        val s6 = Plan.Score(missingOptionalParticipants = 1, ifNeedBeParticipants = 0, numberOfSessions = 2, participantSessions = 6, directlyFollowingDays = 0)
+    fun `Score ordering - missing first, then more sessions, then if-need-be, then more participants, then fewer consecutive days`() {
+        val s1 = Plan.Score(missingOptionalParticipants = 0, numberOfSessions = 1, ifNeedBeParticipants = 2, participantSessions = 3, directlyFollowingDays = 4)
+        val s2 = Plan.Score(missingOptionalParticipants = 1, numberOfSessions = 2, ifNeedBeParticipants = 1, participantSessions = 4, directlyFollowingDays = 3)
+        val s3 = Plan.Score(missingOptionalParticipants = 1, numberOfSessions = 1, ifNeedBeParticipants = 0, participantSessions = 5, directlyFollowingDays = 2)
+        val s4 = Plan.Score(missingOptionalParticipants = 1, numberOfSessions = 1, ifNeedBeParticipants = 1, participantSessions = 6, directlyFollowingDays = 1)
+        val s5 = Plan.Score(missingOptionalParticipants = 1, numberOfSessions = 1, ifNeedBeParticipants = 1, participantSessions = 5, directlyFollowingDays = 0)
+        val s6 = Plan.Score(missingOptionalParticipants = 1, numberOfSessions = 1, ifNeedBeParticipants = 1, participantSessions = 5, directlyFollowingDays = 1)
 
         assertEquals(listOf(s1, s2, s3, s4, s5, s6), listOf(s6, s4, s2, s5, s3, s1).sorted())
     }

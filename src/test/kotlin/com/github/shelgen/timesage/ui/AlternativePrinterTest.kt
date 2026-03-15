@@ -90,7 +90,7 @@ class AlternativePrinterTest {
             plan = plan(session(monday, 1, cyclops to false, jeanGrey to false, wolverine to true))
         )
         assertEquals(
-            "-# Alternative 1 (1 if-need-be, 1 session, 3 participants)\n" +
+            "-# Alternative 1 (1 session, 1 if-need-be, 3 participants)\n" +
                     "### **Save the World** on <t:${monday.epochSecond}:F>\n" +
                     "<@$cyclops>\n" +
                     "<@$jeanGrey>\n" +
@@ -122,7 +122,7 @@ class AlternativePrinterTest {
             plan = plan(session(monday, 1, cyclops to false, jeanGrey to true, missingOptionalCount = 1))
         )
         assertEquals(
-            "-# Alternative 2 (1 missing, 1 if-need-be, 1 session, 2 participants)\n" +
+            "-# Alternative 2 (1 missing, 1 session, 1 if-need-be, 2 participants)\n" +
                     "### **Save the World** on <t:${monday.epochSecond}:F>\n" +
                     "<@$cyclops>\n" +
                     "*<@$jeanGrey> (if need be)*\n" +
