@@ -92,7 +92,10 @@ class PlanAlternativesPageScreen(
 
     private fun renderBottomActionRow(): List<MessageTopLevelComponent> {
         val buttons = buildList<ActionRowChildComponent> {
-            if (fromInclusive == 0) add(Buttons.ConcludeNoSession(screen = this@PlanAlternativesPageScreen).render())
+            if (fromInclusive == 0) {
+                add(Buttons.ConcludeNoSession(screen = this@PlanAlternativesPageScreen).render())
+                add(Buttons.BuildMode(screen = this@PlanAlternativesPageScreen).render())
+            }
             add(Buttons.Back(screen = this@PlanAlternativesPageScreen).render())
         }
         return listOf(ActionRow.of(buttons))
@@ -220,6 +223,21 @@ class PlanAlternativesPageScreen(
                     PlanningProcessManageScreen(
                         dateRange = screen.dateRange,
                         tenant = screen.tenant
+                    )
+                }
+            }
+        }
+
+        class BuildMode(override val screen: PlanAlternativesPageScreen) : ScreenButton {
+            fun render() =
+                Button.secondary(CustomIdSerialization.serialize(this), "Build mode...")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndNavigateTo {
+                    BuildModeScreen(
+                        dateRange = screen.dateRange,
+                        selectedSessions = "",
+                        tenant = screen.tenant,
                     )
                 }
             }
