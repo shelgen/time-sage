@@ -91,7 +91,8 @@ class BuildModeScreen(
             val options = nextSessions.take(25).map { (slotIdx, actId) ->
                 val timeSlot = planningProcess.timeSlots[slotIdx]
                 val activity = configuration.getActivity(ActivityId(actId))
-                val label = "${activity.name}: ${DiscordFormatter.timestamp(timeSlot, DiscordFormatter.TimestampFormat.SHORT_DATE_TIME)}"
+                val zonedTime = timeSlot.atZone(configuration.localization.timeZone.toZoneId())
+            val label = "${activity.name}: ${java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d yyyy 'at' HH:mm z", java.util.Locale.US).format(zonedTime)}"
                 SelectOption.of(label.take(100), "$slotIdx:$actId")
             }
             components.add(
