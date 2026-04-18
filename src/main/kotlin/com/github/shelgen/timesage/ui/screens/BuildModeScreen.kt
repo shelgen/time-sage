@@ -106,6 +106,9 @@ class BuildModeScreen(
             if (parsed.isNotEmpty() && matchingPlans.isNotEmpty()) {
                 add(Buttons.ConcludeBestMatch(this@BuildModeScreen).render())
             }
+            if (parsed.isNotEmpty()) {
+                add(Buttons.RemoveLast(this@BuildModeScreen).render())
+            }
             add(Buttons.Back(this@BuildModeScreen).render())
         }
         components.add(ActionRow.of(bottomButtons))
@@ -217,6 +220,22 @@ class BuildModeScreen(
                     PlanConcludedWithScreen(
                         planId = plan.id,
                         dateRange = screen.dateRange,
+                        tenant = screen.tenant,
+                    )
+                }
+            }
+        }
+
+        class RemoveLast(override val screen: BuildModeScreen) : ScreenButton {
+            fun render(): Button =
+                Button.secondary(CustomIdSerialization.serialize(this), "Remove last")
+
+            override fun handle(event: ButtonInteractionEvent) {
+                event.processAndNavigateTo {
+                    val newSelected = screen.selectedSessions.substringBeforeLast(';', missingDelimiterValue = "")
+                    BuildModeScreen(
+                        dateRange = screen.dateRange,
+                        selectedSessions = newSelected,
                         tenant = screen.tenant,
                     )
                 }
