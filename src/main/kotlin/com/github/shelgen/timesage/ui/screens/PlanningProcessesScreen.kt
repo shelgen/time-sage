@@ -11,10 +11,13 @@ import net.dv8tion.jda.api.components.buttons.Button
 import net.dv8tion.jda.api.components.section.Section
 import net.dv8tion.jda.api.components.textdisplay.TextDisplay
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent
+import java.time.LocalDate
 
 class PlanningProcessesScreen(tenant: Tenant) : Screen(tenant) {
     override fun renderComponents(configuration: Configuration): List<MessageTopLevelComponent> {
+        val today = LocalDate.now()
         val planningProcesses = PlanningProcessRepository.loadAll(tenant)
+            .filter { it.dateRange.toInclusive >= today }
             .sortedBy { it.dateRange.fromInclusive }
         val existingRanges = planningProcesses.map { it.dateRange }.toSet()
 
